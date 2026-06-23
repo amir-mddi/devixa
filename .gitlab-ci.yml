@@ -1,0 +1,38 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  BACKEND_VERSION: v1.0.1
+  DOCKER_API_VERSION: "1.43"
+
+build_backend_prod:
+  stage: build
+  image: docker.arvancloud.ir/docker:latest
+  variables:
+    IMAGE_NAME: $CI_REGDOCKER_API_VERSIONISTRY_IMAGE/dealio:$CI_COMMIT_SHORT_SHA
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  script:
+    - echo "$IMAGE_NAME"
+    - docker build . -f deployment/Dockerfiles/DockerfileProd --tag "$IMAGE_NAME"
+    - docker push "$IMAGE_NAME"
+  tags: [app3]
+  only:
+    refs: [main]
+
+deploy_prod_first_mock:
+  stage: deploy
+  image: docker.arvancloud.ir/docker:latest
+  variables:
+    IMAGE_NAME: $CI_REGISTRY_IMAGE/dealio:$CI_COMMIT_SHORT_SHA
+    VERSION: $BACKEND_VERSION
+    PROJECT_ENV_FILE: ../env/production.env
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  script:
+    - echo "$IMAGE_NAME"
+    - docker compose -f deployment/docker_composes/docker-compose-main-app.yml up -d
+  tags: [app2]
+  only:
+    refs: [main]

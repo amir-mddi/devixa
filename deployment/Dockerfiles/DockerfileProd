@@ -1,0 +1,23 @@
+FROM docker.arvancloud.ir/python:3.11
+
+
+WORKDIR /app
+
+COPY deployment/requirements/req-prod.txt /app/
+
+RUN pip install --no-cache-dir --index-url https://mirror-pypi.runflare.com/simple -r req-prod.txt
+
+#RUN pip install --no-cache-dir --upgrade pip && \
+##    pip install --no-cache-dir --index-url https://mirror-pypi.runflare.com/simple -r req-prod.txt
+#   pip install -r req-prod.txt
+COPY . /app/
+COPY deployment/entrypoints/entrypoint.sh /app/
+RUN sed -i 's/\r$//g' entrypoint.sh && \
+    chmod +x entrypoint.sh
+
+ENV PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus_multiproc
+RUN mkdir -p $PROMETHEUS_MULTIPROC_DIR
+RUN chmod 777 $PROMETHEUS_MULTIPROC_DIR
+
+ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["sh","-c","gunicorn -w ${WORKERS:-$(( $(nproc) * 2 + 1 ))} -k gthread --threads ${THREADS:-6}  dealio.project.wsgi:application -b 0.0.0.0:${PORT:-8077}"]

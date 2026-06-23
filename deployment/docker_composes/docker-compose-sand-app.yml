@@ -1,0 +1,38 @@
+version: '3.9'
+
+services:
+  dealio_backend:
+    build:
+      context: ../..
+      dockerfile: deployment/Dockerfiles/DockerfileDev
+    env_file:
+      - ../env/development.env
+    volumes:
+      - /mnt/data/backend_web/media:/app/dealio/apps/media
+      - /mnt/data/backend_web/db:/app/db
+    ports:
+      - "8077:8077"
+    restart: always
+    networks:
+      - backend
+    container_name: dealio_application
+
+  telegram_bot:
+    build:
+      context: ../..
+      dockerfile: deployment/Dockerfiles/DockerfileDev
+    env_file:
+      - ../env/development.env
+    command: python -m dealio.project.manage telegram_polling --drop-pending
+    restart: always
+    volumes:
+      - /mnt/data/backend_web/media:/app/dealio/apps/media
+      - /mnt/data/backend_web/db:/app/db
+    networks:
+      - backend
+    container_name: dealio_telegram_bot
+
+networks:
+  backend:
+    external: true
+

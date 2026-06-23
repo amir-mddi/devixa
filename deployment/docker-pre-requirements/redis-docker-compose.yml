@@ -1,0 +1,15 @@
+services:
+  redis:
+    container_name: redis
+    image: docker.arvancloud.ir/library/redis:7
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - /mnt/redis:/data
+    networks:
+      - backend
+
+networks:
+  backend:
+    external: true

@@ -1,0 +1,66 @@
+version: '3'
+
+services:
+  dealio_backend:
+    image: $IMAGE_NAME
+    env_file:
+      - $PROJECT_ENV_FILE
+    volumes:
+      - /mnt/data/backend_web/media:/app/dealio/apps/media
+    ports:
+      - "8077:8077"
+    restart: always
+    environment:
+      - VERSION=$VERSION
+    networks:
+      - backend
+    container_name: dealio_application
+
+  celery_worker:
+    image: $IMAGE_NAME
+    command: celery -A dealio.project worker -l info -Q high_priority --prefetch-multiplier=1 --loglevel=info
+    env_file:
+      - $PROJECT_ENV_FILE
+    environment:
+      - VERSION=$VERSION
+    volumes:
+      - /mnt/data/backend_web/media:/app/dealio/apps/media
+    restart: always
+    networks:
+      - backend
+    container_name: dealio_celery_worker_service
+
+
+  celery_beat:
+    image: $IMAGE_NAME
+    command: celery -A dealio.project beat --scheduler django_celery_beat.schedulers:DatabaseScheduler --max-interval=1 --loglevel=info
+
+    env_file:
+      - $PROJECT_ENV_FILE
+    environment:
+      - VERSION=$VERSION
+    volumes:
+      - /mnt/data/backend_web/media:/app/dealio/apps/media
+    restart: always
+    networks:
+      - backend
+    container_name: dealio_celery_beat_service
+
+
+  flower:
+    image: $IMAGE_NAME
+    command: celery -A dealio flower
+    env_file:
+      - $PROJECT_ENV_FILE
+    ports:
+      - "5556:5556"
+    restart: always
+    networks:
+      - backend
+    container_name: dealio_monitoring_flower_service
+
+
+
+networks:
+  backend:
+    external: true

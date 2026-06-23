@@ -1,0 +1,13 @@
+services:
+  postgresql:
+    container_name: postgres
+    image: docker.arvancloud.ir/library/postgres:16
+    restart: always
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=dealio
+    volumes:
+      - /mnt/postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
