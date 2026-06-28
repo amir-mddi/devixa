@@ -76,12 +76,14 @@ out/
 
 # JIRA plugin
 atlassian-ide-plugin.xml
-
+*mock_ex*
+counter_*
 # Python #
 *.py[cod]
 *$py.class
 deployment/env/local.env
 .local_env
+deployment/docker_composes/docker_test_local.yml
 # Distribution / packaging
 .Python build/
 develop-eggs/

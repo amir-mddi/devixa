@@ -60,8 +60,8 @@ class UserSerializer(BaseSerializerModel):
 
 
 class ChangePasswordSerializer(serializers.Serializer):
-    currentPassword = serializers.CharField(write_only=True, required=True)
-    newPassword = serializers.CharField(
+    current_password = serializers.CharField(write_only=True, required=True)
+    new_password = serializers.CharField(
         write_only=True,
         required=True,
         validators=[validate_password],
@@ -100,8 +100,18 @@ class ForgotPasswordVerifyCodeSerializer(serializers.Serializer):
         required=True,
         error_messages={"invalid": "Code must be a 6-digit number."},
     )
-    newPassword = serializers.CharField(
+    new_password = serializers.CharField(
         write_only=True,
         required=True,
         validators=[validate_password],
     )
+
+
+class SocialOAuthLoginSerializer(serializers.Serializer):
+    code = serializers.CharField(write_only=True, required=True, trim_whitespace=True)
+    redirect_uri = serializers.URLField(write_only=True, required=True)
+
+    def to_internal_value(self, data):
+        if isinstance(data, dict) and "redirectUri" in data and "redirect_uri" not in data:
+            data = {**data, "redirect_uri": data["redirectUri"]}
+        return super().to_internal_value(data)

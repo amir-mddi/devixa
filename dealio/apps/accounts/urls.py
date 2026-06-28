@@ -3,7 +3,8 @@ from django.urls import path
 from rest_framework import routers
 
 from dealio.apps.accounts.views import ChangePasswordView, UserViewSet, UsersApiView, SendEmailVerificationCodeAPIView, \
-    VerifyEmailCodeAPIView, SendForgotPasswordCodeAPIView, VerifyForgotPasswordCodeAPIView
+    VerifyEmailCodeAPIView, SendForgotPasswordCodeAPIView, VerifyForgotPasswordCodeAPIView, \
+    GoogleOAuthLoginAPIView, GitHubOAuthLoginAPIView
 from dealio.apps.common.helpers.jwt.custom_jwt import CustomTokenObtainPairView
 
 router = routers.DefaultRouter()
@@ -54,5 +55,7 @@ urlpatterns = [
         name="verify-forgot-password-code",
     ),
     path('signin/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('oauth/google/', GoogleOAuthLoginAPIView.as_view(http_method_names=["post"]), name='google-oauth-login'),
+    path('oauth/github/', GitHubOAuthLoginAPIView.as_view(http_method_names=["post"]), name='github-oauth-login'),
     path('', include(router.urls)),
 ]

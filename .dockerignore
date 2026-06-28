@@ -39,6 +39,9 @@ local_machine.env
 run
 venv
 myvenv
+*mock_ex*
+counter_*
+deployment/docker_composes/docker_test_local.yml
 test.py
 .local_env
 dealio/apps/accounts/middleware_prom.py

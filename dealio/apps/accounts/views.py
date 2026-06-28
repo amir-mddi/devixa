@@ -4,12 +4,13 @@ from audioop import alaw2lin
 from django.contrib.auth import get_user_model
 from django.utils.decorators import method_decorator
 from drf_spectacular.utils import extend_schema, OpenApiResponse, extend_schema_view
+from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 from django.db import transaction
 
 from dealio.apps.accounts.serializers import ChangePasswordSerializer, UserSerializer, VerifyCodeSerializer, \
-    ForgotPasswordSendCodeSerializer, ForgotPasswordVerifyCodeSerializer
+    ForgotPasswordSendCodeSerializer, ForgotPasswordVerifyCodeSerializer, SocialOAuthLoginSerializer
 from dealio.apps.common.response_utils import ResponseUtil
 from dealio.apps.shared.views import BaseViewSet, BaseAPIView
 from .models import Role
@@ -20,6 +21,7 @@ from ..shared.serializers import ListResponseSerializer, BaseResponseSerializer
 
 User = get_user_model()
 from dealio.apps.accounts.repositories.account_logic import AccountLogicRepository
+from dealio.apps.accounts.repositories.oauth_service import OAuthProviderError, SocialOAuthService
 
 shared_logic = SharedApplicationLogic()
 account_logic = AccountLogicRepository()
@@ -197,3 +199,52 @@ class VerifyForgotPasswordCodeAPIView(BaseAPIView):
             data={"detail": "Password has been reset successfully."},
             status_code=ResponseVO.http_200,
         )
+
+
+@method_decorator(rate_limit(authenticated_limit=10, anonymous_limit=10, period=300), name="dispatch")
+class BaseSocialOAuthLoginAPIView(BaseAPIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    serializer_class = SocialOAuthLoginSerializer
+    tag_name = "Account"
+    provider = None
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        service = SocialOAuthService()
+        code = serializer.validated_data["code"]
+        redirect_uri = serializer.validated_data["redirect_uri"]
+
+        try:
+            if self.provider == "google":
+                token_data = service.login_with_google(code=code, redirect_uri=redirect_uri)
+            elif self.provider == "github":
+                token_data = service.login_with_github(code=code, redirect_uri=redirect_uri)
+            else:
+                return ResponseUtil(
+                    data={"detail": "Unsupported OAuth provider."},
+                    status_code=ResponseVO.http_400,
+                )
+        except OAuthProviderError as exc:
+            logger.warning("OAuth login failed: %s", exc.log_message)
+            response_status = (
+                ResponseVO.http_500
+                if exc.status_code >= status.HTTP_500_INTERNAL_SERVER_ERROR
+                else ResponseVO.http_400
+            )
+            return ResponseUtil(
+                data={"detail": exc.public_message},
+                status_code=response_status,
+            )
+
+        return ResponseUtil(custom_fields=token_data, status_code=ResponseVO.http_200)
+
+
+class GoogleOAuthLoginAPIView(BaseSocialOAuthLoginAPIView):
+    provider = "google"
+
+
+class GitHubOAuthLoginAPIView(BaseSocialOAuthLoginAPIView):
+    provider = "github"

@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
 from django.db import models
@@ -32,7 +33,10 @@ class CustomUser(BaseModel, AbstractUser):
                 code='invalid_phone_number'
             ),
         ],
-        unique=True
+        unique=True,
+        null=True,
+        blank=True,
+        help_text="Phone can be collected after social signup.",
     )
     role = models.ForeignKey(Role,
                              related_name='user_role',
@@ -57,3 +61,39 @@ class TokenBlacklist(BaseModel):
 
     def __str__(self):
         return f'TokenBlacklist for User: {self.user.username}'
+
+
+
+class SocialAuthProvider(models.TextChoices):
+    GOOGLE = "google", "Google"
+    GITHUB = "github", "GitHub"
+
+
+class SocialAccount(BaseModel):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="social_accounts",
+        on_delete=models.CASCADE,
+    )
+    provider = models.CharField(
+        max_length=20,
+        choices=SocialAuthProvider.choices,
+        db_index=True,
+    )
+    provider_user_id = models.CharField(max_length=255)
+    email = models.EmailField(blank=True, default="")
+    extra_data = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["provider", "provider_user_id"],
+                name="unique_social_provider_user_id",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["provider", "email"], name="social_provider_email_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.provider}:{self.provider_user_id}"
