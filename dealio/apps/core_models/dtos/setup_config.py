@@ -3,7 +3,7 @@ from datetime import timedelta
 from distutils.util import strtobool
 from typing import ClassVar, Optional, List
 from typing import Dict, Any
-adfrom urllib.parse import quote
+from urllib.parse import quote
 
 from pydantic import Field
 from requests_aws4auth import AWS4Auth
