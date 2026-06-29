@@ -33,8 +33,7 @@ class Command(BaseCommand):
         if not client.is_configured:
             raise CommandError("TELEGRAM_BOT_TOKEN is not configured.")
 
-        # Telegram cannot use webhook and polling at the same time.
-        # For local development, remove webhook first.
+
         client.delete_webhook(drop_pending_updates=options["drop_pending"])
 
         service = TelegramBotService(client=client)

@@ -11,7 +11,7 @@ from dealio.apps.core_models.dtos.base_dto import BaseDTO
 
 
 class RedisConfiguration(BaseDTO):
-    password: str = os.environ.get("strtoboolREDIS_PASSWORD", "")
+    password: str = os.environ.get("REDIS_PASSWORD", "")
     url: str = os.environ.get("REDIS_URL", "")
     port: str = os.environ.get("REDIS_PORT", "")
     db_index: str = os.environ.get("REDIS_DB", "0")
