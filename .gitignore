@@ -20,6 +20,7 @@ tracing/management
 local_assests
 local_infrastructure
 main.py
+guide_for_ai.txt
 dealio/apps/regulator/mock_regulation_data
 # If you are using PyCharm #
 # User-specific stuff

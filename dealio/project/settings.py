@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from typing import ContextManager
+from urllib.parse import quote
 
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
@@ -20,6 +21,8 @@ from dealio.apps.core_models.dtos.setup_config import general_config, redis_conf
     database_config, sentry_config, jwt_config, logging_config, swagger_config, session_config
 
 ENV = general_config.env
+REDIS_AUTH_PART = f":{quote(redis_config.password, safe='')}@" if redis_config.password else ""
+REDIS_LOCATION = f"redis://{REDIS_AUTH_PART}{redis_config.url}:{redis_config.port}/{redis_config.db_index}"
 SECRET_KEY = general_config.secret_key
 DEBUG = general_config.debug
 ALLOWED_HOSTS = general_config.allowed_hosts
@@ -51,6 +54,8 @@ INSTALLED_APPS = [
     # apps
     'dealio.apps.accounts',
     'dealio.apps.shared',
+    'dealio.apps.courses',
+    'dealio.apps.billing',
     'dealio.apps.telegram_bot',
     'django_prometheus',
 ]
@@ -116,7 +121,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f'redis://:{redis_config.password}@{redis_config.url}:{redis_config.port}/{redis_config.db_index}',
+        "LOCATION": REDIS_LOCATION,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "PASSWORD": redis_config.password,
@@ -130,7 +135,7 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [(redis_config.url, int(redis_config.port))],
+            "hosts": [REDIS_LOCATION],
         },
     },
 }

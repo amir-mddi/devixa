@@ -50,7 +50,7 @@ class BaseViewSet(TaggedSchemaViewSet):
         return BaseAPIConfig(
             view=self,
             request=request or self.request,
-            model_clz=self.model_class,
+            model_clz=getattr(self, "model_clz", None) or self.model_class,
             serializer_class=self.serializer_class,
         )
 
@@ -131,7 +131,7 @@ class BaseAPIView(TaggedSchemaAPIView):
         return BaseAPIConfig(
             view=self,
             request=request,
-            model_clz=self.model_class,
+            model_clz=getattr(self, "model_clz", None) or self.model_class,
             serializer_class=self.serializer_class,
         )
 

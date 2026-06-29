@@ -72,7 +72,6 @@ class LoginThrottle(BaseAuthenticatedThrottle):
 
 # core/throttling.py
 
-from __future__ import annotations
 
 import hashlib
 import time

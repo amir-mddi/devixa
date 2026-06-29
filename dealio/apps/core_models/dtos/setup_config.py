@@ -3,6 +3,7 @@ from datetime import timedelta
 from distutils.util import strtobool
 from typing import ClassVar, Optional, List
 from typing import Dict, Any
+adfrom urllib.parse import quote
 
 from pydantic import Field
 from requests_aws4auth import AWS4Auth
@@ -24,9 +25,14 @@ class RedisConfiguration(BaseDTO):
 redis_config = RedisConfiguration()
 
 
+def build_redis_url(db_index: str) -> str:
+    auth = f":{quote(redis_config.password, safe='')}@" if redis_config.password else ""
+    return f"redis://{auth}{redis_config.url}:{redis_config.port}/{db_index}"
+
+
 class CeleryConfiguration(BaseDTO):
-    broker_url: str = f'redis://:{redis_config.password}@{redis_config.url}:{redis_config.port}/{redis_config.db_index}'
-    result_backend: str = f'redis://:{redis_config.password}@{redis_config.url}:{redis_config.port}/{os.environ.get("CELERY_BACKEND_REDIS_DB", "")}'
+    broker_url: str = build_redis_url(redis_config.db_index)
+    result_backend: str = build_redis_url(os.environ.get("CELERY_BACKEND_REDIS_DB", ""))
     accept_content: list = ['application/json']
     task_serializer: str = 'json'
     result_serializer: str = 'json'

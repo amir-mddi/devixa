@@ -40,6 +40,7 @@ run
 venv
 myvenv
 *mock_ex*
+guide_for_ai.txt
 counter_*
 deployment/docker_composes/docker_test_local.yml
 test.py

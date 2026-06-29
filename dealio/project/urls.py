@@ -25,6 +25,8 @@ class PrivateRedocView(SpectacularRedocView):
 PREFIX_URL = "api/v1/"
 urlpatterns = [
                   path(PREFIX_URL + "account/", include("dealio.apps.accounts.urls")),
+                  path(PREFIX_URL + "courses/", include("dealio.apps.courses.urls")),
+                  path(PREFIX_URL + "billing/", include("dealio.apps.billing.urls")),
                   path("api/shared/", include("dealio.apps.shared.urls")),
                   path("api/telegram/", include("dealio.apps.telegram_bot.urls")),
                   # path('', include('django_prometheus.urls')),
