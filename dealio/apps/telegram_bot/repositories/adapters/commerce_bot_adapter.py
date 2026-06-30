@@ -166,4 +166,7 @@ class TelegramCommerceBotDjangoAdapter:
 
     @staticmethod
     def sandbox_enabled() -> bool:
-        return os.environ.get("PAYMENT_SANDBOX_ENABLED", "false").strip().lower() in {"1", "true", "yes"}
+        value = os.environ.get("PAYMENT_SANDBOX_ENABLED")
+        if value is None:
+            raise RuntimeError("PAYMENT_SANDBOX_ENABLED is required.")
+        return value.strip().lower() in {"1", "true", "yes"}

@@ -26,6 +26,7 @@ class TelegramBotCallbackVO:
     UNLINK_ASK = "menu:unlink_ask"
     UNLINK_CONFIRM = "menu:unlink_confirm"
     CANCEL = "menu:cancel"
+    CHANNELS = "menu:channels"
 
 
 class TelegramBotStateVO:
@@ -77,6 +78,7 @@ class TelegramBotButtonKeyVO:
     CREATE_COURSE = "create_course"
     MAIN_MENU = "main_menu"
     CANCEL = "cancel"
+    CHANNELS = "channels"
     YES_UNLINK = "yes_unlink"
     CONFIRM_CREATE = "confirm_create"
 
@@ -98,6 +100,7 @@ class TelegramBotButtonTextVO:
             TelegramBotButtonKeyVO.LANGUAGE: "🌍 Language",
             TelegramBotButtonKeyVO.UNLINK: "🚪 Unlink",
             TelegramBotButtonKeyVO.HELP: "❓ Help",
+            TelegramBotButtonKeyVO.CHANNELS: "📣 Channels",
             TelegramBotButtonKeyVO.COURSES: "📚 Courses",
             TelegramBotButtonKeyVO.MY_COURSES: "🎓 My courses",
             TelegramBotButtonKeyVO.MY_ORDERS: "🧾 My orders",
@@ -119,6 +122,7 @@ class TelegramBotButtonTextVO:
             TelegramBotButtonKeyVO.LANGUAGE: "🌍 زبان",
             TelegramBotButtonKeyVO.UNLINK: "🚪 قطع اتصال",
             TelegramBotButtonKeyVO.HELP: "❓ راهنما",
+            TelegramBotButtonKeyVO.CHANNELS: "📣 کانال‌ها",
             TelegramBotButtonKeyVO.COURSES: "📚 دوره‌ها",
             TelegramBotButtonKeyVO.MY_COURSES: "🎓 دوره‌های من",
             TelegramBotButtonKeyVO.MY_ORDERS: "🧾 سفارش‌های من",
@@ -152,6 +156,7 @@ class TelegramBotAliasVO:
         TelegramBotButtonKeyVO.LANGUAGE: {"language", "زبان"},
         TelegramBotButtonKeyVO.UNLINK: {"unlink", "قطع اتصال"},
         TelegramBotButtonKeyVO.HELP: {"help", "راهنما"},
+        TelegramBotButtonKeyVO.CHANNELS: {"channels", "channel", "کانال", "کانال‌ها", "کانال ها"},
         TelegramBotButtonKeyVO.COURSES: {"courses", "course", "دوره", "دوره‌ها", "دوره ها"},
         TelegramBotButtonKeyVO.MY_COURSES: {"my courses", "my course", "دوره‌های من", "دوره های من"},
         TelegramBotButtonKeyVO.MY_ORDERS: {"my orders", "orders", "سفارش‌های من", "سفارش های من"},
@@ -178,6 +183,11 @@ class TelegramBotMessageTextVO:
             "canceled": "Canceled.",
             "use_buttons": "Please use the menu buttons below.",
             "unknown": "Unknown action. Use the buttons below.",
+            "channels_title": "Join our official channels:",
+            "channels_not_configured": "Channel links are not configured yet.",
+            "telegram_channel": "Telegram channel",
+            "bale_channel": "Bale channel",
+            "rubika_channel": "Rubika channel",
             "private_only": "Please message me privately to manage your account.",
             "menu_linked": "Welcome back, <b>{name}</b>!\n\nChoose an action:",
             "menu_guest": "Welcome to Devixa bot.\n\nChoose an action:",
@@ -511,6 +521,7 @@ class TelegramBotProfileVO:
             {"command": "courses", "description": "مشاهده دوره‌ها"},
             {"command": "my_courses", "description": "دوره‌های من"},
             {"command": "orders", "description": "سفارش‌های من"},
+            {"command": "channels", "description": "کانال‌های رسمی"},
             {"command": "admin_courses", "description": "مدیریت دوره‌ها - فقط ادمین"},
             {"command": "create_course", "description": "ساخت دوره - فقط ادمین"},
             {"command": "review_queue", "description": "بررسی دیدگاه‌ها - فقط ادمین"},
@@ -525,6 +536,7 @@ class TelegramBotProfileVO:
             {"command": "courses", "description": "Browse courses"},
             {"command": "my_courses", "description": "My courses"},
             {"command": "orders", "description": "My orders"},
+            {"command": "channels", "description": "Official channels"},
             {"command": "admin_courses", "description": "Manage courses - admin only"},
             {"command": "create_course", "description": "Create course - admin only"},
             {"command": "review_queue", "description": "Review queue - admin only"},

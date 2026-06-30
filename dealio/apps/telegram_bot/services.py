@@ -11,12 +11,10 @@ from typing import Any
 import requests
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import IntegrityError, transaction
 
-from dealio.apps.accounts.models import Role
 from dealio.apps.accounts.repositories.account_logic import AccountLogicRepository
 from dealio.apps.common.helpers.validators.account_validators import (
     validate_english_username,
@@ -26,6 +24,10 @@ from dealio.apps.common.helpers.validators.account_validators import (
 )
 from dealio.apps.common.email_service import send_html_email_async
 from dealio.apps.telegram_bot.models import TelegramProfile
+from dealio.apps.telegram_bot.repositories.bot_cache_repository import TelegramBotCacheRepository
+from dealio.apps.telegram_bot.repositories.profile_repository import TelegramProfileRepository
+from dealio.apps.telegram_bot.repositories.user_role_repository import TelegramUserRoleRepository
+from dealio.apps.telegram_bot.repositories.adapters.telegram_api_adapter import TelegramBotClient
 from dealio.apps.telegram_bot.vo.commerce_bot_vo import (
     TelegramBotAliasVO,
     TelegramBotButtonTextVO,
@@ -35,6 +37,7 @@ from dealio.apps.telegram_bot.vo.commerce_bot_vo import (
     TelegramBotStateVO,
 )
 from dealio.apps.telegram_bot.repositories.logic import TelegramCommerceBotLogicRepository
+from dealio.apps.telegram_bot.repositories.logic.channel_sync_logic import ChannelSyncLogicRepository
 from dealio.apps.courses.enums import CourseLevelEnum, CourseStatusEnum, ReviewStatusEnum
 
 
@@ -49,173 +52,7 @@ class TelegramCommand:
     raw_text: str
 
 
-class TelegramBotClient:
-    """Small Telegram Bot API client using requests; no extra bot package needed."""
-
-    def __init__(self, token: str | None = None, proxy_url: str | None = None):
-        self.token = token or getattr(settings, "TELEGRAM_BOT_TOKEN", "")
-        self.token = self.token.strip()
-
-        self.base_url = f"https://api.telegram.org/bot{self.token}"
-
-        self.proxy_url = proxy_url or getattr(settings, "PROXY_URL", "")
-        self.proxy_url = self.proxy_url.strip()
-
-    @property
-    def is_configured(self) -> bool:
-        return bool(self.token)
-
-    @property
-    def proxies(self) -> dict[str, str] | None:
-        if not self.proxy_url:
-            return None
-
-        return {
-            "http": self.proxy_url,
-            "https": self.proxy_url,
-        }
-
-    def _request(self, method_name: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
-        if not self.is_configured:
-            raise RuntimeError("TELEGRAM_BOT_TOKEN is not configured.")
-
-        response = requests.post(
-            f"{self.base_url}/{method_name}",
-            json=payload or {},
-            timeout=(3.0, 15.0),
-            proxies=self.proxies,
-        )
-
-        try:
-            body = response.json()
-        except ValueError:
-            body = {"ok": False, "description": response.text}
-
-        if not response.ok or not body.get("ok"):
-            raise RuntimeError(f"Telegram API error in {method_name}: {body}")
-
-        return body
-
-    def send_message(
-            self,
-            chat_id: int,
-            text: str,
-            *,
-            reply_markup: dict[str, Any] | None = None,
-            disable_web_page_preview: bool = True,
-    ) -> dict[str, Any]:
-        payload: dict[str, Any] = {
-            "chat_id": chat_id,
-            "text": text,
-            "parse_mode": "HTML",
-            "disable_web_page_preview": disable_web_page_preview,
-        }
-        if reply_markup:
-            payload["reply_markup"] = reply_markup
-        return self._request("sendMessage", payload)
-
-    def edit_message_text(
-            self,
-            chat_id: int,
-            message_id: int,
-            text: str,
-            *,
-            reply_markup: dict[str, Any] | None = None,
-            disable_web_page_preview: bool = True,
-    ) -> dict[str, Any]:
-        payload: dict[str, Any] = {
-            "chat_id": chat_id,
-            "message_id": message_id,
-            "text": text,
-            "parse_mode": "HTML",
-            "disable_web_page_preview": disable_web_page_preview,
-        }
-        if reply_markup:
-            payload["reply_markup"] = reply_markup
-        return self._request("editMessageText", payload)
-
-    def delete_message(self, chat_id: int, message_id: int) -> dict[str, Any]:
-        return self._request("deleteMessage", {"chat_id": chat_id, "message_id": message_id})
-
-    def answer_callback_query(
-            self,
-            callback_query_id: str,
-            *,
-            text: str | None = None,
-            show_alert: bool = False,
-    ) -> dict[str, Any]:
-        payload: dict[str, Any] = {
-            "callback_query_id": callback_query_id,
-            "show_alert": show_alert,
-        }
-        if text:
-            payload["text"] = text
-        return self._request("answerCallbackQuery", payload)
-
-    def set_my_description(self, description: str, *, language_code: str | None = None) -> dict[str, Any]:
-        payload: dict[str, Any] = {"description": description}
-        if language_code:
-            payload["language_code"] = language_code
-        return self._request("setMyDescription", payload)
-
-    def set_my_short_description(self, short_description: str, *, language_code: str | None = None) -> dict[str, Any]:
-        payload: dict[str, Any] = {"short_description": short_description}
-        if language_code:
-            payload["language_code"] = language_code
-        return self._request("setMyShortDescription", payload)
-
-    def set_my_commands(
-            self,
-            commands: list[dict[str, str]],
-            *,
-            language_code: str | None = None,
-    ) -> dict[str, Any]:
-        payload: dict[str, Any] = {"commands": commands}
-        if language_code:
-            payload["language_code"] = language_code
-        return self._request("setMyCommands", payload)
-
-    def set_webhook(
-            self,
-            url: str,
-            *,
-            secret_token: str | None = None,
-            drop_pending_updates: bool = True,
-    ) -> dict[str, Any]:
-        payload: dict[str, Any] = {
-            "url": url,
-            "drop_pending_updates": drop_pending_updates,
-            "allowed_updates": ["message", "edited_message", "callback_query"],
-        }
-        if secret_token:
-            payload["secret_token"] = secret_token
-        return self._request("setWebhook", payload)
-
-    def delete_webhook(self, *, drop_pending_updates: bool = False) -> dict[str, Any]:
-        return self._request("deleteWebhook", {"drop_pending_updates": drop_pending_updates})
-
-    def get_webhook_info(self) -> dict[str, Any]:
-        return self._request("getWebhookInfo")
-
-    def get_updates(
-            self,
-            *,
-            offset: int | None = None,
-            timeout: int = 30,
-            allowed_updates: list[str] | None = None,
-    ) -> list[dict[str, Any]]:
-        payload: dict[str, Any] = {
-            "timeout": timeout,
-            "allowed_updates": allowed_updates or ["message", "edited_message", "callback_query"],
-        }
-
-        if offset is not None:
-            payload["offset"] = offset
-
-        response = self._request("getUpdates", payload)
-        return response.get("result", [])
-
-
+# TelegramBotClient moved to repositories.adapters.telegram_api_adapter and is imported above.
 class TelegramAccountLinkService:
     LINK_CODE_EXPIRATION_MINUTES = 10
 
@@ -228,15 +65,15 @@ class TelegramAccountLinkService:
         return hashlib.sha256(code.encode("utf-8")).hexdigest()
 
     @classmethod
-    def link_cache_key(cls, chat_id: int, user_id: str) -> str:
-        return f"telegram_link:{chat_id}:{user_id}"
+    def link_cache_key(cls, chat_id: int, user_id: str, provider: str = "telegram") -> str:
+        return f"{provider}_link:{chat_id}:{user_id}"
 
     @classmethod
-    def pending_user_cache_key(cls, chat_id: int) -> str:
-        return f"telegram_pending_link:{chat_id}"
+    def pending_user_cache_key(cls, chat_id: int, provider: str = "telegram") -> str:
+        return f"{provider}_pending_link:{chat_id}"
 
     @classmethod
-    def send_link_code(cls, *, email: str, chat_id: int) -> bool:
+    def send_link_code(cls, *, email: str, chat_id: int, provider: str = "telegram") -> bool:
         user = User.objects.filter(email__iexact=email, is_active=True).first()
         if not user:
             return False
@@ -244,10 +81,10 @@ class TelegramAccountLinkService:
         code = cls.generate_code()
         timeout_seconds = cls.LINK_CODE_EXPIRATION_MINUTES * 60
 
-        cache.set(cls.pending_user_cache_key(chat_id), str(user.id), timeout=timeout_seconds)
-        cache.set(cls.link_cache_key(chat_id, str(user.id)), cls.hash_code(code), timeout=timeout_seconds)
+        TelegramBotCacheRepository.set_value(cls.pending_user_cache_key(chat_id, provider), str(user.id), timeout=timeout_seconds)
+        TelegramBotCacheRepository.set_value(cls.link_cache_key(chat_id, str(user.id), provider), cls.hash_code(code), timeout=timeout_seconds)
 
-        profile = TelegramProfile.objects.filter(chat_id=chat_id).only("bot_language").first()
+        profile = TelegramProfile.objects.filter(messenger_provider=provider, chat_id=chat_id).only("bot_language").first()
         language = TelegramBotLanguageVO.FA if profile and profile.bot_language == TelegramBotLanguageVO.FA else TelegramBotLanguageVO.EN
         is_fa = language == TelegramBotLanguageVO.FA
         subject = TelegramBotMessageTextVO.LINK_EMAIL_SUBJECT[language]
@@ -270,11 +107,12 @@ class TelegramAccountLinkService:
 
     @classmethod
     def confirm_link_code(cls, *, profile: TelegramProfile, code: str) -> bool:
-        user_id = cache.get(cls.pending_user_cache_key(profile.chat_id))
+        provider = getattr(profile, "messenger_provider", "telegram")
+        user_id = TelegramBotCacheRepository.get_value(cls.pending_user_cache_key(profile.chat_id, provider))
         if not user_id:
             return False
 
-        saved_hash = cache.get(cls.link_cache_key(profile.chat_id, user_id))
+        saved_hash = TelegramBotCacheRepository.get_value(cls.link_cache_key(profile.chat_id, user_id, provider))
         if not saved_hash or not hmac.compare_digest(saved_hash, cls.hash_code(code)):
             return False
 
@@ -288,12 +126,14 @@ class TelegramAccountLinkService:
             profile.is_active = True
             profile.save(update_fields=["user", "is_verified", "is_active", "updated_at"])
 
-        cache.delete(cls.pending_user_cache_key(profile.chat_id))
-        cache.delete(cls.link_cache_key(profile.chat_id, user_id))
+        TelegramBotCacheRepository.delete_value(cls.pending_user_cache_key(profile.chat_id, provider))
+        TelegramBotCacheRepository.delete_value(cls.link_cache_key(profile.chat_id, user_id, provider))
         return True
 
 
 class TelegramBotService:
+    MESSENGER_PROVIDER = "telegram"
+    CACHE_PREFIX = "telegram"
     # Callback constants are kept so old inline buttons still work after deployment.
     CALLBACK_MAIN_MENU = TelegramBotCallbackVO.MAIN_MENU
     CALLBACK_LINK = TelegramBotCallbackVO.LINK
@@ -306,6 +146,7 @@ class TelegramBotService:
     CALLBACK_LANG_EN = TelegramBotCallbackVO.LANG_EN
     CALLBACK_LANG_FA = TelegramBotCallbackVO.LANG_FA
     CALLBACK_HELP = TelegramBotCallbackVO.HELP
+    CALLBACK_CHANNELS = getattr(TelegramBotCallbackVO, "CHANNELS", "menu:channels")
     CALLBACK_COURSES = TelegramBotCallbackVO.COURSES
     CALLBACK_MY_COURSES = TelegramBotCallbackVO.MY_COURSES
     CALLBACK_MY_ORDERS = TelegramBotCallbackVO.MY_ORDERS
@@ -377,8 +218,19 @@ class TelegramBotService:
         self.client = client or TelegramBotClient()
         self.link_service = TelegramAccountLinkService()
         self.commerce_logic = TelegramCommerceBotLogicRepository()
+        self.channel_sync_logic = ChannelSyncLogicRepository()
 
     def handle_update(self, update: dict[str, Any]) -> None:
+        channel_post = update.get("channel_post")
+        if channel_post:
+            self.channel_sync_logic.handle_telegram_channel_post(channel_post, is_edit=False)
+            return
+
+        edited_channel_post = update.get("edited_channel_post")
+        if edited_channel_post:
+            self.channel_sync_logic.handle_telegram_channel_post(edited_channel_post, is_edit=True)
+            return
+
         callback_query = update.get("callback_query")
         if callback_query:
             self.handle_callback_query(callback_query)
@@ -554,6 +406,10 @@ class TelegramBotService:
             )
             return
 
+        if data == getattr(self, "CALLBACK_CHANNELS", "menu:channels"):
+            self.send_channels_invite(profile)
+            return
+
         if data == self.CALLBACK_UNLINK_ASK:
             self.start_unlink_flow(profile)
             return
@@ -692,6 +548,7 @@ class TelegramBotService:
             "language": self.show_language_selection,
             "unlink": self.start_unlink_flow,
             "help": lambda p: self.handle_help(p, TelegramCommand(name="/help", args=[], raw_text="/help")),
+            "channels": lambda p: self.handle_channels(p, TelegramCommand(name="/channels", args=[], raw_text="/channels")),
             "courses": lambda p: self.send_course_list(p, page=1),
             "my_courses": self.send_my_courses,
             "my_orders": self.send_my_orders,
@@ -710,62 +567,46 @@ class TelegramBotService:
 
         return False
 
-    @staticmethod
-    def _upsert_profile(*, chat_id: int, telegram_user: dict[str, Any]) -> TelegramProfile:
-        # Keep Telegram metadata fresh, but do not overwrite bot_language because
-        # it is the user's explicit menu-language choice.
-        defaults = {
-            "telegram_user_id": telegram_user.get("id"),
-            "username": telegram_user.get("username") or "",
-            "first_name": telegram_user.get("first_name") or "",
-            "last_name": telegram_user.get("last_name") or "",
-            "language_code": telegram_user.get("language_code") or "",
-            "is_active": True,
-        }
-        profile, created = TelegramProfile.objects.get_or_create(chat_id=chat_id, defaults=defaults)
-        if not created:
-            changed_fields: list[str] = []
-            for field, value in defaults.items():
-                if getattr(profile, field) != value:
-                    setattr(profile, field, value)
-                    changed_fields.append(field)
-            if changed_fields:
-                changed_fields.append("updated_at")
-                profile.save(update_fields=changed_fields)
-        return profile
+    @classmethod
+    def _upsert_profile(cls, *, chat_id: int, telegram_user: dict[str, Any]) -> TelegramProfile:
+        return TelegramProfileRepository.upsert(
+            provider=cls.MESSENGER_PROVIDER,
+            chat_id=chat_id,
+            user_data=telegram_user,
+        )
 
     @classmethod
     def action_cache_key(cls, chat_id: int) -> str:
-        return f"telegram_bot_action:{chat_id}"
+        return f"{cls.CACHE_PREFIX}_bot_action:{chat_id}"
 
     @classmethod
     def set_action(cls, chat_id: int, action: str) -> None:
-        cache.set(cls.action_cache_key(chat_id), action, timeout=cls.ACTION_TIMEOUT_SECONDS)
+        TelegramBotCacheRepository.set_value(cls.action_cache_key(chat_id), action, timeout=cls.ACTION_TIMEOUT_SECONDS)
 
     @classmethod
     def get_action(cls, chat_id: int) -> str | None:
-        return cache.get(cls.action_cache_key(chat_id))
+        return TelegramBotCacheRepository.get_value(cls.action_cache_key(chat_id))
 
     @classmethod
     def clear_action(cls, chat_id: int) -> None:
-        cache.delete(cls.action_cache_key(chat_id))
+        TelegramBotCacheRepository.delete_value(cls.action_cache_key(chat_id))
 
     @classmethod
     def create_user_cache_key(cls, chat_id: int) -> str:
-        return f"telegram_create_user:{chat_id}"
+        return f"{cls.CACHE_PREFIX}_create_user:{chat_id}"
 
     @classmethod
     def get_create_user_data(cls, chat_id: int) -> dict[str, str]:
-        data = cache.get(cls.create_user_cache_key(chat_id))
+        data = TelegramBotCacheRepository.get_value(cls.create_user_cache_key(chat_id))
         return data if isinstance(data, dict) else {}
 
     @classmethod
     def set_create_user_data(cls, chat_id: int, data: dict[str, str]) -> None:
-        cache.set(cls.create_user_cache_key(chat_id), data, timeout=cls.ACTION_TIMEOUT_SECONDS)
+        TelegramBotCacheRepository.set_value(cls.create_user_cache_key(chat_id), data, timeout=cls.ACTION_TIMEOUT_SECONDS)
 
     @classmethod
     def clear_create_user_data(cls, chat_id: int) -> None:
-        cache.delete(cls.create_user_cache_key(chat_id))
+        TelegramBotCacheRepository.delete_value(cls.create_user_cache_key(chat_id))
 
     @staticmethod
     def normalize_iranian_phone_number(value: str) -> str:
@@ -796,16 +637,7 @@ class TelegramBotService:
 
     @staticmethod
     def ensure_default_user_role() -> None:
-        if Role.objects.filter(symbol="user").exists():
-            return
-
-        role = Role.objects.filter(name__iexact="user").first()
-        if role:
-            role.symbol = "user"
-            role.save(update_fields=["symbol", "updated_at"])
-            return
-
-        Role.objects.create(name="User", symbol="user")
+        TelegramUserRoleRepository.ensure_default_user()
 
     @staticmethod
     def is_valid_email(value: str) -> bool:
@@ -974,7 +806,7 @@ class TelegramBotService:
             )
             return
 
-        self.link_service.send_link_code(email=email, chat_id=profile.chat_id)
+        self.link_service.send_link_code(email=email, chat_id=profile.chat_id, provider=self.MESSENGER_PROVIDER)
         self.set_action(profile.chat_id, self.STATE_LINK_CODE)
 
         # Always return the same response so the bot does not reveal which emails exist.
@@ -1389,7 +1221,7 @@ class TelegramBotService:
             )
             return
 
-        self.link_service.send_link_code(email=email, chat_id=profile.chat_id)
+        self.link_service.send_link_code(email=email, chat_id=profile.chat_id, provider=self.MESSENGER_PROVIDER)
         self.set_action(profile.chat_id, self.STATE_LINK_CODE)
 
         # Always return the same response so the bot does not reveal which emails exist.
@@ -1515,23 +1347,51 @@ class TelegramBotService:
             reply_markup=self.main_menu_keyboard(profile),
         )
 
+    def handle_channels(self, profile: TelegramProfile, command: TelegramCommand) -> None:
+        self.send_channels_invite(profile)
+
+    def send_channels_invite(self, profile: TelegramProfile) -> None:
+        links = self.channel_invite_links(profile)
+        if not links:
+            self.client.send_message(
+                profile.chat_id,
+                self.t(profile, "channels_not_configured"),
+                reply_markup=self.main_menu_keyboard(profile),
+            )
+            return
+
+        keyboard = [[{"text": label, "url": url}] for label, url in links]
+        keyboard.append([{"text": self.button(profile, "main_menu"), "callback_data": self.CALLBACK_MAIN_MENU}])
+        self.send_chain_message(
+            profile,
+            self.t(profile, "channels_title"),
+            reply_markup=self.inline_keyboard(keyboard),
+        )
+
+    def channel_invite_links(self, profile: TelegramProfile | None = None) -> list[tuple[str, str]]:
+        values = [
+            ("telegram_channel", os.environ.get("CHANNEL_INVITE_TELEGRAM_URL") or ""),
+            ("bale_channel", os.environ.get("CHANNEL_INVITE_BALE_URL") or ""),
+            ("rubika_channel", os.environ.get("CHANNEL_INVITE_RUBIKA_URL") or ""),
+        ]
+        return [(self.t(profile, key), url.strip()) for key, url in values if url.strip()]
 
     @classmethod
     def review_flow_cache_key(cls, chat_id: int) -> str:
-        return f"telegram_course_review:{chat_id}"
+        return f"{cls.CACHE_PREFIX}_course_review:{chat_id}"
 
     @classmethod
     def get_review_flow_data(cls, chat_id: int) -> dict[str, Any]:
-        data = cache.get(cls.review_flow_cache_key(chat_id))
+        data = TelegramBotCacheRepository.get_value(cls.review_flow_cache_key(chat_id))
         return data if isinstance(data, dict) else {}
 
     @classmethod
     def set_review_flow_data(cls, chat_id: int, data: dict[str, Any]) -> None:
-        cache.set(cls.review_flow_cache_key(chat_id), data, timeout=cls.ACTION_TIMEOUT_SECONDS)
+        TelegramBotCacheRepository.set_value(cls.review_flow_cache_key(chat_id), data, timeout=cls.ACTION_TIMEOUT_SECONDS)
 
     @classmethod
     def clear_review_flow_data(cls, chat_id: int) -> None:
-        cache.delete(cls.review_flow_cache_key(chat_id))
+        TelegramBotCacheRepository.delete_value(cls.review_flow_cache_key(chat_id))
 
     @staticmethod
     def compact_id(value: Any) -> str:
@@ -1547,11 +1407,11 @@ class TelegramBotService:
 
     @classmethod
     def chain_message_cache_key(cls, chat_id: int) -> str:
-        return f"telegram_chain_message:{chat_id}"
+        return f"{cls.CACHE_PREFIX}_chain_message:{chat_id}"
 
     @classmethod
     def get_chain_message_id(cls, chat_id: int) -> int | None:
-        value = cache.get(cls.chain_message_cache_key(chat_id))
+        value = TelegramBotCacheRepository.get_value(cls.chain_message_cache_key(chat_id))
         try:
             return int(value) if value else None
         except (TypeError, ValueError):
@@ -1559,11 +1419,11 @@ class TelegramBotService:
 
     @classmethod
     def set_chain_message_id(cls, chat_id: int, message_id: int) -> None:
-        cache.set(cls.chain_message_cache_key(chat_id), message_id, timeout=60 * 60 * 24)
+        TelegramBotCacheRepository.set_value(cls.chain_message_cache_key(chat_id), message_id, timeout=60 * 60 * 24)
 
     @classmethod
     def clear_chain_message_id(cls, chat_id: int) -> None:
-        cache.delete(cls.chain_message_cache_key(chat_id))
+        TelegramBotCacheRepository.delete_value(cls.chain_message_cache_key(chat_id))
 
     def delete_chain_message(self, chat_id: int) -> None:
         message_id = self.get_chain_message_id(chat_id)
@@ -2119,37 +1979,37 @@ class TelegramBotService:
 
     @classmethod
     def course_flow_cache_key(cls, chat_id: int) -> str:
-        return f"telegram_admin_course:{chat_id}"
+        return f"{cls.CACHE_PREFIX}_admin_course:{chat_id}"
 
     @classmethod
     def get_course_flow_data(cls, chat_id: int) -> dict[str, Any]:
-        data = cache.get(cls.course_flow_cache_key(chat_id))
+        data = TelegramBotCacheRepository.get_value(cls.course_flow_cache_key(chat_id))
         return data if isinstance(data, dict) else {}
 
     @classmethod
     def set_course_flow_data(cls, chat_id: int, data: dict[str, Any]) -> None:
-        cache.set(cls.course_flow_cache_key(chat_id), data, timeout=cls.ACTION_TIMEOUT_SECONDS)
+        TelegramBotCacheRepository.set_value(cls.course_flow_cache_key(chat_id), data, timeout=cls.ACTION_TIMEOUT_SECONDS)
 
     @classmethod
     def clear_course_flow_data(cls, chat_id: int) -> None:
-        cache.delete(cls.course_flow_cache_key(chat_id))
+        TelegramBotCacheRepository.delete_value(cls.course_flow_cache_key(chat_id))
 
     @classmethod
     def lesson_flow_cache_key(cls, chat_id: int) -> str:
-        return f"telegram_admin_lesson:{chat_id}"
+        return f"{cls.CACHE_PREFIX}_admin_lesson:{chat_id}"
 
     @classmethod
     def get_lesson_flow_data(cls, chat_id: int) -> dict[str, Any]:
-        data = cache.get(cls.lesson_flow_cache_key(chat_id))
+        data = TelegramBotCacheRepository.get_value(cls.lesson_flow_cache_key(chat_id))
         return data if isinstance(data, dict) else {}
 
     @classmethod
     def set_lesson_flow_data(cls, chat_id: int, data: dict[str, Any]) -> None:
-        cache.set(cls.lesson_flow_cache_key(chat_id), data, timeout=cls.ACTION_TIMEOUT_SECONDS)
+        TelegramBotCacheRepository.set_value(cls.lesson_flow_cache_key(chat_id), data, timeout=cls.ACTION_TIMEOUT_SECONDS)
 
     @classmethod
     def clear_lesson_flow_data(cls, chat_id: int) -> None:
-        cache.delete(cls.lesson_flow_cache_key(chat_id))
+        TelegramBotCacheRepository.delete_value(cls.lesson_flow_cache_key(chat_id))
 
     @staticmethod
     def parse_decimal_amount(text: str) -> float | None:
@@ -2508,7 +2368,8 @@ class TelegramBotService:
             rows.append([cls.button(profile, "account"), cls.button(profile, "forgot_password")])
             if cls.web_app_url():
                 rows.append([cls.web_app_button(profile)])
-            rows.append([cls.button(profile, "language"), cls.button(profile, "help")])
+            rows.append([cls.button(profile, "channels"), cls.button(profile, "help")])
+            rows.append([cls.button(profile, "language")])
             rows.append([cls.button(profile, "unlink")])
         else:
             rows.append([cls.button(profile, "courses")])
@@ -2516,7 +2377,8 @@ class TelegramBotService:
             rows.append([cls.button(profile, "forgot_password")])
             if cls.web_app_url():
                 rows.append([cls.web_app_button(profile)])
-            rows.append([cls.button(profile, "language"), cls.button(profile, "help")])
+            rows.append([cls.button(profile, "channels"), cls.button(profile, "help")])
+            rows.append([cls.button(profile, "language")])
 
         placeholder = cls.t(profile, "placeholder_main_menu")
         return cls.reply_keyboard(rows, placeholder=placeholder)
@@ -2574,7 +2436,7 @@ class TelegramBotService:
 
     @staticmethod
     def web_app_url() -> str:
-        return getattr(settings, "TELEGRAM_WEBAPP_URL", "")
+        return os.environ.get("TELEGRAM_WEBAPP_URL") or ""
 
     @classmethod
     def web_app_button(cls, profile: TelegramProfile | None = None) -> str:

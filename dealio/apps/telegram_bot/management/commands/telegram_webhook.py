@@ -1,4 +1,4 @@
-from django.conf import settings
+import os
 from django.core.management.base import BaseCommand, CommandError
 
 from dealio.apps.telegram_bot.services import TelegramBotClient
@@ -11,7 +11,7 @@ class Command(BaseCommand):
         subparsers = parser.add_subparsers(dest="action", required=True)
 
         set_parser = subparsers.add_parser("set", help="Set Telegram webhook URL")
-        set_parser.add_argument("url", help="Public HTTPS webhook URL, for example https://example.com/api/v1/telegram/webhook/")
+        set_parser.add_argument("--url", default=None, help="Override TELEGRAM_WEBHOOK_URL for this call")
         set_parser.add_argument("--no-drop", action="store_true", help="Do not drop pending Telegram updates")
         set_parser.add_argument("--secret", default=None, help="Override TELEGRAM_WEBHOOK_SECRET for this call")
 
@@ -27,9 +27,12 @@ class Command(BaseCommand):
 
         action = options["action"]
         if action == "set":
-            secret = options.get("secret") or getattr(settings, "TELEGRAM_WEBHOOK_SECRET", "")
+            url = options.get("url") or os.environ.get("TELEGRAM_WEBHOOK_URL")
+            if not url:
+                raise CommandError("TELEGRAM_WEBHOOK_URL is required or pass --url.")
+            secret = options.get("secret") or os.environ.get("TELEGRAM_WEBHOOK_SECRET")
             response = client.set_webhook(
-                options["url"],
+                url,
                 secret_token=secret or None,
                 drop_pending_updates=not options["no_drop"],
             )

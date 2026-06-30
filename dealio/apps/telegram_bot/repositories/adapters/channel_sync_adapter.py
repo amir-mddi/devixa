@@ -1,0 +1,267 @@
+from __future__ import annotations
+
+import mimetypes
+import os
+from dataclasses import dataclass
+from typing import Any
+from urllib.parse import urlparse
+
+import requests
+
+from dealio.apps.telegram_bot.dtos.channel_sync_dtos import ChannelMediaDTO, ChannelPostDTO
+from dealio.apps.telegram_bot.enums.channel_sync_enums import MessengerProviderEnum
+
+
+@dataclass(frozen=True)
+class DownloadedChannelMedia:
+    content: bytes
+    filename: str
+    mime_type: str
+
+
+class ChannelSyncMessengerAdapter:
+    """Provider API boundary for channel sync.
+
+    Logic passes normalized ChannelPostDTO objects here. This adapter owns provider
+    differences: API clients, file resolution, server-side media download/upload,
+    edit, replace, and delete.
+    """
+
+    MAX_DOWNLOAD_BYTES = int(os.environ.get("CHANNEL_SYNC_MAX_MEDIA_BYTES", str(20 * 1024 * 1024)))
+
+    def send_post(self, *, provider: str, chat_id: str, post: ChannelPostDTO) -> dict[str, Any]:
+        if post.has_media and post.media:
+            return self.send_media(provider=provider, chat_id=chat_id, media=post.media, caption=post.text)
+        return self.send_text(provider=provider, chat_id=chat_id, text=post.text)
+
+    def send_text(self, *, provider: str, chat_id: str, text: str) -> dict[str, Any]:
+        client = self._client(provider)
+        return client.send_message(chat_id, text)
+
+    def send_media(
+        self,
+        *,
+        provider: str,
+        chat_id: str,
+        media: ChannelMediaDTO,
+        caption: str = "",
+    ) -> dict[str, Any]:
+        client = self._client(provider)
+        normalized_type = self._normalized_media_type(media.media_type)
+
+        downloaded = self._download_media(media)
+        if downloaded:
+            file_sender_name = self._file_sender_name(normalized_type)
+            file_sender = getattr(client, file_sender_name, None)
+            if callable(file_sender):
+                return file_sender(
+                    chat_id,
+                    downloaded.content,
+                    filename=downloaded.filename,
+                    caption=caption,
+                    mime_type=downloaded.mime_type,
+                )
+
+        # If provider can fetch the URL directly, this is the second best path.
+        media_ref = media.file_url or media.file_id
+        if normalized_type == "photo" and hasattr(client, "send_photo"):
+            return client.send_photo(chat_id, media_ref, caption=caption)
+
+        if normalized_type == "sticker" and hasattr(client, "send_sticker"):
+            return client.send_sticker(chat_id, media_ref)
+
+        if normalized_type in {"video", "animation"} and hasattr(client, "send_video"):
+            return client.send_video(chat_id, media_ref, caption=caption)
+
+        if hasattr(client, "send_document"):
+            return client.send_document(chat_id, media_ref, caption=caption)
+
+        # Safe fallback for providers with no media upload support.
+        text = caption.strip()
+        if media_ref:
+            text = f"{text}\n{media_ref}".strip()
+        return client.send_message(chat_id, text or media_ref)
+
+    def edit_post(self, *, provider: str, chat_id: str, message_id: str, post: ChannelPostDTO) -> dict[str, Any]:
+        if post.has_media and post.media:
+            response = self.edit_media(provider=provider, chat_id=chat_id, message_id=message_id, media=post.media, caption=post.text)
+            if response:
+                return response
+
+            if hasattr(self._client(provider), "edit_message_caption"):
+                return self.edit_caption(provider=provider, chat_id=chat_id, message_id=message_id, caption=post.text)
+
+        return self.edit_text(provider=provider, chat_id=chat_id, message_id=message_id, text=post.text)
+
+    def edit_media(
+        self,
+        *,
+        provider: str,
+        chat_id: str,
+        message_id: str,
+        media: ChannelMediaDTO,
+        caption: str = "",
+    ) -> dict[str, Any] | None:
+        client = self._client(provider)
+        editor = getattr(client, "edit_message_media_file", None)
+        if not callable(editor):
+            return None
+
+        downloaded = self._download_media(media)
+        if not downloaded:
+            return None
+
+        return editor(
+            chat_id,
+            message_id,
+            self._normalized_media_type(media.media_type),
+            downloaded.content,
+            filename=downloaded.filename,
+            caption=caption,
+            mime_type=downloaded.mime_type,
+        )
+
+    def edit_text(self, *, provider: str, chat_id: str, message_id: str, text: str) -> dict[str, Any]:
+        client = self._client(provider)
+        return client.edit_message_text(chat_id, message_id, text)
+
+    def edit_caption(self, *, provider: str, chat_id: str, message_id: str, caption: str) -> dict[str, Any]:
+        client = self._client(provider)
+        if hasattr(client, "edit_message_caption"):
+            return client.edit_message_caption(chat_id, message_id, caption)
+        return client.edit_message_text(chat_id, message_id, caption)
+
+    def delete_text(self, *, provider: str, chat_id: str, message_id: str) -> dict[str, Any]:
+        client = self._client(provider)
+        return client.delete_message(chat_id, message_id)
+
+    def resolve_file_url(self, *, provider: str, file_id: str) -> str:
+        if not file_id:
+            return ""
+        client = self._client(provider)
+        if hasattr(client, "get_file_url"):
+            return client.get_file_url(file_id)
+        return ""
+
+    @staticmethod
+    def extract_message_id(response: dict[str, Any]) -> str:
+        result = response.get("result") if isinstance(response, dict) else None
+        if isinstance(result, dict):
+            message_id = result.get("message_id") or result.get("messageId")
+            if message_id is not None:
+                return str(message_id)
+
+        data = response.get("data") if isinstance(response, dict) else None
+        if isinstance(data, dict):
+            message_id = data.get("message_id") or data.get("new_message_id")
+            if message_id is not None:
+                return str(message_id)
+
+        return ""
+
+    def _download_media(self, media: ChannelMediaDTO) -> DownloadedChannelMedia | None:
+        url = media.file_url
+        if not url or not url.startswith(("http://", "https://")):
+            return None
+
+        response = requests.get(url, timeout=(5.0, 60.0), stream=True)
+        response.raise_for_status()
+
+        chunks: list[bytes] = []
+        total = 0
+        for chunk in response.iter_content(chunk_size=1024 * 64):
+            if not chunk:
+                continue
+            total += len(chunk)
+            if total > self.MAX_DOWNLOAD_BYTES:
+                raise RuntimeError(f"Channel sync media is larger than {self.MAX_DOWNLOAD_BYTES} bytes.")
+            chunks.append(chunk)
+
+        content = b"".join(chunks)
+        content_type = response.headers.get("Content-Type", "").split(";", 1)[0].strip()
+        mime_type = media.mime_type or content_type or self._mime_type_for(media.media_type)
+        filename = media.file_name or self._filename_from_url(url) or self._filename_for(media.media_type, mime_type)
+        return DownloadedChannelMedia(content=content, filename=filename, mime_type=mime_type)
+
+    @staticmethod
+    def _filename_from_url(url: str) -> str:
+        parsed = urlparse(url)
+        name = os.path.basename(parsed.path)
+        return name if "." in name else ""
+
+    @staticmethod
+    def _filename_for(media_type: str, mime_type: str) -> str:
+        extension = mimetypes.guess_extension(mime_type or "") or ""
+        normalized = ChannelSyncMessengerAdapter._normalized_media_type(media_type)
+        if not extension:
+            extension_by_type = {
+                "photo": ".jpg",
+                "video": ".mp4",
+                "animation": ".mp4",
+                "sticker": ".webp",
+                "audio": ".mp3",
+                "voice": ".ogg",
+                "document": ".bin",
+            }
+            extension = extension_by_type.get(normalized, ".bin")
+        return f"channel_sync_{normalized}{extension}"
+
+    @staticmethod
+    def _mime_type_for(media_type: str) -> str:
+        normalized = ChannelSyncMessengerAdapter._normalized_media_type(media_type)
+        return {
+            "photo": "image/jpeg",
+            "video": "video/mp4",
+            "animation": "video/mp4",
+            "sticker": "image/webp",
+            "audio": "audio/mpeg",
+            "voice": "audio/ogg",
+            "document": "application/octet-stream",
+        }.get(normalized, "application/octet-stream")
+
+    @staticmethod
+    def _normalized_media_type(media_type: str) -> str:
+        normalized = (media_type or "document").lower()
+        if normalized in {"photo", "image"}:
+            return "photo"
+        if normalized in {"video", "video_note"}:
+            return "video"
+        if normalized in {"animation", "gif"}:
+            return "animation"
+        if normalized in {"sticker"}:
+            return "sticker"
+        if normalized in {"audio", "voice"}:
+            return "audio"
+        return "document"
+
+    @classmethod
+    def _file_sender_name(cls, media_type: str) -> str:
+        normalized = cls._normalized_media_type(media_type)
+        if normalized == "photo":
+            return "send_photo_file"
+        if normalized == "video":
+            return "send_video_file"
+        if normalized == "animation":
+            return "send_animation_file"
+        if normalized == "sticker":
+            return "send_sticker_file"
+        return "send_document_file"
+
+    @staticmethod
+    def _client(provider: str):
+        if provider == MessengerProviderEnum.TELEGRAM.value:
+            from dealio.apps.telegram_bot.repositories.adapters.telegram_api_adapter import TelegramBotClient
+
+            return TelegramBotClient()
+
+        if provider == MessengerProviderEnum.BALE.value:
+            from dealio.apps.telegram_bot.bale_services import BaleBotClient
+
+            return BaleBotClient()
+
+        if provider == MessengerProviderEnum.RUBIKA.value:
+            from dealio.apps.telegram_bot.rubika_services import RubikaBotClient
+
+            return RubikaBotClient()
+
+        raise RuntimeError(f"Unsupported channel sync provider: {provider}")

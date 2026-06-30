@@ -9,6 +9,7 @@ from rest_framework.authentication import BasicAuthentication
 from rest_framework.permissions import IsAuthenticated
 
 from dealio.apps.shared.views import prometheus_metrics
+from dealio.apps.telegram_bot.views import BaleWebhookAPIView, RubikaWebhookAPIView
 from dealio.project import settings
 
 
@@ -29,6 +30,8 @@ urlpatterns = [
                   path(PREFIX_URL + "billing/", include("dealio.apps.billing.urls")),
                   path("api/shared/", include("dealio.apps.shared.urls")),
                   path("api/telegram/", include("dealio.apps.telegram_bot.urls")),
+                  path("api/bale/webhook/", BaleWebhookAPIView.as_view(), name="bale-webhook"),
+                  path("api/rubika/webhook/", RubikaWebhookAPIView.as_view(), name="rubika-webhook"),
                   # path('', include('django_prometheus.urls')),
                   path("metrics/", prometheus_metrics, name="prometheus-metrics"),
                   path(os.environ.get("ADMIN_PANEL_URL", "admin/"), admin.site.urls),

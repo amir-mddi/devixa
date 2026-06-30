@@ -70,7 +70,10 @@ class SandboxPaymentGatewayAdapter(PaymentGatewayAdapter):
         )
 
     def verify_payment(self, payment, actor, payload: dict) -> dict:
-        if os.environ.get("PAYMENT_SANDBOX_ENABLED", "false").lower() not in {"1", "true", "yes"}:
+        sandbox_enabled = os.environ.get("PAYMENT_SANDBOX_ENABLED")
+        if sandbox_enabled is None:
+            raise RuntimeError("PAYMENT_SANDBOX_ENABLED is required.")
+        if sandbox_enabled.lower() not in {"1", "true", "yes"}:
             raise ValidationError("Sandbox payments are disabled.")
         status = payload.get("status", "succeeded")
         if status != "succeeded":

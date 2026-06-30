@@ -1,67 +1,40 @@
-import time
+from __future__ import annotations
 
 from django.core.management.base import BaseCommand, CommandError
 
-from dealio.apps.telegram_bot.services import TelegramBotClient, TelegramBotService
+from dealio.apps.telegram_bot.repositories.adapters.telegram_api_adapter import TelegramBotClient
+from dealio.apps.telegram_bot.services import TelegramBotService
+from dealio.apps.telegram_bot.application_services.polling_service import BotPollingService
 
 
 class Command(BaseCommand):
-    help = "Run Telegram bot with long polling for local development."
+    help = "Run Telegram bot with long polling."
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            "--timeout",
-            type=int,
-            default=30,
-            help="Telegram long polling timeout in seconds.",
-        )
-        parser.add_argument(
-            "--sleep",
-            type=float,
-            default=1.0,
-            help="Sleep seconds after errors.",
-        )
-        parser.add_argument(
-            "--drop-pending",
-            action="store_true",
-            help="Drop old Telegram updates before polling starts.",
-        )
+        parser.add_argument("--timeout", type=int, default=30, help="Telegram long polling timeout in seconds.")
+        parser.add_argument("--sleep", type=float, default=1.0, help="Sleep seconds after errors.")
+        parser.add_argument("--drop-pending", action="store_true", help="Drop old Telegram updates before polling starts.")
 
     def handle(self, *args, **options):
         client = TelegramBotClient()
-
         if not client.is_configured:
             raise CommandError("TELEGRAM_BOT_TOKEN is not configured.")
 
+        self.stdout.write(self.style.SUCCESS("Telegram polling started. Press Ctrl+C to stop."))
 
-        client.delete_webhook(drop_pending_updates=options["drop_pending"])
-
-        service = TelegramBotService(client=client)
-        offset = None
-
-        self.stdout.write(
-            self.style.SUCCESS("Telegram polling started. Press Ctrl+C to stop.")
+        polling_service = BotPollingService(
+            provider=TelegramBotService.MESSENGER_PROVIDER,
+            client=client,
+            service_factory=lambda: TelegramBotService(client=client),
+            update_id_getter=lambda update: update.get("update_id"),
         )
 
-        while True:
-            try:
-                updates = client.get_updates(
-                    offset=offset,
-                    timeout=options["timeout"],
-                    allowed_updates=["message", "edited_message", "callback_query"],
-                )
-
-                for update in updates:
-                    update_id = update.get("update_id")
-                    if update_id is not None:
-                        offset = update_id + 1
-
-                    service.handle_update(update)
-
-            except KeyboardInterrupt:
-                self.stdout.write(self.style.WARNING("Telegram polling stopped."))
-                break
-
-            except Exception as exc:
-                self.stderr.write(f"Polling error: {exc}")
-                time.sleep(options["sleep"])
+        try:
+            polling_service.run_forever(
+                timeout=options["timeout"],
+                sleep_seconds=options["sleep"],
+                drop_pending=options["drop_pending"],
+                allowed_updates=["message", "edited_message", "channel_post", "edited_channel_post", "callback_query"],
+            )
+        except KeyboardInterrupt:
+            self.stdout.write(self.style.WARNING("Telegram polling stopped."))

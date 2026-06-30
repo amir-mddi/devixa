@@ -107,4 +107,7 @@ class TelegramCommerceBotLogicRepository(metaclass=Singleton):
 
     @staticmethod
     def default_payment_provider() -> str:
-        return os.environ.get("TELEGRAM_PAYMENT_PROVIDER", os.environ.get("PAYMENT_DEFAULT_PROVIDER", "manual"))
+        provider = os.environ.get("TELEGRAM_PAYMENT_PROVIDER")
+        if not provider:
+            raise RuntimeError("TELEGRAM_PAYMENT_PROVIDER is required.")
+        return provider
