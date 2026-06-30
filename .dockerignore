@@ -28,6 +28,7 @@ postgresql_backup
 media/coinlibrary
 dealio/settings/local.py
 media/entitylibrary
+test_social_oauth.py
 media/entity_type
 start_containers
 vertical.py
