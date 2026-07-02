@@ -5,6 +5,8 @@ from .billing_dtos import (
     PaymentReceiptReviewDTO,
     PaymentReceiptUploadDTO,
     PaymentStartDTO,
+    DiscountCreateDTO,
+    DiscountApplyDTO,
 )
 
 __all__ = [
@@ -14,4 +16,6 @@ __all__ = [
     "PaymentReceiptReviewDTO",
     "PaymentReceiptUploadDTO",
     "PaymentStartDTO",
+    "DiscountCreateDTO",
+    "DiscountApplyDTO",
 ]

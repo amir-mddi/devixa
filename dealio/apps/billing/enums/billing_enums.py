@@ -44,3 +44,14 @@ class PaymentReceiptSourceEnum(BaseEnum):
     TELEGRAM = "telegram"
     BALE = "bale"
     RUBIKA = "rubika"
+
+
+class DiscountTypeEnum(BaseEnum):
+    PERCENT = "percent"
+    AMOUNT = "amount"
+
+
+class DiscountStatusEnum(BaseEnum):
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    EXPIRED = "expired"

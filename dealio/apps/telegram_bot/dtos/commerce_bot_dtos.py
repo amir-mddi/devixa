@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from decimal import Decimal
 from uuid import UUID
 
 
@@ -24,6 +25,7 @@ class TelegramCourseReviewDTO:
 class TelegramCheckoutDTO:
     course_id: UUID
     provider: str
+    discount_code: str = ""
 
 
 @dataclass(frozen=True)
@@ -52,6 +54,18 @@ class TelegramCourseStatusDTO:
 
 
 @dataclass(frozen=True)
+class TelegramCourseUpdateFieldDTO:
+    course_id: UUID
+    field: str
+    value: object
+
+
+@dataclass(frozen=True)
+class TelegramCourseDeleteDTO:
+    course_id: UUID
+
+
+@dataclass(frozen=True)
 class TelegramCourseLessonCreateDTO:
     course_id: UUID
     title: str
@@ -76,3 +90,18 @@ class TelegramPaymentReceiptReviewDTO:
     receipt_id: UUID
     approve: bool
     admin_note: str = ""
+
+
+@dataclass(frozen=True)
+class TelegramDiscountCreateDTO:
+    code: str
+    discount_type: str
+    value: Decimal
+    title: str = ""
+    course_id: UUID | None = None
+    usage_limit: int | None = None
+
+
+@dataclass(frozen=True)
+class TelegramDiscountDeleteDTO:
+    discount_id: UUID

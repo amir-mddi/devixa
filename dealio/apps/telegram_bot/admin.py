@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from dealio.apps.telegram_bot.models import ChannelSyncMessage, TelegramProfile, TelegramUpdateLog
+from dealio.apps.telegram_bot.models import BotRuntimeSetting, BotScheduledNotification, BotSupportMessage, BotSupportTicket, ChannelSyncMessage, TelegramProfile, TelegramUpdateLog
 
 
 @admin.register(TelegramProfile)
@@ -43,3 +43,49 @@ class ChannelSyncMessageAdmin(admin.ModelAdmin):
     list_filter = ("source_provider", "target_provider", "created_at", "updated_at")
     search_fields = ("source_chat_id", "source_message_id", "target_chat_id", "target_message_id", "last_error")
     readonly_fields = ("raw_response", "created_at", "updated_at")
+
+
+
+@admin.register(BotRuntimeSetting)
+class BotRuntimeSettingAdmin(admin.ModelAdmin):
+    list_display = ("provider", "key", "is_secret", "is_active", "updated_by", "updated_at")
+    list_filter = ("provider", "is_secret", "is_active", "updated_at")
+    search_fields = ("provider", "key")
+    readonly_fields = ("created_at", "updated_at")
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        if obj and obj.is_secret and "value" in form.base_fields:
+            form.base_fields["value"].help_text = "Secret value is stored encoded. Prefer updating secrets from the bot settings panel/API."
+        return form
+
+
+@admin.register(BotScheduledNotification)
+class BotScheduledNotificationAdmin(admin.ModelAdmin):
+    list_display = ("provider", "status", "scheduled_at", "recipient_count", "success_count", "failed_count", "created_by")
+    list_filter = ("provider", "status", "scheduled_at")
+    search_fields = ("message", "last_error")
+    readonly_fields = ("created_at", "updated_at", "sent_at")
+
+
+class BotSupportMessageInline(admin.TabularInline):
+    model = BotSupportMessage
+    extra = 0
+    readonly_fields = ("sender_type", "sender_user", "message", "created_at")
+
+
+@admin.register(BotSupportTicket)
+class BotSupportTicketAdmin(admin.ModelAdmin):
+    list_display = ("id", "provider", "user", "profile", "status", "last_message_at", "created_at")
+    list_filter = ("provider", "status", "created_at", "last_message_at")
+    search_fields = ("subject", "user__email", "profile__chat_id", "profile__username")
+    readonly_fields = ("created_at", "updated_at", "closed_at")
+    inlines = [BotSupportMessageInline]
+
+
+@admin.register(BotSupportMessage)
+class BotSupportMessageAdmin(admin.ModelAdmin):
+    list_display = ("ticket", "sender_type", "sender_user", "created_at")
+    list_filter = ("sender_type", "created_at")
+    search_fields = ("message", "ticket__subject")
+    readonly_fields = ("created_at",)

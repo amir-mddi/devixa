@@ -11,7 +11,8 @@ app = Celery("dealio")
 app.config_from_object("django.conf:settings", namespace="CELERY")
 
 app.autodiscover_tasks([
-
+    "dealio.apps.telegram_bot",
+    "dealio.apps.shared",
 ])
 
 app.conf.update(
@@ -22,6 +23,11 @@ app.conf.update(
 )
 
 app.conf.beat_schedule = {
+    "telegram_scheduled_notifications": {
+        "task": "dealio.apps.telegram_bot.tasks.dispatch_due_telegram_scheduled_notifications",
+        "schedule": timedelta(minutes=1),
+        "options": {"queue": "high_priority"},
+    },
     # "metric_gauge_task": {
     #     "task": "dealio.apps.asset.tasks.metric_gauges_task.metric_gauge_task",
     #     "schedule": timedelta(minutes=1),

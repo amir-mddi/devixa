@@ -134,6 +134,15 @@ class CoursePostgresAdapter(metaclass=Singleton):
         course.save(update_fields=["status", "published_at", "user_updated_object", "updated_at"])
         return course
 
+    def delete_course(self, admin_user, course_id):
+        course = self.get_course_for_admin(course_id)
+        course.user_updated_object = admin_user
+        course.is_active = False
+        course.is_deleted = True
+        course.deleted_at = now()
+        course.save(update_fields=["is_active", "is_deleted", "deleted_at", "user_updated_object", "updated_at"])
+        return course
+
     def create_lesson(self, admin_user, dto):
         course = self.get_course_for_admin(dto.course_id)
         position = dto.position

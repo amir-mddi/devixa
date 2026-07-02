@@ -4,14 +4,14 @@ import hashlib
 import html
 from dataclasses import replace
 import logging
-import os
 from typing import Any
 
 from dealio.apps.telegram_bot.dtos.channel_sync_dtos import ChannelMediaDTO, ChannelPostDTO, ChannelSyncTargetDTO
 from dealio.apps.telegram_bot.enums.channel_sync_enums import MessengerProviderEnum
 from dealio.apps.telegram_bot.repositories.adapters.channel_sync_adapter import ChannelSyncMessengerAdapter
 from dealio.apps.telegram_bot.repositories.channel_sync_repository import ChannelSyncMessageRepository
-from dealio.apps.telegram_bot.vo.channel_sync_vo import ChannelSyncEnvVO
+from dealio.apps.telegram_bot.repositories.logic.bot_setting_logic import BotRuntimeConfigProvider
+from dealio.apps.telegram_bot.vo.channel_sync_vo import ChannelSyncEnvVO, ChannelSyncMediaTextVO
 
 logger = logging.getLogger("dealio")
 
@@ -39,7 +39,7 @@ class ChannelSyncLogicRepository:
 
     @classmethod
     def is_enabled(cls) -> bool:
-        return (os.environ.get(ChannelSyncEnvVO.ENABLED) or "").strip().lower() in {"1", "true", "yes", "on"}
+        return BotRuntimeConfigProvider.get_env(ChannelSyncEnvVO.ENABLED).strip().lower() in {"1", "true", "yes", "on"}
 
     @classmethod
     def source_chat_id_for(cls, provider: str) -> str:
@@ -50,7 +50,7 @@ class ChannelSyncLogicRepository:
         env_name = env_by_provider.get(provider)
         if not env_name:
             return ""
-        return (os.environ.get(env_name) or "").strip()
+        return BotRuntimeConfigProvider.get_env(env_name).strip()
 
     @classmethod
     def telegram_source_chat_id(cls) -> str:
@@ -65,8 +65,8 @@ class ChannelSyncLogicRepository:
         targets: list[ChannelSyncTargetDTO] = []
 
         if source_provider == MessengerProviderEnum.TELEGRAM.value:
-            bale_chat_id = (os.environ.get(ChannelSyncEnvVO.BALE_TARGET_CHAT_ID) or "").strip()
-            rubika_chat_id = (os.environ.get(ChannelSyncEnvVO.RUBIKA_TARGET_CHAT_ID) or "").strip()
+            bale_chat_id = BotRuntimeConfigProvider.get_env(ChannelSyncEnvVO.BALE_TARGET_CHAT_ID).strip()
+            rubika_chat_id = BotRuntimeConfigProvider.get_env(ChannelSyncEnvVO.RUBIKA_TARGET_CHAT_ID).strip()
 
             if bale_chat_id:
                 targets.append(ChannelSyncTargetDTO(provider=MessengerProviderEnum.BALE.value, chat_id=bale_chat_id))
@@ -74,7 +74,7 @@ class ChannelSyncLogicRepository:
                 targets.append(ChannelSyncTargetDTO(provider=MessengerProviderEnum.RUBIKA.value, chat_id=rubika_chat_id))
 
         if source_provider == MessengerProviderEnum.BALE.value:
-            telegram_chat_id = (os.environ.get(ChannelSyncEnvVO.TELEGRAM_TARGET_CHAT_ID) or "").strip()
+            telegram_chat_id = BotRuntimeConfigProvider.get_env(ChannelSyncEnvVO.TELEGRAM_TARGET_CHAT_ID).strip()
             if telegram_chat_id:
                 targets.append(ChannelSyncTargetDTO(provider=MessengerProviderEnum.TELEGRAM.value, chat_id=telegram_chat_id))
 
@@ -633,7 +633,7 @@ class ChannelSyncLogicRepository:
                 gift = nested.get("gift") or nested.get("unique_gift")
             if isinstance(gift, dict):
                 title = gift.get("title") or gift.get("name") or gift.get("emoji") or "Gift"
-                return html.escape(f"🎁 {title}")
+                return html.escape(ChannelSyncMediaTextVO.gift_title(title))
 
             sticker = message.get("sticker")
             if not sticker and isinstance(nested, dict):

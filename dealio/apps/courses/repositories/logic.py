@@ -34,6 +34,9 @@ class CourseLogicRepository(metaclass=Singleton):
             status=dto.status,
         )
 
+    def delete_course(self, admin_user, course_id):
+        return self.postgres_adapter.delete_course(admin_user=admin_user, course_id=course_id)
+
     def create_lesson(self, admin_user, dto: CourseLessonCreateDTO):
         return self.postgres_adapter.create_lesson(admin_user=admin_user, dto=dto)
 

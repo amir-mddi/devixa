@@ -2,7 +2,7 @@ from django.contrib import admin, messages
 
 from dealio.apps.billing.dtos import PaymentReceiptReviewDTO
 from dealio.apps.billing.enums import PaymentReceiptStatusEnum
-from dealio.apps.billing.models import Order, OrderItem, Payment, PaymentReceipt
+from dealio.apps.billing.models import DiscountCode, DiscountRedemption, Order, OrderItem, Payment, PaymentReceipt
 from dealio.apps.billing.repositories.logic import BillingLogicRepository
 
 
@@ -101,3 +101,18 @@ class PaymentReceiptAdmin(admin.ModelAdmin):
             )
             rejected_count += 1
         self.message_user(request, f"{rejected_count} receipt(s) rejected.", level=messages.WARNING)
+
+
+@admin.register(DiscountCode)
+class DiscountCodeAdmin(admin.ModelAdmin):
+    list_display = ("code", "title", "discount_type", "value", "usage_limit", "used_count", "is_active", "created_at")
+    list_filter = ("discount_type", "is_active", "is_deleted", "created_at")
+    search_fields = ("code", "title")
+    filter_horizontal = ("courses",)
+
+
+@admin.register(DiscountRedemption)
+class DiscountRedemptionAdmin(admin.ModelAdmin):
+    list_display = ("code", "discount", "order", "user", "amount", "created_at")
+    list_filter = ("code", "created_at")
+    search_fields = ("code", "order__order_number", "user__email", "user__username")

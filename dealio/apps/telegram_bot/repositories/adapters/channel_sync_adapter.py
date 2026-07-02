@@ -9,7 +9,9 @@ from urllib.parse import urlparse
 import requests
 
 from dealio.apps.telegram_bot.dtos.channel_sync_dtos import ChannelMediaDTO, ChannelPostDTO
+from dealio.apps.telegram_bot.enums.bot_setting_enums import BotSettingProviderEnum
 from dealio.apps.telegram_bot.enums.channel_sync_enums import MessengerProviderEnum
+from dealio.apps.telegram_bot.repositories.logic.bot_setting_logic import BotRuntimeConfigProvider
 
 
 @dataclass(frozen=True)
@@ -27,7 +29,6 @@ class ChannelSyncMessengerAdapter:
     edit, replace, and delete.
     """
 
-    MAX_DOWNLOAD_BYTES = int(os.environ.get("CHANNEL_SYNC_MAX_MEDIA_BYTES", str(20 * 1024 * 1024)))
 
     def send_post(self, *, provider: str, chat_id: str, post: ChannelPostDTO) -> dict[str, Any]:
         if post.has_media and post.media:
@@ -159,6 +160,14 @@ class ChannelSyncMessengerAdapter:
 
         return ""
 
+    @staticmethod
+    def max_download_bytes() -> int:
+        return BotRuntimeConfigProvider.get_int(
+            BotSettingProviderEnum.CHANNEL_SYNC.value,
+            "max_media_bytes",
+            20 * 1024 * 1024,
+        )
+
     def _download_media(self, media: ChannelMediaDTO) -> DownloadedChannelMedia | None:
         url = media.file_url
         if not url or not url.startswith(("http://", "https://")):
@@ -173,8 +182,9 @@ class ChannelSyncMessengerAdapter:
             if not chunk:
                 continue
             total += len(chunk)
-            if total > self.MAX_DOWNLOAD_BYTES:
-                raise RuntimeError(f"Channel sync media is larger than {self.MAX_DOWNLOAD_BYTES} bytes.")
+            max_download_bytes = self.max_download_bytes()
+            if total > max_download_bytes:
+                raise RuntimeError(f"Channel sync media is larger than {max_download_bytes} bytes.")
             chunks.append(chunk)
 
         content = b"".join(chunks)

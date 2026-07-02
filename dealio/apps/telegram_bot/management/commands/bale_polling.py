@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import os
-
 from django.core.management.base import BaseCommand, CommandError
 
 from dealio.apps.telegram_bot.application_services.polling_service import BotPollingService
 from dealio.apps.telegram_bot.bale_services import BaleBotClient, BaleBotService
+from dealio.apps.telegram_bot.enums.bot_setting_enums import BotSettingProviderEnum
+from dealio.apps.telegram_bot.repositories.logic.bot_setting_logic import BotRuntimeConfigProvider
 
 
 class Command(BaseCommand):
@@ -22,13 +22,12 @@ class Command(BaseCommand):
         if not client.is_configured:
             raise CommandError("BALE_BOT_TOKEN and BALE_BOT_BASE_URL are required.")
 
-        if options["timeout"] is None and not os.environ.get("BALE_POLLING_TIMEOUT"):
-            raise CommandError("BALE_POLLING_TIMEOUT is required when --timeout is not provided.")
-        if options["limit"] is None and not os.environ.get("BALE_POLLING_LIMIT"):
-            raise CommandError("BALE_POLLING_LIMIT is required when --limit is not provided.")
-
-        timeout = options["timeout"] if options["timeout"] is not None else int(os.environ["BALE_POLLING_TIMEOUT"])
-        limit = options["limit"] if options["limit"] is not None else int(os.environ["BALE_POLLING_LIMIT"])
+        timeout = options["timeout"] if options["timeout"] is not None else BotRuntimeConfigProvider.get_int(
+            BotSettingProviderEnum.BALE.value, "polling_timeout", 30
+        )
+        limit = options["limit"] if options["limit"] is not None else BotRuntimeConfigProvider.get_int(
+            BotSettingProviderEnum.BALE.value, "polling_limit", 50
+        )
 
         self.stdout.write(self.style.SUCCESS("Bale polling started. Press Ctrl+C to stop."))
 

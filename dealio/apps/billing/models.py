@@ -12,6 +12,7 @@ from dealio.apps.billing.enums import (
     PaymentReceiptSourceEnum,
     PaymentReceiptStatusEnum,
     PaymentStatusEnum,
+    DiscountTypeEnum,
 )
 from dealio.apps.core_models.entities.base.base import BaseModel
 
@@ -91,6 +92,63 @@ class OrderItem(BaseModel):
 
     def __str__(self):
         return f"{self.order.order_number} - {self.course_title}"
+
+
+class DiscountCode(BaseModel):
+    code = models.CharField(max_length=60, unique=True, db_index=True)
+    title = models.CharField(max_length=160, blank=True, default="")
+    discount_type = models.CharField(
+        max_length=20,
+        choices=DiscountTypeEnum.choices(),
+        default=DiscountTypeEnum.PERCENT.value,
+    )
+    value = models.DecimalField(max_digits=12, decimal_places=2)
+    max_discount_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    minimum_order_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    usage_limit = models.PositiveIntegerField(null=True, blank=True)
+    used_count = models.PositiveIntegerField(default=0)
+    per_user_limit = models.PositiveIntegerField(default=1)
+    valid_from = models.DateTimeField(null=True, blank=True)
+    valid_until = models.DateTimeField(null=True, blank=True)
+    applies_to_all_courses = models.BooleanField(default=True)
+    courses = models.ManyToManyField("courses.Course", related_name="discount_codes", blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["code", "is_active", "is_deleted"], name="discount_code_active_idx"),
+        ]
+
+    def save(self, *args, **kwargs):
+        self.code = (self.code or "").strip().upper()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.code
+
+
+class DiscountRedemption(BaseModel):
+    discount = models.ForeignKey(DiscountCode, related_name="redemptions", on_delete=models.PROTECT)
+    order = models.ForeignKey(Order, related_name="discount_redemptions", on_delete=models.PROTECT)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="discount_redemptions", on_delete=models.PROTECT)
+    code = models.CharField(max_length=60, db_index=True)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["discount", "order"], name="unique_discount_order_redemption"),
+        ]
+        indexes = [
+            models.Index(fields=["user", "code"], name="discount_user_code_idx"),
+        ]
+
+    def save(self, *args, **kwargs):
+        self.code = (self.code or "").strip().upper()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.code} -> {self.order_id}"
 
 
 class Payment(BaseModel):

@@ -1,19 +1,23 @@
 from __future__ import annotations
 
 import logging
-import os
-
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.permissions import AllowAny
+from django.core.exceptions import ValidationError
+from rest_framework import status
+from rest_framework.permissions import AllowAny, IsAdminUser
+from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from dealio.apps.telegram_bot.bale_services import BaleBotClient, BaleBotService
 from dealio.apps.telegram_bot.repositories.adapters.telegram_api_adapter import TelegramBotClient
 from dealio.apps.telegram_bot.rubika_services import RubikaBotClient, RubikaBotService, RubikaUpdateNormalizer
 from dealio.apps.telegram_bot.services import TelegramBotService
+from dealio.apps.telegram_bot.factories.service_factory import TelegramBotServiceFactory
 from dealio.apps.telegram_bot.application_services.webhook_service import BotWebhookService
+from dealio.apps.telegram_bot.repositories.logic.bot_setting_logic import BotRuntimeConfigProvider, BotSettingLogicRepository
+from dealio.apps.telegram_bot.serializers import BotSettingsUpdateSerializer
 
 logger = logging.getLogger("dealio")
 
@@ -51,7 +55,7 @@ class BaseBotWebhookAPIView(APIView):
         return ""
 
     def post(self, request):
-        expected_secret = os.environ.get(self.secret_env_name) or ""
+        expected_secret = BotRuntimeConfigProvider.get_env(self.secret_env_name)
         webhook_service = BotWebhookService(
             provider=self.provider,
             service_factory=lambda: self.make_service(self.get_client()),
@@ -97,7 +101,7 @@ class TelegramWebhookAPIView(BaseBotWebhookAPIView):
         return TelegramBotClient()
 
     def make_service(self, client):
-        return TelegramBotService(client=client)
+        return TelegramBotServiceFactory.create(client=client)
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -131,3 +135,46 @@ class RubikaWebhookAPIView(BaseBotWebhookAPIView):
 
     def get_update_id(self, update: dict):
         return RubikaUpdateNormalizer.update_log_id(update)
+
+
+
+class BotSettingsAPIView(APIView):
+    """Admin-only endpoint used by the panel bot settings button."""
+
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        return Response({"items": BotSettingLogicRepository().list_all()}, status=status.HTTP_200_OK)
+
+
+class BotProviderSettingsAPIView(APIView):
+    """Read/update runtime settings for one provider group.
+
+    Example provider values: telegram, bale, rubika, channel_sync, channel_member_sync.
+    """
+
+    permission_classes = [IsAdminUser]
+
+    def get(self, request, provider: str):
+        try:
+            data = BotSettingLogicRepository().provider_settings(provider)
+        except ValidationError as exc:
+            return Response({"detail": exc.messages}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(data, status=status.HTTP_200_OK)
+
+    def patch(self, request, provider: str):
+        serializer = BotSettingsUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            data = BotSettingLogicRepository().update_provider_settings(
+                provider=provider,
+                raw_settings=serializer.validated_data["settings"],
+                user=request.user,
+                write_to_database=True,
+                write_to_env=False,
+            )
+        except ValidationError as exc:
+            return Response({"detail": exc.messages}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(data, status=status.HTTP_200_OK)

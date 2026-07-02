@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import logging
-import os
 from enum import StrEnum
 
 from dealio.apps.telegram_bot.dtos.channel_member_sync_dtos import ChannelMemberSyncResultDTO
 from dealio.apps.telegram_bot.enums.channel_sync_enums import MessengerProviderEnum
 from dealio.apps.telegram_bot.repositories.adapters.channel_member_sync_adapter import ChannelMemberSyncMessengerAdapter
 from dealio.apps.telegram_bot.repositories.channel_member_sync_repository import ChannelMemberSyncRepository
+from dealio.apps.telegram_bot.repositories.logic.bot_setting_logic import BotRuntimeConfigProvider
 from dealio.apps.telegram_bot.vo.channel_sync_vo import ChannelMemberSyncEnvVO, ChannelMemberSyncTextVO
 
 logger = logging.getLogger("dealio")
@@ -55,7 +55,7 @@ class ChannelMemberSyncLogicRepository:
         directions = cls._directions(direction)
         for sync_direction in directions:
             for env_name in required_by_direction[sync_direction]:
-                if not (os.environ.get(env_name) or "").strip():
+                if not BotRuntimeConfigProvider.get_env(env_name).strip():
                     missing.append(env_name)
 
         if missing:
@@ -175,7 +175,7 @@ class ChannelMemberSyncLogicRepository:
 
     @staticmethod
     def _env(name: str) -> str:
-        value = (os.environ.get(name) or "").strip()
+        value = BotRuntimeConfigProvider.get_env(name).strip()
         if not value:
             raise RuntimeError(f"{name} is required.")
         return value

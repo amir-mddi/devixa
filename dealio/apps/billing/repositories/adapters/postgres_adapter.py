@@ -11,8 +11,9 @@ from dealio.apps.billing.enums import (
     PaymentProviderEnum,
     PaymentReceiptStatusEnum,
     PaymentStatusEnum,
+    DiscountTypeEnum,
 )
-from dealio.apps.billing.models import Order, OrderItem, Payment, PaymentReceipt
+from dealio.apps.billing.models import DiscountCode, DiscountRedemption, Order, OrderItem, Payment, PaymentReceipt
 from dealio.apps.billing.vo import BillingMessagesVO
 from dealio.apps.common.helpers.metaclasses.singleton import Singleton
 from dealio.apps.courses.enums import CourseStatusEnum
@@ -120,7 +121,7 @@ class BillingPostgresAdapter(metaclass=Singleton):
             queryset = queryset.filter(status=status)
         return queryset.order_by("-created_at")
 
-    def get_or_create_checkout_order(self, user, course_id):
+    def get_or_create_checkout_order(self, user, course_id, discount_code: str = ""):
         course = self.course_adapter.get_course(course_id)
         if course.status != CourseStatusEnum.PUBLISHED.value or course.is_deleted or not course.is_active:
             raise NotFound(CourseMessagesVO.COURSE_NOT_FOUND)
@@ -139,6 +140,10 @@ class BillingPostgresAdapter(metaclass=Singleton):
             .first()
         )
         if existing_order:
+            if discount_code:
+                self.apply_discount_to_order(order=existing_order, code=discount_code, user=user)
+            if existing_order.total_amount <= Decimal("0.00"):
+                self.mark_order_paid(order=existing_order, payment=None, actor=user)
             return existing_order, False
 
         with transaction.atomic():
@@ -162,9 +167,144 @@ class BillingPostgresAdapter(metaclass=Singleton):
                 user_created_object=user,
                 user_updated_object=user,
             )
-            if course.is_free:
+            if discount_code:
+                self.apply_discount_to_order(order=order, code=discount_code, user=user)
+            if order.total_amount <= Decimal("0.00") or course.is_free:
                 self.mark_order_paid(order=order, payment=None, actor=user)
             return order, True
+
+
+    @staticmethod
+    def normalize_discount_code(code: str) -> str:
+        return (code or "").strip().upper()
+
+    def list_discount_codes_for_admin(self):
+        return (
+            DiscountCode.objects
+            .prefetch_related("courses")
+            .filter(is_deleted=False)
+            .order_by("-created_at")
+        )
+
+    def create_discount_code(self, actor, dto):
+        from dealio.apps.courses.models import Course
+
+        code = self.normalize_discount_code(dto.code)
+        if not code:
+            raise ValidationError("Discount code is required.")
+        discount_type = str(dto.discount_type or "").strip().lower()
+        if discount_type not in {DiscountTypeEnum.PERCENT.value, DiscountTypeEnum.AMOUNT.value}:
+            raise ValidationError("Discount type must be percent or amount.")
+        value = Decimal(str(dto.value))
+        if value <= Decimal("0.00"):
+            raise ValidationError("Discount value must be greater than zero.")
+        if discount_type == DiscountTypeEnum.PERCENT.value and value > Decimal("100.00"):
+            raise ValidationError("Percent discount cannot be greater than 100.")
+
+        with transaction.atomic():
+            discount, created = DiscountCode.objects.update_or_create(
+                code=code,
+                defaults={
+                    "title": dto.title or code,
+                    "discount_type": discount_type,
+                    "value": value,
+                    "max_discount_amount": dto.max_discount_amount,
+                    "minimum_order_amount": dto.minimum_order_amount or Decimal("0.00"),
+                    "usage_limit": dto.usage_limit,
+                    "per_user_limit": max(int(dto.per_user_limit or 1), 1),
+                    "valid_until": dto.valid_until,
+                    "applies_to_all_courses": dto.course_id is None,
+                    "is_active": True,
+                    "is_deleted": False,
+                    "user_updated_object": actor,
+                },
+            )
+            if created:
+                discount.user_created_object = actor
+                discount.save(update_fields=["user_created_object", "updated_at"])
+            discount.courses.clear()
+            if dto.course_id is not None:
+                course = Course.objects.filter(id=dto.course_id, is_deleted=False).first()
+                if not course:
+                    raise NotFound(CourseMessagesVO.COURSE_NOT_FOUND)
+                discount.courses.add(course)
+            return discount
+
+    @staticmethod
+    def delete_discount_code(actor, discount_id):
+        discount = DiscountCode.objects.filter(id=discount_id, is_deleted=False).first()
+        if not discount:
+            raise NotFound("Discount code not found.")
+        discount.is_active = False
+        discount.user_updated_object = actor
+        discount.delete()
+        return discount
+
+    def apply_discount_to_order(self, *, order, code: str, user):
+        normalized_code = self.normalize_discount_code(code)
+        if not normalized_code:
+            return order
+        discount = (
+            DiscountCode.objects.prefetch_related("courses")
+            .filter(code=normalized_code, is_active=True, is_deleted=False)
+            .first()
+        )
+        if not discount:
+            raise ValidationError("Discount code is invalid.")
+        current_time = now()
+        if discount.valid_from and discount.valid_from > current_time:
+            raise ValidationError("Discount code is not active yet.")
+        if discount.valid_until and discount.valid_until < current_time:
+            raise ValidationError("Discount code is expired.")
+        if discount.usage_limit is not None and discount.used_count >= discount.usage_limit:
+            raise ValidationError("Discount usage limit has been reached.")
+        if order.subtotal_amount < discount.minimum_order_amount:
+            raise ValidationError("Order amount is lower than this discount minimum amount.")
+        course_ids = [item.course_id for item in order.items.all()]
+        if not discount.applies_to_all_courses and not discount.courses.filter(id__in=course_ids).exists():
+            raise ValidationError("Discount code is not valid for this course.")
+        user_redemptions = DiscountRedemption.objects.filter(discount=discount, user=user, is_deleted=False).exclude(order=order).count()
+        if user_redemptions >= discount.per_user_limit:
+            raise ValidationError("You have already used this discount code.")
+
+        subtotal = order.subtotal_amount
+        if discount.discount_type == DiscountTypeEnum.PERCENT.value:
+            amount = (subtotal * discount.value / Decimal("100.00")).quantize(Decimal("0.01"))
+        else:
+            amount = discount.value
+        if discount.max_discount_amount is not None:
+            amount = min(amount, discount.max_discount_amount)
+        amount = max(Decimal("0.00"), min(amount, subtotal))
+
+        previous = DiscountRedemption.objects.filter(order=order, is_deleted=False).first()
+        if previous and previous.discount_id != discount.id:
+            previous.discount.used_count = max(previous.discount.used_count - 1, 0)
+            previous.discount.save(update_fields=["used_count", "updated_at"])
+            previous.delete()
+        redemption, created = DiscountRedemption.objects.update_or_create(
+            discount=discount,
+            order=order,
+            defaults={
+                "user": user,
+                "code": discount.code,
+                "amount": amount,
+                "user_updated_object": user,
+                "is_active": True,
+                "is_deleted": False,
+            },
+        )
+        if created:
+            redemption.user_created_object = user
+            redemption.save(update_fields=["user_created_object", "updated_at"])
+            discount.used_count += 1
+            discount.save(update_fields=["used_count", "updated_at"])
+
+        order.discount_amount = amount
+        order.total_amount = max(Decimal("0.00"), subtotal - amount)
+        order.metadata = {**(order.metadata or {}), "discount_code": discount.code, "discount_id": str(discount.id)}
+        order.user_updated_object = user
+        order.save(update_fields=["discount_amount", "total_amount", "metadata", "user_updated_object", "updated_at"])
+        return order
 
     @staticmethod
     def initial_status_for_provider(provider: str) -> str:
@@ -194,6 +334,11 @@ class BillingPostgresAdapter(metaclass=Singleton):
             .first()
         )
         if existing_payment:
+            if existing_payment.amount != order.total_amount or existing_payment.currency != order.currency:
+                existing_payment.amount = order.total_amount
+                existing_payment.currency = order.currency
+                existing_payment.user_updated_object = user
+                existing_payment.save(update_fields=["amount", "currency", "user_updated_object", "updated_at"])
             return existing_payment
         return Payment.objects.create(
             order=order,

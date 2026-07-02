@@ -16,6 +16,10 @@ from dotenv import load_dotenv
 env_path = os.path.join(BASE_DIR, f"deployment/env/{os.environ.get('ENV', 'local')}.env")
 load_dotenv(dotenv_path=env_path, override=True)
 
+BOT_RUNTIME_ENV_FILE_PATH = os.environ.get("BOT_RUNTIME_ENV_FILE_PATH", env_path)
+BOT_RUNTIME_ENV_WRITE_ENABLED = os.environ.get("BOT_RUNTIME_ENV_WRITE_ENABLED", "false")
+BOT_RUNTIME_ENV_WRITE_ALLOW_ANY_PATH = os.environ.get("BOT_RUNTIME_ENV_WRITE_ALLOW_ANY_PATH", "false")
+
 from dealio.apps.core_models.dtos.setup_config import general_config, redis_config, celery_config, \
     pagination_config, \
     database_config, sentry_config, jwt_config, logging_config, swagger_config, session_config

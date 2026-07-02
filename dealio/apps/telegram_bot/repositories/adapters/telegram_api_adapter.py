@@ -1,25 +1,39 @@
 from __future__ import annotations
 
 import json
-import os
 from typing import Any
 
 import requests
 
+from dealio.apps.telegram_bot.enums.bot_setting_enums import BotSettingProviderEnum
 from dealio.apps.telegram_bot.interfaces.bot_client_interface import BotClientInterface
+from dealio.apps.telegram_bot.repositories.logic.bot_setting_logic import BotRuntimeConfigProvider
 
 
 class TelegramApiAdapter(BotClientInterface):
     """Telegram HTTP API adapter.
 
-    Reads environment variables directly from os.environ and keeps all HTTP API
+    Reads runtime settings through BotRuntimeConfigProvider and keeps all HTTP API
     calls outside controllers/services/logic.
     """
 
+    PROVIDER = BotSettingProviderEnum.TELEGRAM.value
+
     def __init__(self, token: str | None = None, proxy_url: str | None = None):
-        self.token = (token or os.environ.get("TELEGRAM_BOT_TOKEN") or "").strip()
-        self.base_url = f"https://api.telegram.org/bot{self.token}"
-        self.proxy_url = (proxy_url or os.environ.get("PROXY_URL") or "").strip()
+        self._token_override = token
+        self._proxy_url_override = proxy_url
+
+    @property
+    def token(self) -> str:
+        return (self._token_override or BotRuntimeConfigProvider.get(self.PROVIDER, "bot_token") or "").strip()
+
+    @property
+    def base_url(self) -> str:
+        return f"https://api.telegram.org/bot{self.token}"
+
+    @property
+    def proxy_url(self) -> str:
+        return (self._proxy_url_override or BotRuntimeConfigProvider.get(self.PROVIDER, "proxy_url") or "").strip()
 
     @property
     def is_configured(self) -> bool:
@@ -27,9 +41,10 @@ class TelegramApiAdapter(BotClientInterface):
 
     @property
     def proxies(self) -> dict[str, str] | None:
-        if not self.proxy_url:
+        proxy_url = self.proxy_url
+        if not proxy_url:
             return None
-        return {"http": self.proxy_url, "https": self.proxy_url}
+        return {"http": proxy_url, "https": proxy_url}
 
     def request(self, method_name: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
         if not self.is_configured:

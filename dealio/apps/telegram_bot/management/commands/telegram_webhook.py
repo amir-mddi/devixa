@@ -1,6 +1,7 @@
-import os
 from django.core.management.base import BaseCommand, CommandError
 
+from dealio.apps.telegram_bot.enums.bot_setting_enums import BotSettingProviderEnum
+from dealio.apps.telegram_bot.repositories.logic.bot_setting_logic import BotRuntimeConfigProvider
 from dealio.apps.telegram_bot.services import TelegramBotClient
 
 
@@ -27,10 +28,10 @@ class Command(BaseCommand):
 
         action = options["action"]
         if action == "set":
-            url = options.get("url") or os.environ.get("TELEGRAM_WEBHOOK_URL")
+            url = options.get("url") or BotRuntimeConfigProvider.get(BotSettingProviderEnum.TELEGRAM.value, "webhook_url")
             if not url:
                 raise CommandError("TELEGRAM_WEBHOOK_URL is required or pass --url.")
-            secret = options.get("secret") or os.environ.get("TELEGRAM_WEBHOOK_SECRET")
+            secret = options.get("secret") or BotRuntimeConfigProvider.get(BotSettingProviderEnum.TELEGRAM.value, "webhook_secret")
             response = client.set_webhook(
                 url,
                 secret_token=secret or None,

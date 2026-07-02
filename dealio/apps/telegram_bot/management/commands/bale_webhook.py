@@ -1,8 +1,8 @@
-import os
-
 from django.core.management.base import BaseCommand, CommandError
 
 from dealio.apps.telegram_bot.bale_services import BaleBotClient
+from dealio.apps.telegram_bot.enums.bot_setting_enums import BotSettingProviderEnum
+from dealio.apps.telegram_bot.repositories.logic.bot_setting_logic import BotRuntimeConfigProvider
 
 
 class Command(BaseCommand):
@@ -28,10 +28,10 @@ class Command(BaseCommand):
 
         action = options["action"]
         if action == "set":
-            url = options.get("url") or os.environ.get("BALE_WEBHOOK_URL")
+            url = options.get("url") or BotRuntimeConfigProvider.get(BotSettingProviderEnum.BALE.value, "webhook_url")
             if not url:
                 raise CommandError("BALE_WEBHOOK_URL is required or pass --url.")
-            secret = options.get("secret") or os.environ.get("BALE_WEBHOOK_SECRET")
+            secret = options.get("secret") or BotRuntimeConfigProvider.get(BotSettingProviderEnum.BALE.value, "webhook_secret")
             response = client.set_webhook(
                 url,
                 secret_token=secret or None,

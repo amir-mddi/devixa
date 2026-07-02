@@ -1,14 +1,18 @@
 from __future__ import annotations
 
-import os
-
 from dealio.apps.common.helpers.metaclasses.singleton import Singleton
+from dealio.apps.telegram_bot.enums.bot_setting_enums import BotSettingProviderEnum
+from dealio.apps.telegram_bot.repositories.logic.bot_setting_logic import BotRuntimeConfigProvider
 from dealio.apps.telegram_bot.dtos.commerce_bot_dtos import (
     TelegramCheckoutDTO,
     TelegramCourseCreateDTO,
+    TelegramCourseDeleteDTO,
     TelegramCourseLessonCreateDTO,
     TelegramCourseReviewDTO,
     TelegramCourseStatusDTO,
+    TelegramCourseUpdateFieldDTO,
+    TelegramDiscountCreateDTO,
+    TelegramDiscountDeleteDTO,
     TelegramPaginationDTO,
     TelegramPaymentReceiptDTO,
     TelegramPaymentReceiptReviewDTO,
@@ -51,6 +55,18 @@ class TelegramCommerceBotLogicRepository(metaclass=Singleton):
             dto=TelegramCourseStatusDTO(course_id=course_id, status=status),
         )
 
+    def update_course_field(self, admin_user, *, course_id, field: str, value):
+        return self.adapter.update_course_field(
+            admin_user=admin_user,
+            dto=TelegramCourseUpdateFieldDTO(course_id=course_id, field=field, value=value),
+        )
+
+    def delete_course(self, admin_user, *, course_id):
+        return self.adapter.delete_course(
+            admin_user=admin_user,
+            dto=TelegramCourseDeleteDTO(course_id=course_id),
+        )
+
     def create_lesson(self, admin_user, *, course_id, title: str, description: str, content: str, video_url: str, duration_minutes: int, position: int | None, is_preview: bool):
         return self.adapter.create_lesson(
             admin_user=admin_user,
@@ -89,10 +105,10 @@ class TelegramCommerceBotLogicRepository(metaclass=Singleton):
             ),
         )
 
-    def checkout_course(self, user, *, course_id):
+    def checkout_course(self, user, *, course_id, discount_code: str = ""):
         return self.adapter.create_checkout_and_payment(
             user=user,
-            dto=TelegramCheckoutDTO(course_id=course_id, provider=self.default_payment_provider()),
+            dto=TelegramCheckoutDTO(course_id=course_id, provider=self.default_payment_provider(), discount_code=discount_code),
         )
 
     def list_orders(self, user, limit: int = 10):
@@ -127,9 +143,32 @@ class TelegramCommerceBotLogicRepository(metaclass=Singleton):
             dto=TelegramReviewModerationDTO(review_id=review_id, status=status, admin_note=admin_note),
         )
 
+
+    def list_discount_codes(self, page: int = 1, page_size: int = 10):
+        return self.adapter.list_discount_codes(page=page, page_size=page_size)
+
+    def create_discount_code(self, admin_user, *, code: str, discount_type: str, value, title: str = "", course_id=None, usage_limit: int | None = None):
+        return self.adapter.create_discount_code(
+            admin_user=admin_user,
+            dto=TelegramDiscountCreateDTO(
+                code=code,
+                discount_type=discount_type,
+                value=value,
+                title=title,
+                course_id=course_id,
+                usage_limit=usage_limit,
+            ),
+        )
+
+    def delete_discount_code(self, admin_user, *, discount_id):
+        return self.adapter.delete_discount_code(
+            admin_user=admin_user,
+            dto=TelegramDiscountDeleteDTO(discount_id=discount_id),
+        )
+
     @staticmethod
     def default_payment_provider() -> str:
-        provider = os.environ.get("TELEGRAM_PAYMENT_PROVIDER")
+        provider = BotRuntimeConfigProvider.get(BotSettingProviderEnum.TELEGRAM.value, "payment_provider")
         if not provider:
             raise RuntimeError("TELEGRAM_PAYMENT_PROVIDER is required.")
         return provider

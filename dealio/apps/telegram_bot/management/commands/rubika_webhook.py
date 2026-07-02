@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import os
-
 from django.core.management.base import BaseCommand, CommandError
 
+from dealio.apps.telegram_bot.enums.bot_setting_enums import BotSettingProviderEnum
+from dealio.apps.telegram_bot.repositories.logic.bot_setting_logic import BotRuntimeConfigProvider
 from dealio.apps.telegram_bot.rubika_services import RubikaBotClient
 
 
@@ -24,7 +24,7 @@ class Command(BaseCommand):
             raise CommandError("RUBIKA_BOT_TOKEN and RUBIKA_BOT_BASE_URL are required.")
 
         if options["action"] == "set":
-            url = options.get("url") or os.environ.get("RUBIKA_WEBHOOK_URL")
+            url = options.get("url") or BotRuntimeConfigProvider.get(BotSettingProviderEnum.RUBIKA.value, "webhook_url")
             if not url:
                 raise CommandError("RUBIKA_WEBHOOK_URL is required or pass --url.")
             for endpoint_type in self.ENDPOINT_TYPES:

@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import html
-import os
 import re
 from typing import Any
 
 import requests
 
+from dealio.apps.telegram_bot.enums.bot_setting_enums import BotSettingProviderEnum
 from dealio.apps.telegram_bot.services import TelegramBotService
+from dealio.apps.telegram_bot.repositories.logic.bot_setting_logic import BotRuntimeConfigProvider
 from dealio.apps.telegram_bot.repositories.logic.commerce_bot_logic import TelegramCommerceBotLogicRepository
 
 
@@ -15,15 +16,33 @@ class BaleBotClient:
     """Bale Bot API client with the same public methods used by TelegramBotService.
 
     Bale requests are sent to: {BALE_BOT_BASE_URL}/bot{BALE_BOT_TOKEN}/{method}.
-    Environment variables are read directly from os.environ without project-level defaults.
+    Runtime settings are read through BotRuntimeConfigProvider; env remains fallback/bootstrap only.
     """
 
-    def __init__(self, token: str | None = None, base_url: str | None = None, proxy_url: str | None = None):
-        self.token = (token or os.environ.get("BALE_BOT_TOKEN") or "").strip()
-        self.base_api_url = (base_url or os.environ.get("BALE_BOT_BASE_URL") or "").strip().rstrip("/")
-        self.proxy_url = (proxy_url or os.environ.get("BALE_PROXY_URL") or os.environ.get("PROXY_URL") or "").strip()
+    PROVIDER = BotSettingProviderEnum.BALE.value
 
-        self.base_url = f"{self.base_api_url}/bot{self.token}" if self.base_api_url and self.token else ""
+    def __init__(self, token: str | None = None, base_url: str | None = None, proxy_url: str | None = None):
+        self._token_override = token
+        self._base_url_override = base_url
+        self._proxy_url_override = proxy_url
+
+    @property
+    def token(self) -> str:
+        return (self._token_override or BotRuntimeConfigProvider.get(self.PROVIDER, "bot_token") or "").strip()
+
+    @property
+    def base_api_url(self) -> str:
+        return (self._base_url_override or BotRuntimeConfigProvider.get(self.PROVIDER, "bot_base_url") or "").strip().rstrip("/")
+
+    @property
+    def proxy_url(self) -> str:
+        provider_proxy = BotRuntimeConfigProvider.get(self.PROVIDER, "proxy_url")
+        global_proxy = BotRuntimeConfigProvider.get(BotSettingProviderEnum.TELEGRAM.value, "proxy_url")
+        return (self._proxy_url_override or provider_proxy or global_proxy or "").strip()
+
+    @property
+    def base_url(self) -> str:
+        return f"{self.base_api_url}/bot{self.token}" if self.base_api_url and self.token else ""
 
     @property
     def is_configured(self) -> bool:
@@ -31,9 +50,10 @@ class BaleBotClient:
 
     @property
     def proxies(self) -> dict[str, str] | None:
-        if not self.proxy_url:
+        proxy_url = self.proxy_url
+        if not proxy_url:
             return None
-        return {"http": self.proxy_url, "https": self.proxy_url}
+        return {"http": proxy_url, "https": proxy_url}
 
     def _request(self, method_name: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
         if not self.is_configured:
@@ -271,8 +291,8 @@ class BaleBotClient:
         limit: int | None = None,
         allowed_updates: list[str] | None = None,
     ) -> list[dict[str, Any]]:
-        timeout_value = timeout if timeout is not None else int(os.environ["BALE_POLLING_TIMEOUT"])
-        limit_value = limit if limit is not None else int(os.environ["BALE_POLLING_LIMIT"])
+        timeout_value = timeout if timeout is not None else BotRuntimeConfigProvider.get_int(self.PROVIDER, "polling_timeout", 30)
+        limit_value = limit if limit is not None else BotRuntimeConfigProvider.get_int(self.PROVIDER, "polling_limit", 50)
         payload: dict[str, Any] = {
             "timeout": timeout_value,
             "limit": limit_value,
@@ -287,7 +307,7 @@ class BaleBotClient:
 class BaleCommerceBotLogicRepository(TelegramCommerceBotLogicRepository):
     @staticmethod
     def default_payment_provider() -> str:
-        provider = os.environ.get("BALE_PAYMENT_PROVIDER")
+        provider = BotRuntimeConfigProvider.get(BotSettingProviderEnum.BALE.value, "payment_provider")
         if not provider:
             raise RuntimeError("BALE_PAYMENT_PROVIDER is required.")
         return provider
@@ -305,4 +325,4 @@ class BaleBotService(TelegramBotService):
 
     @staticmethod
     def web_app_url() -> str:
-        return os.environ.get("BALE_WEBAPP_URL") or ""
+        return BotRuntimeConfigProvider.get(BotSettingProviderEnum.BALE.value, "webapp_url")

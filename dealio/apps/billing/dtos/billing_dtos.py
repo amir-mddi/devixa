@@ -8,6 +8,7 @@ from dealio.apps.core_models.dtos.base_dto import BaseDTO
 
 class CheckoutDTO(BaseDTO):
     course_id: UUID
+    discount_code: str = ""
 
 
 class PaymentStartDTO(BaseDTO):
@@ -45,3 +46,21 @@ class PaymentReceiptReviewDTO(BaseDTO):
 class PaymentGatewayCallbackDTO(BaseDTO):
     provider: PaymentProviderEnum
     payload: dict
+
+
+class DiscountCreateDTO(BaseDTO):
+    code: str
+    discount_type: str
+    value: Decimal
+    title: str = ""
+    course_id: UUID | None = None
+    usage_limit: int | None = None
+    per_user_limit: int = 1
+    max_discount_amount: Decimal | None = None
+    minimum_order_amount: Decimal = Decimal("0.00")
+    valid_until: datetime | None = None
+
+
+class DiscountApplyDTO(BaseDTO):
+    order_id: UUID
+    code: str

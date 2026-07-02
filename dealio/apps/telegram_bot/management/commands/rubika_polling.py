@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import os
-
 from django.core.management.base import BaseCommand, CommandError
 
 from dealio.apps.telegram_bot.application_services.rubika_polling_service import RubikaPollingService
+from dealio.apps.telegram_bot.enums.bot_setting_enums import BotSettingProviderEnum
+from dealio.apps.telegram_bot.repositories.logic.bot_setting_logic import BotRuntimeConfigProvider
 from dealio.apps.telegram_bot.rubika_services import RubikaBotClient, RubikaBotService, RubikaUpdateNormalizer
 
 
@@ -21,13 +21,12 @@ class Command(BaseCommand):
         if not client.is_configured:
             raise CommandError("RUBIKA_BOT_TOKEN and RUBIKA_BOT_BASE_URL are required.")
 
-        if options["limit"] is None and not os.environ.get("RUBIKA_POLLING_LIMIT"):
-            raise CommandError("RUBIKA_POLLING_LIMIT is required when --limit is not provided.")
-        if options["sleep"] is None and not os.environ.get("RUBIKA_POLLING_SLEEP_SECONDS"):
-            raise CommandError("RUBIKA_POLLING_SLEEP_SECONDS is required when --sleep is not provided.")
-
-        limit = options["limit"] if options["limit"] is not None else int(os.environ["RUBIKA_POLLING_LIMIT"])
-        sleep_seconds = options["sleep"] if options["sleep"] is not None else float(os.environ["RUBIKA_POLLING_SLEEP_SECONDS"])
+        limit = options["limit"] if options["limit"] is not None else BotRuntimeConfigProvider.get_int(
+            BotSettingProviderEnum.RUBIKA.value, "polling_limit", 50
+        )
+        sleep_seconds = options["sleep"] if options["sleep"] is not None else BotRuntimeConfigProvider.get_float(
+            BotSettingProviderEnum.RUBIKA.value, "polling_sleep_seconds", 1.0
+        )
 
         polling_service = RubikaPollingService(
             provider=RubikaBotService.MESSENGER_PROVIDER,

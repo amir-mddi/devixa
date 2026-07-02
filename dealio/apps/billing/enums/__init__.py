@@ -5,6 +5,8 @@ from .billing_enums import (
     PaymentReceiptSourceEnum,
     PaymentReceiptStatusEnum,
     PaymentStatusEnum,
+    DiscountTypeEnum,
+    DiscountStatusEnum,
 )
 
 __all__ = [
@@ -14,4 +16,6 @@ __all__ = [
     "PaymentReceiptSourceEnum",
     "PaymentReceiptStatusEnum",
     "PaymentStatusEnum",
+    "DiscountTypeEnum",
+    "DiscountStatusEnum",
 ]

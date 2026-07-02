@@ -53,3 +53,11 @@ class ChannelMemberSyncTextVO:
         "برای عضویت در کانال بله Devixa از لینک زیر استفاده کنید:\n"
         "{invite_url}"
     )
+
+
+class ChannelSyncMediaTextVO:
+    GIFT_ICON = "🎁"
+
+    @classmethod
+    def gift_title(cls, title: str) -> str:
+        return f"{cls.GIFT_ICON} {title}"

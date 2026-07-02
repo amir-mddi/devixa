@@ -2,6 +2,7 @@ from django.db import transaction
 
 from dealio.apps.billing.dtos import (
     CheckoutDTO,
+    DiscountCreateDTO,
     PaymentConfirmDTO,
     PaymentGatewayCallbackDTO,
     PaymentReceiptReviewDTO,
@@ -32,7 +33,7 @@ class BillingLogicRepository(metaclass=Singleton):
         return self.postgres_adapter.get_payment_for_user(payment_id, user)
 
     def create_checkout_order(self, user, dto: CheckoutDTO):
-        return self.postgres_adapter.get_or_create_checkout_order(user=user, course_id=dto.course_id)
+        return self.postgres_adapter.get_or_create_checkout_order(user=user, course_id=dto.course_id, discount_code=getattr(dto, "discount_code", ""))
 
     def start_payment(self, user, dto: PaymentStartDTO):
         with transaction.atomic():
@@ -110,6 +111,16 @@ class BillingLogicRepository(metaclass=Singleton):
                 actor=payment.user,
             )
         return payment, verification_result
+
+
+    def list_discount_codes_for_admin(self):
+        return self.postgres_adapter.list_discount_codes_for_admin()
+
+    def create_discount_code(self, actor, dto: DiscountCreateDTO):
+        return self.postgres_adapter.create_discount_code(actor=actor, dto=dto)
+
+    def delete_discount_code(self, actor, discount_id):
+        return self.postgres_adapter.delete_discount_code(actor=actor, discount_id=discount_id)
 
     def list_orders_for_admin(self, status: str | None = None):
         return self.postgres_adapter.list_orders_for_admin(status=status)

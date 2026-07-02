@@ -1,9 +1,10 @@
 import hashlib
 import hmac
 import html
+import json
 import logging
-import os
 import secrets
+from decimal import Decimal
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -15,6 +16,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import IntegrityError, transaction
 from django.db.models import Q
+from django.utils import timezone
 
 from dealio.apps.accounts.repositories.account_logic import AccountLogicRepository
 from dealio.apps.common.helpers.validators.account_validators import (
@@ -24,7 +26,8 @@ from dealio.apps.common.helpers.validators.account_validators import (
     validate_persian_text,
 )
 from dealio.apps.common.email_service import send_html_email_async
-from dealio.apps.telegram_bot.models import TelegramProfile
+from dealio.apps.telegram_bot.models import BotSupportTicket, TelegramProfile
+from dealio.apps.telegram_bot.enums.bot_setting_enums import BotSettingProviderEnum
 from dealio.apps.telegram_bot.repositories.bot_cache_repository import TelegramBotCacheRepository
 from dealio.apps.telegram_bot.repositories.profile_repository import TelegramProfileRepository
 from dealio.apps.telegram_bot.repositories.user_role_repository import TelegramUserRoleRepository
@@ -33,14 +36,22 @@ from dealio.apps.telegram_bot.vo.commerce_bot_vo import (
     TelegramBotAliasVO,
     TelegramBotButtonTextVO,
     TelegramBotCallbackVO,
+    TelegramBotIconKeyVO,
+    TelegramBotIconVO,
     TelegramBotLanguageVO,
     TelegramBotMessageTextVO,
     TelegramBotStateVO,
+    TelegramCommerceFeatureVO,
 )
 from dealio.apps.telegram_bot.repositories.logic import TelegramCommerceBotLogicRepository
+from dealio.apps.telegram_bot.repositories.logic.bot_setting_logic import BotRuntimeConfigProvider, BotSettingLogicRepository
+from dealio.apps.telegram_bot.repositories.logic.bot_notification_logic import BotNotificationLogicRepository
+from dealio.apps.telegram_bot.repositories.logic.bot_support_logic import BotSupportLogicRepository
+from dealio.apps.telegram_bot.vo.bot_setting_vo import BotSettingRegistryVO
+from dealio.apps.telegram_bot.interfaces.commerce_bot_logic_interface import CommerceBotLogicInterface
 from dealio.apps.telegram_bot.repositories.logic.channel_sync_logic import ChannelSyncLogicRepository
 from dealio.apps.courses.enums import CourseLevelEnum, CourseStatusEnum, ReviewStatusEnum
-from dealio.apps.billing.enums import PaymentProviderEnum, PaymentReceiptStatusEnum, PaymentStatusEnum
+from dealio.apps.billing.enums import CurrencyEnum, PaymentProviderEnum, PaymentReceiptStatusEnum, PaymentStatusEnum
 
 
 logger = logging.getLogger("dealio")
@@ -149,6 +160,22 @@ class TelegramBotService:
     CALLBACK_LANG_FA = TelegramBotCallbackVO.LANG_FA
     CALLBACK_HELP = TelegramBotCallbackVO.HELP
     CALLBACK_CHANNELS = getattr(TelegramBotCallbackVO, "CHANNELS", "menu:channels")
+    CALLBACK_BOT_SETTINGS = getattr(TelegramBotCallbackVO, "BOT_SETTINGS", "bs:menu")
+    CALLBACK_ADMIN_NOTIFICATION = getattr(TelegramBotCallbackVO, "ADMIN_NOTIFICATION", "ntf:menu")
+    CALLBACK_ADMIN_NOTIFICATION_START = getattr(TelegramBotCallbackVO, "ADMIN_NOTIFICATION_START", "ntf:start")
+    CALLBACK_ADMIN_NOTIFICATION_CONFIRM = getattr(TelegramBotCallbackVO, "ADMIN_NOTIFICATION_CONFIRM", "ntf:confirm")
+    CALLBACK_ADMIN_NOTIFICATION_CONFIRM_NOW = getattr(TelegramBotCallbackVO, "ADMIN_NOTIFICATION_CONFIRM_NOW", "ntf:confirm_now")
+    CALLBACK_ADMIN_NOTIFICATION_SCHEDULE = getattr(TelegramBotCallbackVO, "ADMIN_NOTIFICATION_SCHEDULE", "ntf:schedule")
+    CALLBACK_DISCOUNTS = getattr(TelegramBotCallbackVO, "DISCOUNTS", "dsc:menu")
+    CALLBACK_DISCOUNT_CREATE = getattr(TelegramBotCallbackVO, "DISCOUNT_CREATE", "dsc:create")
+    CALLBACK_DISCOUNT_TYPE_PERCENT = getattr(TelegramBotCallbackVO, "DISCOUNT_TYPE_PERCENT", "dsc:type:percent")
+    CALLBACK_DISCOUNT_TYPE_AMOUNT = getattr(TelegramBotCallbackVO, "DISCOUNT_TYPE_AMOUNT", "dsc:type:amount")
+    CALLBACK_DISCOUNT_SCOPE_ALL = getattr(TelegramBotCallbackVO, "DISCOUNT_SCOPE_ALL", "dsc:scope:all")
+    CALLBACK_DISCOUNT_USAGE_LIMIT_UNLIMITED = getattr(TelegramBotCallbackVO, "DISCOUNT_USAGE_LIMIT_UNLIMITED", "dsc:limit:none")
+    CALLBACK_DISCOUNT_USAGE_LIMIT_CUSTOM = getattr(TelegramBotCallbackVO, "DISCOUNT_USAGE_LIMIT_CUSTOM", "dsc:limit:set")
+    CALLBACK_SUPPORT = getattr(TelegramBotCallbackVO, "SUPPORT", "sup:menu")
+    CALLBACK_SUPPORT_NEW = getattr(TelegramBotCallbackVO, "SUPPORT_NEW", "sup:new")
+    CALLBACK_SUPPORT_QUEUE = getattr(TelegramBotCallbackVO, "SUPPORT_QUEUE", "sup:q")
     CALLBACK_COURSES = TelegramBotCallbackVO.COURSES
     CALLBACK_MY_COURSES = TelegramBotCallbackVO.MY_COURSES
     CALLBACK_MY_ORDERS = TelegramBotCallbackVO.MY_ORDERS
@@ -180,12 +207,16 @@ class TelegramBotService:
     BTN_REVIEW_QUEUE = TelegramBotButtonTextVO.BUTTONS[LANG_EN]["review_queue"]
     BTN_PAYMENT_QUEUE = TelegramBotButtonTextVO.BUTTONS[LANG_EN]["payment_queue"]
     BTN_ADMIN_COURSES = TelegramBotButtonTextVO.BUTTONS[LANG_EN]["admin_courses"]
+    BTN_BOT_SETTINGS = TelegramBotButtonTextVO.BUTTONS[LANG_EN]["bot_settings"]
+    BTN_ADMIN_NOTIFICATION = TelegramBotButtonTextVO.BUTTONS[LANG_EN].get("admin_notification", "Send notification")
     BTN_CREATE_COURSE = TelegramBotButtonTextVO.BUTTONS[LANG_EN]["create_course"]
     BTN_MAIN_MENU = TelegramBotButtonTextVO.BUTTONS[LANG_EN]["main_menu"]
     BTN_CANCEL = TelegramBotButtonTextVO.BUTTONS[LANG_EN]["cancel"]
     BTN_YES_UNLINK = TelegramBotButtonTextVO.BUTTONS[LANG_EN]["yes_unlink"]
 
     BUTTONS = TelegramBotButtonTextVO.BUTTONS
+    ICONS = TelegramBotIconVO
+    COMMERCE_FEATURE = TelegramCommerceFeatureVO
 
     STATE_LINK_EMAIL = TelegramBotStateVO.LINK_EMAIL
     STATE_LINK_CODE = TelegramBotStateVO.LINK_CODE
@@ -216,15 +247,41 @@ class TelegramBotService:
     STATE_LESSON_POSITION = TelegramBotStateVO.LESSON_POSITION
     STATE_LESSON_PREVIEW = TelegramBotStateVO.LESSON_PREVIEW
     STATE_PAYMENT_RECEIPT_TRACKING = TelegramBotStateVO.PAYMENT_RECEIPT_TRACKING
+    STATE_BOT_SETTING_VALUE = getattr(TelegramBotStateVO, "BOT_SETTING_VALUE", "bot_setting_value")
+    STATE_BOT_SETTING_EMAIL_CODE = getattr(TelegramBotStateVO, "BOT_SETTING_EMAIL_CODE", "bot_setting_email_code")
+    STATE_COURSE_EDIT_VALUE = getattr(TelegramBotStateVO, "COURSE_EDIT_VALUE", "admin_course_edit_value")
+    STATE_ADMIN_NOTIFICATION_MESSAGE = getattr(TelegramBotStateVO, "ADMIN_NOTIFICATION_MESSAGE", "admin_notification_message")
+    STATE_ADMIN_NOTIFICATION_EMAIL_CODE = getattr(TelegramBotStateVO, "ADMIN_NOTIFICATION_EMAIL_CODE", "admin_notification_email_code")
+    STATE_ADMIN_NOTIFICATION_SCHEDULE_AT = getattr(TelegramBotStateVO, "ADMIN_NOTIFICATION_SCHEDULE_AT", "admin_notification_schedule_at")
+    STATE_SUPPORT_MESSAGE = getattr(TelegramBotStateVO, "SUPPORT_MESSAGE", "support_message")
+    STATE_SUPPORT_REPLY = getattr(TelegramBotStateVO, "SUPPORT_REPLY", "support_reply")
+    STATE_DISCOUNT_CREATE = getattr(TelegramBotStateVO, "DISCOUNT_CREATE", "discount_create")
+    STATE_DISCOUNT_CODE = getattr(TelegramBotStateVO, "DISCOUNT_CODE", "discount_code")
+    STATE_DISCOUNT_VALUE = getattr(TelegramBotStateVO, "DISCOUNT_VALUE", "discount_value")
+    STATE_DISCOUNT_USAGE_LIMIT = getattr(TelegramBotStateVO, "DISCOUNT_USAGE_LIMIT", "discount_usage_limit")
+    STATE_CHECKOUT_DISCOUNT_CODE = getattr(TelegramBotStateVO, "CHECKOUT_DISCOUNT_CODE", "checkout_discount_code")
 
+    BOT_SETTING_CONFIRM_CODE_EXPIRATION_MINUTES = 5
+    ADMIN_NOTIFICATION_CONFIRM_CODE_EXPIRATION_MINUTES = 5
+    ADMIN_NOTIFICATION_MAX_LENGTH = getattr(TelegramCommerceFeatureVO, "ADMIN_NOTIFICATION_MAX_LENGTH", 3500)
     ACTION_TIMEOUT_SECONDS = TelegramAccountLinkService.LINK_CODE_EXPIRATION_MINUTES * 60
     MIN_REVIEW_COMMENT_CHARACTERS = 2
 
-    def __init__(self, client: TelegramBotClient | None = None):
+    def __init__(
+        self,
+        client: TelegramBotClient | None = None,
+        *,
+        commerce_logic: CommerceBotLogicInterface | None = None,
+        channel_sync_logic: ChannelSyncLogicRepository | None = None,
+        notification_logic: BotNotificationLogicRepository | None = None,
+        support_logic: BotSupportLogicRepository | None = None,
+    ):
         self.client = client or TelegramBotClient()
         self.link_service = TelegramAccountLinkService()
-        self.commerce_logic = TelegramCommerceBotLogicRepository()
-        self.channel_sync_logic = ChannelSyncLogicRepository()
+        self.commerce_logic = commerce_logic or TelegramCommerceBotLogicRepository()
+        self.channel_sync_logic = channel_sync_logic or ChannelSyncLogicRepository()
+        self.notification_logic = notification_logic or BotNotificationLogicRepository()
+        self.support_logic = support_logic or BotSupportLogicRepository()
 
     def handle_update(self, update: dict[str, Any]) -> None:
         channel_post = update.get("channel_post")
@@ -410,6 +467,165 @@ class TelegramBotService:
             self.send_channels_invite(profile)
             return
 
+        if data == self.CALLBACK_BOT_SETTINGS:
+            self.send_bot_settings_overview(profile, message_id=message.get("message_id"))
+            return
+
+        if data == self.CALLBACK_ADMIN_NOTIFICATION:
+            self.send_admin_notification_menu(profile, message_id=message.get("message_id"))
+            return
+
+        if data == self.CALLBACK_ADMIN_NOTIFICATION_START:
+            self.start_admin_notification_flow(profile, message_id=message.get("message_id"))
+            return
+
+        if data == self.CALLBACK_ADMIN_NOTIFICATION_CONFIRM:
+            self.start_admin_notification_email_confirmation(profile, message_id=message.get("message_id"))
+            return
+
+        if data == self.CALLBACK_ADMIN_NOTIFICATION_CONFIRM_NOW:
+            self.start_admin_notification_email_confirmation(profile, mode="now", message_id=message.get("message_id"))
+            return
+
+        if data == self.CALLBACK_ADMIN_NOTIFICATION_SCHEDULE:
+            self.start_admin_notification_schedule_flow(profile, message_id=message.get("message_id"))
+            return
+
+        if data == self.CALLBACK_DISCOUNTS:
+            self.send_discount_menu(profile, message_id=message.get("message_id"))
+            return
+
+        if data == self.CALLBACK_DISCOUNT_CREATE:
+            self.start_discount_create_flow(profile, message_id=message.get("message_id"))
+            return
+
+        if data.startswith("dsc:type:"):
+            self.select_discount_type_from_bot(profile, discount_type=data.rsplit(":", 1)[-1], message_id=message.get("message_id"))
+            return
+
+        if data == self.CALLBACK_DISCOUNT_SCOPE_ALL:
+            self.select_discount_scope_from_bot(profile, course_id=None, message_id=message.get("message_id"))
+            return
+
+        if data.startswith("dsc:scope:c:"):
+            self.select_discount_scope_from_bot(profile, course_id=data.split(":", 3)[3], message_id=message.get("message_id"))
+            return
+
+        if data == self.CALLBACK_DISCOUNT_USAGE_LIMIT_UNLIMITED:
+            self.finalize_discount_create_from_bot(profile, usage_limit=None, message_id=message.get("message_id"))
+            return
+
+        if data == self.CALLBACK_DISCOUNT_USAGE_LIMIT_CUSTOM:
+            self.start_discount_usage_limit_text_flow(profile, message_id=message.get("message_id"))
+            return
+
+        if data.startswith("dsc:del:"):
+            self.delete_discount_from_bot(profile, discount_id=data.split(":", 2)[2], message_id=message.get("message_id"))
+            return
+
+        if data == self.CALLBACK_SUPPORT:
+            if self.is_admin_profile(profile):
+                self.send_support_queue(profile, message_id=message.get("message_id"))
+            else:
+                self.send_support_menu(profile, message_id=message.get("message_id"))
+            return
+
+        if data == self.CALLBACK_SUPPORT_NEW:
+            self.start_support_ticket_flow(profile, message_id=message.get("message_id"))
+            return
+
+        if data == self.CALLBACK_SUPPORT_QUEUE:
+            self.send_support_queue(profile, message_id=message.get("message_id"))
+            return
+
+        if data == "sup:mine":
+            self.send_user_support_tickets(profile, message_id=message.get("message_id"))
+            return
+
+        if data.startswith("sup:ur:"):
+            self.start_user_support_reply_flow(profile, ticket_id=data.split(":", 2)[2], message_id=message.get("message_id"))
+            return
+
+        if data.startswith("sup:d:"):
+            self.send_support_ticket_detail(profile, ticket_id=data.split(":", 2)[2], message_id=message.get("message_id"))
+            return
+
+        if data.startswith("sup:r:"):
+            self.start_support_reply_flow(profile, ticket_id=data.split(":", 2)[2], message_id=message.get("message_id"))
+            return
+
+        if data.startswith("sup:c:"):
+            self.close_support_ticket_from_bot(profile, ticket_id=data.split(":", 2)[2], message_id=message.get("message_id"))
+            return
+
+        if data.startswith("bs:p:"):
+            provider = data.split(":", 2)[2].strip()
+            if provider:
+                self.send_bot_provider_settings(profile, provider, message_id=message.get("message_id"))
+                return
+
+        if data.startswith("bs:k:"):
+            parts = data.split(":")
+            if len(parts) == 4:
+                provider = parts[2].strip()
+                key_index = self.safe_int(parts[3], default=-1)
+                self.send_bot_setting_edit_options(
+                    profile,
+                    provider=provider,
+                    key_index=key_index,
+                    message_id=message.get("message_id"),
+                )
+                return
+
+        if data.startswith("bs:w:"):
+            parts = data.split(":")
+            if len(parts) == 5:
+                provider = parts[2].strip()
+                key_index = self.safe_int(parts[3], default=-1)
+                write_target = parts[4].strip()
+                self.start_bot_setting_edit_flow(
+                    profile,
+                    provider=provider,
+                    key_index=key_index,
+                    write_target=write_target,
+                    message_id=message.get("message_id"),
+                )
+                return
+
+        if data.startswith("bs:v:"):
+            parts = data.split(":")
+            if len(parts) == 5:
+                self.choose_bot_setting_choice_value(
+                    profile,
+                    provider=parts[2].strip(),
+                    key_index=self.safe_int(parts[3], default=-1),
+                    choice_index=self.safe_int(parts[4], default=-1),
+                    message_id=message.get("message_id"),
+                )
+                return
+
+        if data.startswith("bs:delc:"):
+            parts = data.split(":")
+            if len(parts) == 4:
+                self.delete_bot_setting_database_value(
+                    profile,
+                    provider=parts[2].strip(),
+                    key_index=self.safe_int(parts[3], default=-1),
+                    message_id=message.get("message_id"),
+                )
+                return
+
+        if data.startswith("bs:del:"):
+            parts = data.split(":")
+            if len(parts) == 4:
+                self.confirm_delete_bot_setting_database_value(
+                    profile,
+                    provider=parts[2].strip(),
+                    key_index=self.safe_int(parts[3], default=-1),
+                    message_id=message.get("message_id"),
+                )
+                return
+
         if data == self.CALLBACK_UNLINK_ASK:
             self.start_unlink_flow(profile)
             return
@@ -475,6 +691,18 @@ class TelegramBotService:
         texts = TelegramBotMessageTextVO.TEXTS
         template = texts[cls.lang(profile)].get(key, texts[cls.LANG_EN].get(key, key))
         return template.format(**kwargs) if kwargs else template
+
+    @classmethod
+    def icon(cls, key: str) -> str:
+        return cls.ICONS.get(key)
+
+    @classmethod
+    def with_icon(cls, key: str, text: str, *, separator: str = " ") -> str:
+        return cls.ICONS.prefix(key, text, separator=separator)
+
+    @classmethod
+    def warning_text(cls, text: str) -> str:
+        return cls.with_icon(TelegramBotIconKeyVO.WARNING, text)
 
     def show_language_selection(self, profile: TelegramProfile) -> None:
         self.client.send_message(
@@ -545,6 +773,11 @@ class TelegramBotService:
             "unlink": self.start_unlink_flow,
             "help": lambda p: self.handle_help(p, TelegramCommand(name="/help", args=[], raw_text="/help")),
             "channels": lambda p: self.handle_channels(p, TelegramCommand(name="/channels", args=[], raw_text="/channels")),
+            "bot_settings": self.send_bot_settings_overview,
+            "admin_notification": self.send_admin_notification_menu,
+            "discounts": self.send_discount_menu,
+            "support": (lambda p: self.send_support_queue(p) if self.is_admin_profile(p) else self.send_support_menu(p)),
+            "support_queue": self.send_support_queue,
             "courses": lambda p: self.send_course_list(p, page=1),
             "my_courses": self.send_my_courses,
             "my_orders": self.send_my_orders,
@@ -595,8 +828,213 @@ class TelegramBotService:
         cls.clear_create_user_data(chat_id)
         cls.clear_review_flow_data(chat_id)
         cls.clear_course_flow_data(chat_id)
+        cls.clear_course_edit_flow_data(chat_id)
         cls.clear_lesson_flow_data(chat_id)
         cls.clear_payment_receipt_flow_data(chat_id)
+        cls.clear_bot_setting_edit_data(chat_id)
+        cls.clear_bot_setting_email_code(chat_id)
+        cls.clear_admin_notification_data(chat_id)
+        cls.clear_admin_notification_email_code(chat_id)
+        cls.clear_support_flow_data(chat_id)
+        cls.clear_discount_flow_data(chat_id)
+        cls.clear_checkout_flow_data(chat_id)
+
+    @classmethod
+    def bot_setting_edit_cache_key(cls, chat_id: int) -> str:
+        return f"{cls.CACHE_PREFIX}_bot_setting_edit:{chat_id}"
+
+    @classmethod
+    def set_bot_setting_edit_data(cls, chat_id: int, data: dict[str, Any]) -> None:
+        TelegramBotCacheRepository.set_value(
+            cls.bot_setting_edit_cache_key(chat_id),
+            json.dumps(data, ensure_ascii=False),
+            timeout=cls.ACTION_TIMEOUT_SECONDS,
+        )
+
+    @classmethod
+    def get_bot_setting_edit_data(cls, chat_id: int) -> dict[str, Any]:
+        raw_data = TelegramBotCacheRepository.get_value(cls.bot_setting_edit_cache_key(chat_id))
+        if not raw_data:
+            return {}
+        if isinstance(raw_data, dict):
+            return raw_data
+        try:
+            value = json.loads(str(raw_data))
+        except (TypeError, ValueError):
+            return {}
+        return value if isinstance(value, dict) else {}
+
+    @classmethod
+    def clear_bot_setting_edit_data(cls, chat_id: int) -> None:
+        TelegramBotCacheRepository.delete_value(cls.bot_setting_edit_cache_key(chat_id))
+
+    @classmethod
+    def bot_setting_email_code_cache_key(cls, chat_id: int) -> str:
+        return f"{cls.CACHE_PREFIX}_bot_setting_email_code:{chat_id}"
+
+    @classmethod
+    def set_bot_setting_email_code(cls, chat_id: int, code: str) -> None:
+        code_hash = hashlib.sha256(code.encode("utf-8")).hexdigest()
+        TelegramBotCacheRepository.set_value(
+            cls.bot_setting_email_code_cache_key(chat_id),
+            code_hash,
+            timeout=cls.BOT_SETTING_CONFIRM_CODE_EXPIRATION_MINUTES * 60,
+        )
+
+    @classmethod
+    def verify_bot_setting_email_code(cls, chat_id: int, code: str) -> bool:
+        saved_hash = TelegramBotCacheRepository.get_value(cls.bot_setting_email_code_cache_key(chat_id))
+        if not saved_hash:
+            return False
+        code_hash = hashlib.sha256(code.encode("utf-8")).hexdigest()
+        if not hmac.compare_digest(str(saved_hash), code_hash):
+            return False
+        cls.clear_bot_setting_email_code(chat_id)
+        return True
+
+    @classmethod
+    def clear_bot_setting_email_code(cls, chat_id: int) -> None:
+        TelegramBotCacheRepository.delete_value(cls.bot_setting_email_code_cache_key(chat_id))
+
+    @classmethod
+    def admin_notification_cache_key(cls, chat_id: int) -> str:
+        return f"{cls.CACHE_PREFIX}_admin_notification:{chat_id}"
+
+    @classmethod
+    def set_admin_notification_data(cls, chat_id: int, data: dict[str, Any]) -> None:
+        TelegramBotCacheRepository.set_value(
+            cls.admin_notification_cache_key(chat_id),
+            json.dumps(data, ensure_ascii=False),
+            timeout=cls.ACTION_TIMEOUT_SECONDS,
+        )
+
+    @classmethod
+    def get_admin_notification_data(cls, chat_id: int) -> dict[str, Any]:
+        raw_data = TelegramBotCacheRepository.get_value(cls.admin_notification_cache_key(chat_id))
+        if not raw_data:
+            return {}
+        if isinstance(raw_data, dict):
+            return raw_data
+        try:
+            value = json.loads(str(raw_data))
+        except (TypeError, ValueError):
+            return {}
+        return value if isinstance(value, dict) else {}
+
+    @classmethod
+    def clear_admin_notification_data(cls, chat_id: int) -> None:
+        TelegramBotCacheRepository.delete_value(cls.admin_notification_cache_key(chat_id))
+
+    @classmethod
+    def admin_notification_email_code_cache_key(cls, chat_id: int) -> str:
+        return f"{cls.CACHE_PREFIX}_admin_notification_email_code:{chat_id}"
+
+    @classmethod
+    def set_admin_notification_email_code(cls, chat_id: int, code: str) -> None:
+        code_hash = hashlib.sha256(code.encode("utf-8")).hexdigest()
+        TelegramBotCacheRepository.set_value(
+            cls.admin_notification_email_code_cache_key(chat_id),
+            code_hash,
+            timeout=cls.ADMIN_NOTIFICATION_CONFIRM_CODE_EXPIRATION_MINUTES * 60,
+        )
+
+    @classmethod
+    def verify_admin_notification_email_code(cls, chat_id: int, code: str) -> bool:
+        saved_hash = TelegramBotCacheRepository.get_value(cls.admin_notification_email_code_cache_key(chat_id))
+        if not saved_hash:
+            return False
+        code_hash = hashlib.sha256(code.encode("utf-8")).hexdigest()
+        if not hmac.compare_digest(str(saved_hash), code_hash):
+            return False
+        cls.clear_admin_notification_email_code(chat_id)
+        return True
+
+    @classmethod
+    def clear_admin_notification_email_code(cls, chat_id: int) -> None:
+        TelegramBotCacheRepository.delete_value(cls.admin_notification_email_code_cache_key(chat_id))
+
+
+    @classmethod
+    def support_flow_cache_key(cls, chat_id: int) -> str:
+        return f"{cls.CACHE_PREFIX}_support_flow:{chat_id}"
+
+    @classmethod
+    def set_support_flow_data(cls, chat_id: int, data: dict[str, Any]) -> None:
+        TelegramBotCacheRepository.set_value(cls.support_flow_cache_key(chat_id), json.dumps(data, ensure_ascii=False), timeout=cls.ACTION_TIMEOUT_SECONDS)
+
+    @classmethod
+    def get_support_flow_data(cls, chat_id: int) -> dict[str, Any]:
+        raw_data = TelegramBotCacheRepository.get_value(cls.support_flow_cache_key(chat_id))
+        if isinstance(raw_data, dict):
+            return raw_data
+        if not raw_data:
+            return {}
+        try:
+            value = json.loads(str(raw_data))
+        except (TypeError, ValueError):
+            return {}
+        return value if isinstance(value, dict) else {}
+
+    @classmethod
+    def clear_support_flow_data(cls, chat_id: int) -> None:
+        TelegramBotCacheRepository.delete_value(cls.support_flow_cache_key(chat_id))
+
+    @classmethod
+    def discount_flow_cache_key(cls, chat_id: int) -> str:
+        return f"{cls.CACHE_PREFIX}_discount_flow:{chat_id}"
+
+    @classmethod
+    def set_discount_flow_data(cls, chat_id: int, data: dict[str, Any]) -> None:
+        TelegramBotCacheRepository.set_value(cls.discount_flow_cache_key(chat_id), json.dumps(data, ensure_ascii=False), timeout=cls.ACTION_TIMEOUT_SECONDS)
+
+    @classmethod
+    def update_discount_flow_data(cls, chat_id: int, updates: dict[str, Any]) -> dict[str, Any]:
+        data = cls.get_discount_flow_data(chat_id)
+        data.update(updates)
+        cls.set_discount_flow_data(chat_id, data)
+        return data
+
+    @classmethod
+    def get_discount_flow_data(cls, chat_id: int) -> dict[str, Any]:
+        raw_data = TelegramBotCacheRepository.get_value(cls.discount_flow_cache_key(chat_id))
+        if isinstance(raw_data, dict):
+            return raw_data
+        if not raw_data:
+            return {}
+        try:
+            value = json.loads(str(raw_data))
+        except (TypeError, ValueError):
+            return {}
+        return value if isinstance(value, dict) else {}
+
+    @classmethod
+    def clear_discount_flow_data(cls, chat_id: int) -> None:
+        TelegramBotCacheRepository.delete_value(cls.discount_flow_cache_key(chat_id))
+
+    @classmethod
+    def checkout_flow_cache_key(cls, chat_id: int) -> str:
+        return f"{cls.CACHE_PREFIX}_checkout_flow:{chat_id}"
+
+    @classmethod
+    def set_checkout_flow_data(cls, chat_id: int, data: dict[str, Any]) -> None:
+        TelegramBotCacheRepository.set_value(cls.checkout_flow_cache_key(chat_id), json.dumps(data, ensure_ascii=False), timeout=cls.ACTION_TIMEOUT_SECONDS)
+
+    @classmethod
+    def get_checkout_flow_data(cls, chat_id: int) -> dict[str, Any]:
+        raw_data = TelegramBotCacheRepository.get_value(cls.checkout_flow_cache_key(chat_id))
+        if isinstance(raw_data, dict):
+            return raw_data
+        if not raw_data:
+            return {}
+        try:
+            value = json.loads(str(raw_data))
+        except (TypeError, ValueError):
+            return {}
+        return value if isinstance(value, dict) else {}
+
+    @classmethod
+    def clear_checkout_flow_data(cls, chat_id: int) -> None:
+        TelegramBotCacheRepository.delete_value(cls.checkout_flow_cache_key(chat_id))
 
     @classmethod
     def create_user_cache_key(cls, chat_id: int) -> str:
@@ -747,6 +1185,10 @@ class TelegramBotService:
             self.handle_course_publish_text(profile, text)
             return True
 
+        if action == self.STATE_COURSE_EDIT_VALUE:
+            self.handle_course_edit_value_text(profile, text)
+            return True
+
         if action == self.STATE_LESSON_TITLE:
             self.handle_lesson_title_text(profile, text)
             return True
@@ -773,6 +1215,54 @@ class TelegramBotService:
 
         if action == self.STATE_LESSON_PREVIEW:
             self.handle_lesson_preview_text(profile, text)
+            return True
+
+        if action == self.STATE_BOT_SETTING_VALUE:
+            self.handle_bot_setting_value_text(profile, text)
+            return True
+
+        if action == self.STATE_BOT_SETTING_EMAIL_CODE:
+            self.handle_bot_setting_email_code_text(profile, text)
+            return True
+
+        if action == self.STATE_ADMIN_NOTIFICATION_MESSAGE:
+            self.handle_admin_notification_message_text(profile, text)
+            return True
+
+        if action == self.STATE_ADMIN_NOTIFICATION_EMAIL_CODE:
+            self.handle_admin_notification_email_code_text(profile, text)
+            return True
+
+        if action == self.STATE_ADMIN_NOTIFICATION_SCHEDULE_AT:
+            self.handle_admin_notification_schedule_text(profile, text)
+            return True
+
+        if action == self.STATE_SUPPORT_MESSAGE:
+            self.handle_support_message_text(profile, text)
+            return True
+
+        if action == self.STATE_SUPPORT_REPLY:
+            self.handle_support_reply_text(profile, text)
+            return True
+
+        if action == self.STATE_DISCOUNT_CODE:
+            self.handle_discount_code_text(profile, text)
+            return True
+
+        if action == self.STATE_DISCOUNT_VALUE:
+            self.handle_discount_value_text(profile, text)
+            return True
+
+        if action == self.STATE_DISCOUNT_USAGE_LIMIT:
+            self.handle_discount_usage_limit_text(profile, text)
+            return True
+
+        if action == self.STATE_DISCOUNT_CREATE:
+            self.handle_discount_create_text(profile, text)
+            return True
+
+        if action == self.STATE_CHECKOUT_DISCOUNT_CODE:
+            self.handle_checkout_discount_code_text(profile, text)
             return True
 
         if action == self.STATE_UNLINK_CONFIRM:
@@ -856,7 +1346,7 @@ class TelegramBotService:
             self.clear_all_flow_data(profile.chat_id)
             self.client.send_message(
                 profile.chat_id,
-                f"⚠️ {html.escape(self.validation_message(error))}",
+                self.warning_text(html.escape(self.validation_message(error))),
                 reply_markup=self.main_menu_keyboard(profile),
             )
             return
@@ -1439,6 +1929,1243 @@ class TelegramBotService:
     def handle_channels(self, profile: TelegramProfile, command: TelegramCommand) -> None:
         self.send_channels_invite(profile)
 
+    def handle_admin_notification(self, profile: TelegramProfile, command: TelegramCommand) -> None:
+        self.send_admin_notification_menu(profile)
+
+    def send_admin_notification_menu(self, profile: TelegramProfile, message_id: int | None = None) -> None:
+        if not self.is_admin_profile(profile):
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+
+        recipient_count = self.notification_logic.linked_recipient_count(provider=self.MESSENGER_PROVIDER)
+        text = "\n".join([
+            self.t(profile, "admin_notification_title"),
+            "",
+            self.t(
+                profile,
+                "admin_notification_hint",
+                count=recipient_count,
+                max_length=self.ADMIN_NOTIFICATION_MAX_LENGTH,
+            ),
+        ])
+        keyboard = self.inline_keyboard([
+            [self.inline_button(self.t(profile, "admin_notification_start_button"), self.CALLBACK_ADMIN_NOTIFICATION_START)],
+            [self.inline_button(self.t(profile, "main_menu_button"), self.CALLBACK_MAIN_MENU)],
+        ])
+        self.send_chain_message(profile, text, reply_markup=keyboard, message_id=message_id)
+
+    def start_admin_notification_flow(self, profile: TelegramProfile, message_id: int | None = None) -> None:
+        if not self.is_admin_profile(profile):
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+
+        self.clear_all_flow_data(profile.chat_id)
+        self.set_action(profile.chat_id, self.STATE_ADMIN_NOTIFICATION_MESSAGE)
+        self.send_chain_message(
+            profile,
+            self.t(profile, "admin_notification_prompt"),
+            reply_markup=self.cancel_keyboard(profile),
+            message_id=message_id,
+        )
+
+    def handle_admin_notification_message_text(self, profile: TelegramProfile, text: str) -> None:
+        if not self.is_admin_profile(profile):
+            self.clear_admin_notification_data(profile.chat_id)
+            self.clear_admin_notification_email_code(profile.chat_id)
+            self.clear_action(profile.chat_id)
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+
+        notification_text = (text or "").strip()
+        if not notification_text:
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_notification_empty"), reply_markup=self.cancel_keyboard(profile))
+            return
+
+        if len(notification_text) > self.ADMIN_NOTIFICATION_MAX_LENGTH:
+            self.client.send_message(
+                profile.chat_id,
+                self.t(profile, "admin_notification_too_long", max_length=self.ADMIN_NOTIFICATION_MAX_LENGTH),
+                reply_markup=self.cancel_keyboard(profile),
+            )
+            return
+
+        recipient_count = self.notification_logic.linked_recipient_count(provider=self.MESSENGER_PROVIDER)
+        self.set_admin_notification_data(profile.chat_id, {"message": notification_text})
+        self.clear_action(profile.chat_id)
+
+        keyboard = self.inline_keyboard([
+            [self.inline_button(self.t(profile, "admin_notification_send_now_button"), self.CALLBACK_ADMIN_NOTIFICATION_CONFIRM_NOW)],
+            [self.inline_button(self.t(profile, "admin_notification_schedule_button"), self.CALLBACK_ADMIN_NOTIFICATION_SCHEDULE)],
+            [self.inline_button(self.t(profile, "admin_notification_edit_button"), self.CALLBACK_ADMIN_NOTIFICATION_START)],
+            [self.inline_button(self.t(profile, "main_menu_button"), self.CALLBACK_MAIN_MENU)],
+        ])
+        self.client.send_message(
+            profile.chat_id,
+            self.t(
+                profile,
+                "admin_notification_preview",
+                count=recipient_count,
+                message=html.escape(notification_text),
+            ),
+            reply_markup=keyboard,
+        )
+
+    def start_admin_notification_email_confirmation(self, profile: TelegramProfile, mode: str = "now", message_id: int | None = None) -> None:
+        if not self.is_admin_profile(profile):
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+
+        pending_data = self.get_admin_notification_data(profile.chat_id)
+        notification_text = str(pending_data.get("message") or "").strip()
+        if not notification_text:
+            self.clear_admin_notification_data(profile.chat_id)
+            self.clear_admin_notification_email_code(profile.chat_id)
+            self.clear_action(profile.chat_id)
+            self.client.send_message(
+                profile.chat_id,
+                self.t(profile, "admin_notification_pending_missing"),
+                reply_markup=self.main_menu_keyboard(profile),
+            )
+            return
+
+        pending_data["mode"] = mode
+        self.set_admin_notification_data(profile.chat_id, pending_data)
+
+        user = profile.user if profile.user_id else None
+        if not user or not getattr(user, "email", ""):
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_notification_email_missing"), reply_markup=self.main_menu_keyboard(profile))
+            return
+
+        try:
+            self.send_admin_notification_confirmation_email(profile)
+        except Exception as exc:
+            logger.exception("Failed to send admin notification confirmation email.")
+            self.client.send_message(
+                profile.chat_id,
+                self.t(profile, "admin_notification_email_send_failed", error=html.escape(self.validation_message(exc))),
+                reply_markup=self.cancel_keyboard(profile),
+            )
+            return
+
+        self.set_action(profile.chat_id, self.STATE_ADMIN_NOTIFICATION_EMAIL_CODE)
+        self.send_chain_message(
+            profile,
+            self.t(
+                profile,
+                "admin_notification_email_code_sent",
+                email=html.escape(self.mask_email(user.email)),
+                minutes=self.ADMIN_NOTIFICATION_CONFIRM_CODE_EXPIRATION_MINUTES,
+            ),
+            reply_markup=self.cancel_keyboard(profile),
+            message_id=message_id,
+        )
+
+    def handle_admin_notification_email_code_text(self, profile: TelegramProfile, code: str) -> None:
+        if not self.is_admin_profile(profile):
+            self.clear_admin_notification_data(profile.chat_id)
+            self.clear_admin_notification_email_code(profile.chat_id)
+            self.clear_action(profile.chat_id)
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+
+        pending_data = self.get_admin_notification_data(profile.chat_id)
+        notification_text = str(pending_data.get("message") or "").strip()
+        if not notification_text:
+            self.clear_admin_notification_data(profile.chat_id)
+            self.clear_admin_notification_email_code(profile.chat_id)
+            self.clear_action(profile.chat_id)
+            self.client.send_message(
+                profile.chat_id,
+                self.t(profile, "admin_notification_pending_missing"),
+                reply_markup=self.main_menu_keyboard(profile),
+            )
+            return
+
+        if not self.verify_admin_notification_email_code(profile.chat_id, code):
+            self.client.send_message(
+                profile.chat_id,
+                self.t(profile, "admin_notification_email_code_invalid"),
+                reply_markup=self.cancel_keyboard(profile),
+            )
+            return
+
+        delivery_text = self.t(
+            profile,
+            "admin_notification_delivery_text",
+            message=html.escape(notification_text),
+        )
+        mode = str(pending_data.get("mode") or "now")
+        if mode == "schedule":
+            scheduled_at_value = pending_data.get("scheduled_at")
+            scheduled_at = self.parse_schedule_datetime(str(scheduled_at_value or ""))
+            if not scheduled_at:
+                self.client.send_message(profile.chat_id, self.t(profile, "admin_notification_schedule_invalid"), reply_markup=self.cancel_keyboard(profile))
+                return
+            scheduled = self.notification_logic.schedule_notification(
+                provider=self.MESSENGER_PROVIDER,
+                message=delivery_text,
+                scheduled_at=scheduled_at,
+                created_by=profile.user if profile.user_id else None,
+            )
+            self.clear_admin_notification_data(profile.chat_id)
+            self.clear_admin_notification_email_code(profile.chat_id)
+            self.clear_action(profile.chat_id)
+            self.client.send_message(
+                profile.chat_id,
+                self.t(profile, "admin_notification_scheduled_result", id=scheduled.id, scheduled_at=scheduled.scheduled_at.strftime("%Y-%m-%d %H:%M"), count=scheduled.recipient_count),
+                reply_markup=self.main_menu_keyboard(profile),
+            )
+            return
+
+        result = self.notification_logic.broadcast_to_linked_recipients(
+            client=self.client,
+            provider=self.MESSENGER_PROVIDER,
+            message=delivery_text,
+        )
+
+        self.clear_admin_notification_data(profile.chat_id)
+        self.clear_admin_notification_email_code(profile.chat_id)
+        self.clear_action(profile.chat_id)
+        self.client.send_message(
+            profile.chat_id,
+            self.t(
+                profile,
+                "admin_notification_sent_result",
+                total=result.total_count,
+                success=result.success_count,
+                failed=result.failed_count,
+            ),
+            reply_markup=self.main_menu_keyboard(profile),
+        )
+
+
+    def start_admin_notification_schedule_flow(self, profile: TelegramProfile, message_id: int | None = None) -> None:
+        if not self.is_admin_profile(profile):
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+        pending_data = self.get_admin_notification_data(profile.chat_id)
+        if not str(pending_data.get("message") or "").strip():
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_notification_pending_missing"), reply_markup=self.main_menu_keyboard(profile))
+            return
+        self.set_action(profile.chat_id, self.STATE_ADMIN_NOTIFICATION_SCHEDULE_AT)
+        self.send_chain_message(profile, self.t(profile, "admin_notification_schedule_prompt"), reply_markup=self.cancel_keyboard(profile), message_id=message_id)
+
+    def handle_admin_notification_schedule_text(self, profile: TelegramProfile, text: str) -> None:
+        scheduled_at = self.parse_schedule_datetime(text)
+        if not scheduled_at:
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_notification_schedule_invalid"), reply_markup=self.cancel_keyboard(profile))
+            return
+        pending_data = self.get_admin_notification_data(profile.chat_id)
+        pending_data["scheduled_at"] = scheduled_at.strftime("%Y-%m-%d %H:%M")
+        pending_data["mode"] = "schedule"
+        self.set_admin_notification_data(profile.chat_id, pending_data)
+        self.start_admin_notification_email_confirmation(profile, mode="schedule")
+
+    @staticmethod
+    def parse_schedule_datetime(value: str):
+        try:
+            dt = datetime.strptime((value or "").strip(), "%Y-%m-%d %H:%M")
+        except (TypeError, ValueError):
+            return None
+        if timezone.is_naive(dt):
+            dt = timezone.make_aware(dt, timezone.get_current_timezone())
+        if dt <= timezone.now():
+            return None
+        return dt
+
+    def send_admin_notification_confirmation_email(self, profile: TelegramProfile) -> None:
+        user = profile.user
+        code = str(secrets.randbelow(900000) + 100000)
+        self.set_admin_notification_email_code(profile.chat_id, code)
+        subject = self.t(profile, "admin_notification_email_subject")
+        send_html_email_async(
+            subject=subject,
+            template_name="emails/fa_verification_code.html" if self.lang(profile) == self.LANG_FA else "emails/verification_code.html",
+            context={
+                "subject": subject,
+                "app_name": "Devixa",
+                "user_name": user.first_name or user.username or TelegramBotMessageTextVO.DEFAULT_USER_NAME[self.lang(profile)],
+                "code": code,
+                "expiration_minutes": self.ADMIN_NOTIFICATION_CONFIRM_CODE_EXPIRATION_MINUTES,
+                "current_year": datetime.now().year,
+            },
+            recipient_list=[user.email],
+        )
+
+
+    def send_discount_menu(self, profile: TelegramProfile, message_id: int | None = None) -> None:
+        if not self.is_admin_profile(profile):
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+        try:
+            discounts, has_next, total_count = self.commerce_logic.list_discount_codes(page=1, page_size=10)
+        except Exception as exc:
+            self.client.send_message(profile.chat_id, self.warning_text(html.escape(self.validation_message(exc))), reply_markup=self.main_menu_keyboard(profile))
+            return
+
+        lines = [
+            self.t(profile, "discounts_title"),
+            "",
+            self.t(profile, "discounts_hint"),
+            self.t(profile, "discounts_list_count", count=total_count),
+            "",
+        ]
+        if not discounts:
+            lines.append(self.t(profile, "discounts_empty"))
+
+        keyboard_rows = [[self.inline_button(self.t(profile, "discounts_create_button"), self.CALLBACK_DISCOUNT_CREATE)]]
+        for discount in discounts:
+            lines.append(self.format_discount_for_admin(profile, discount))
+            keyboard_rows.append([
+                self.inline_button(f"{discount.code} - {self.t(profile, 'discounts_delete_button')}", f"dsc:del:{discount.id}")
+            ])
+        keyboard_rows.append([self.inline_button(self.t(profile, "main_menu_button"), self.CALLBACK_MAIN_MENU)])
+        self.send_chain_message(profile, "\n\n".join(lines), reply_markup=self.inline_keyboard(keyboard_rows), message_id=message_id)
+
+    def format_discount_for_admin(self, profile: TelegramProfile, discount) -> str:
+        value = f"{discount.value:g}" if hasattr(discount.value, "__format__") else str(discount.value)
+        usage_limit = discount.usage_limit if discount.usage_limit is not None else "∞"
+        scope = self.t(profile, "discounts_scope_all_button") if getattr(discount, "applies_to_all_courses", False) else self.discount_course_scope_label(discount)
+        return self.t(
+            profile,
+            "discounts_item_text",
+            code=html.escape(str(discount.code)),
+            discount_type=html.escape(str(discount.discount_type)),
+            value=html.escape(str(value)),
+            scope=html.escape(str(scope)),
+            used=getattr(discount, "used_count", 0),
+            limit=usage_limit,
+        )
+
+    @staticmethod
+    def discount_course_scope_label(discount) -> str:
+        try:
+            courses = list(discount.courses.all()[:2])
+        except Exception:
+            courses = []
+        if not courses:
+            return "selected course"
+        return ", ".join(str(course.title) for course in courses)
+
+    def start_discount_create_flow(self, profile: TelegramProfile, message_id: int | None = None) -> None:
+        if not self.is_admin_profile(profile):
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+        self.clear_all_flow_data(profile.chat_id)
+        self.set_action(profile.chat_id, self.STATE_DISCOUNT_CODE)
+        self.set_discount_flow_data(profile.chat_id, {})
+        self.send_chain_message(profile, self.t(profile, "discounts_create_prompt"), reply_markup=self.cancel_keyboard(profile), message_id=message_id)
+
+    def handle_discount_code_text(self, profile: TelegramProfile, text: str) -> None:
+        if not self.is_admin_profile(profile):
+            self.clear_action(profile.chat_id)
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+        code = (text or "").strip().upper()
+        is_valid = 2 <= len(code) <= 60 and all(char.isalnum() or char in {"-", "_"} for char in code)
+        if not is_valid:
+            self.client.send_message(profile.chat_id, self.t(profile, "discounts_code_invalid"), reply_markup=self.cancel_keyboard(profile))
+            return
+        self.update_discount_flow_data(profile.chat_id, {"code": code})
+        self.clear_action(profile.chat_id)
+        rows = [
+            [self.inline_button(self.t(profile, "discounts_type_percent_button"), self.CALLBACK_DISCOUNT_TYPE_PERCENT)],
+            [self.inline_button(self.t(profile, "discounts_type_amount_button"), self.CALLBACK_DISCOUNT_TYPE_AMOUNT)],
+            [self.inline_button(self.t(profile, "main_menu_button"), self.CALLBACK_MAIN_MENU)],
+        ]
+        self.client.send_message(profile.chat_id, self.t(profile, "discounts_type_prompt", code=html.escape(code)), reply_markup=self.inline_keyboard(rows))
+
+    def select_discount_type_from_bot(self, profile: TelegramProfile, *, discount_type: str, message_id: int | None = None) -> None:
+        if not self.is_admin_profile(profile):
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+        discount_type = (discount_type or "").strip().lower()
+        if discount_type not in {"percent", "amount"}:
+            self.send_chain_message(profile, self.t(profile, "discounts_invalid_format"), reply_markup=self.cancel_keyboard(profile), message_id=message_id)
+            return
+        data = self.update_discount_flow_data(profile.chat_id, {"discount_type": discount_type})
+        code = data.get("code")
+        if not code:
+            self.send_chain_message(profile, self.t(profile, "discounts_session_expired"), reply_markup=self.main_menu_keyboard(profile), message_id=message_id)
+            return
+        self.set_action(profile.chat_id, self.STATE_DISCOUNT_VALUE)
+        text_key = "discounts_value_prompt_percent" if discount_type == "percent" else "discounts_value_prompt_amount"
+        self.send_chain_message(profile, self.t(profile, text_key, code=html.escape(code)), reply_markup=self.cancel_keyboard(profile), message_id=message_id)
+
+    def handle_discount_value_text(self, profile: TelegramProfile, text: str) -> None:
+        if not self.is_admin_profile(profile):
+            self.clear_action(profile.chat_id)
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+        data = self.get_discount_flow_data(profile.chat_id)
+        code = data.get("code")
+        discount_type = data.get("discount_type")
+        if not code or not discount_type:
+            self.clear_action(profile.chat_id)
+            self.client.send_message(profile.chat_id, self.t(profile, "discounts_session_expired"), reply_markup=self.main_menu_keyboard(profile))
+            return
+        try:
+            value = Decimal((text or "").strip())
+        except Exception:
+            self.client.send_message(profile.chat_id, self.t(profile, "discounts_value_invalid"), reply_markup=self.cancel_keyboard(profile))
+            return
+        if value <= 0 or (discount_type == "percent" and value > 100):
+            self.client.send_message(profile.chat_id, self.t(profile, "discounts_value_invalid"), reply_markup=self.cancel_keyboard(profile))
+            return
+        self.update_discount_flow_data(profile.chat_id, {"value": str(value)})
+        self.clear_action(profile.chat_id)
+        self.send_discount_scope_selector(profile)
+
+    def send_discount_scope_selector(self, profile: TelegramProfile, message_id: int | None = None) -> None:
+        rows = [[self.inline_button(self.t(profile, "discounts_scope_all_button"), self.CALLBACK_DISCOUNT_SCOPE_ALL)]]
+        try:
+            courses, has_next = self.commerce_logic.list_admin_courses(page=1, page_size=8)
+        except Exception:
+            courses = []
+        for course in courses:
+            title = str(getattr(course, "title", ""))[:45] or str(course.id)
+            rows.append([self.inline_button(self.t(profile, "discounts_scope_course_button", title=title), f"dsc:scope:c:{course.id}")])
+        rows.append([self.inline_button(self.t(profile, "main_menu_button"), self.CALLBACK_MAIN_MENU)])
+        self.send_chain_message(profile, self.t(profile, "discounts_scope_prompt"), reply_markup=self.inline_keyboard(rows), message_id=message_id)
+
+    def select_discount_scope_from_bot(self, profile: TelegramProfile, *, course_id: str | None, message_id: int | None = None) -> None:
+        if not self.is_admin_profile(profile):
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+        data = self.get_discount_flow_data(profile.chat_id)
+        if not data.get("code") or not data.get("discount_type") or not data.get("value"):
+            self.send_chain_message(profile, self.t(profile, "discounts_session_expired"), reply_markup=self.main_menu_keyboard(profile), message_id=message_id)
+            return
+        self.update_discount_flow_data(profile.chat_id, {"course_id": str(course_id) if course_id else None})
+        rows = [
+            [self.inline_button(self.t(profile, "discounts_usage_unlimited_button"), self.CALLBACK_DISCOUNT_USAGE_LIMIT_UNLIMITED)],
+            [self.inline_button(self.t(profile, "discounts_usage_custom_button"), self.CALLBACK_DISCOUNT_USAGE_LIMIT_CUSTOM)],
+            [self.inline_button(self.t(profile, "main_menu_button"), self.CALLBACK_MAIN_MENU)],
+        ]
+        self.send_chain_message(profile, self.t(profile, "discounts_usage_limit_prompt", code=html.escape(str(data.get("code")))), reply_markup=self.inline_keyboard(rows), message_id=message_id)
+
+    def start_discount_usage_limit_text_flow(self, profile: TelegramProfile, message_id: int | None = None) -> None:
+        if not self.is_admin_profile(profile):
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+        if not self.get_discount_flow_data(profile.chat_id).get("code"):
+            self.send_chain_message(profile, self.t(profile, "discounts_session_expired"), reply_markup=self.main_menu_keyboard(profile), message_id=message_id)
+            return
+        self.set_action(profile.chat_id, self.STATE_DISCOUNT_USAGE_LIMIT)
+        self.send_chain_message(profile, self.t(profile, "discounts_usage_custom_prompt"), reply_markup=self.cancel_keyboard(profile), message_id=message_id)
+
+    def handle_discount_usage_limit_text(self, profile: TelegramProfile, text: str) -> None:
+        try:
+            usage_limit = int((text or "").strip())
+        except Exception:
+            self.client.send_message(profile.chat_id, self.t(profile, "discounts_usage_invalid"), reply_markup=self.cancel_keyboard(profile))
+            return
+        if usage_limit <= 0:
+            self.client.send_message(profile.chat_id, self.t(profile, "discounts_usage_invalid"), reply_markup=self.cancel_keyboard(profile))
+            return
+        self.finalize_discount_create_from_bot(profile, usage_limit=usage_limit)
+
+    def finalize_discount_create_from_bot(self, profile: TelegramProfile, *, usage_limit: int | None, message_id: int | None = None) -> None:
+        if not self.is_admin_profile(profile):
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+        data = self.get_discount_flow_data(profile.chat_id)
+        code = data.get("code")
+        discount_type = data.get("discount_type")
+        value = data.get("value")
+        if not code or not discount_type or value is None:
+            self.clear_action(profile.chat_id)
+            self.clear_discount_flow_data(profile.chat_id)
+            self.send_chain_message(profile, self.t(profile, "discounts_session_expired"), reply_markup=self.main_menu_keyboard(profile), message_id=message_id)
+            return
+        try:
+            discount = self.commerce_logic.create_discount_code(
+                profile.user,
+                code=code,
+                discount_type=discount_type,
+                value=Decimal(str(value)),
+                course_id=data.get("course_id"),
+                usage_limit=usage_limit,
+            )
+        except Exception as exc:
+            self.client.send_message(profile.chat_id, self.warning_text(html.escape(self.validation_message(exc))), reply_markup=self.main_menu_keyboard(profile))
+            return
+        self.clear_action(profile.chat_id)
+        self.clear_discount_flow_data(profile.chat_id)
+        scope = self.t(profile, "discounts_scope_all_button") if getattr(discount, "applies_to_all_courses", False) else self.discount_course_scope_label(discount)
+        self.send_chain_message(
+            profile,
+            self.t(
+                profile,
+                "discounts_created",
+                code=html.escape(discount.code),
+                discount_type=html.escape(discount.discount_type),
+                value=discount.value,
+                scope=html.escape(str(scope)),
+                usage_limit=discount.usage_limit if discount.usage_limit is not None else "∞",
+            ),
+            reply_markup=self.main_menu_keyboard(profile),
+            message_id=message_id,
+        )
+
+    def handle_discount_create_text(self, profile: TelegramProfile, text: str) -> None:
+        """Legacy one-line parser kept for old cached sessions during deployment."""
+        if not self.is_admin_profile(profile):
+            self.clear_action(profile.chat_id)
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+        parts = (text or "").strip().split()
+        if len(parts) < 4:
+            self.client.send_message(profile.chat_id, self.t(profile, "discounts_invalid_format"), reply_markup=self.cancel_keyboard(profile))
+            return
+        code, discount_type, raw_value, raw_course = parts[:4]
+        raw_limit = parts[4] if len(parts) > 4 else ""
+        try:
+            value = Decimal(raw_value)
+            usage_limit = int(raw_limit) if raw_limit else None
+            course_id = None if raw_course.lower() == "all" else raw_course
+            discount = self.commerce_logic.create_discount_code(
+                profile.user,
+                code=code,
+                discount_type=discount_type,
+                value=value,
+                course_id=course_id,
+                usage_limit=usage_limit,
+            )
+        except Exception as exc:
+            self.client.send_message(profile.chat_id, self.warning_text(html.escape(self.validation_message(exc))), reply_markup=self.cancel_keyboard(profile))
+            return
+        self.clear_action(profile.chat_id)
+        self.clear_discount_flow_data(profile.chat_id)
+        scope = self.t(profile, "discounts_scope_all_button") if getattr(discount, "applies_to_all_courses", False) else self.discount_course_scope_label(discount)
+        self.client.send_message(
+            profile.chat_id,
+            self.t(
+                profile,
+                "discounts_created",
+                code=html.escape(discount.code),
+                discount_type=html.escape(discount.discount_type),
+                value=discount.value,
+                scope=html.escape(str(scope)),
+                usage_limit=discount.usage_limit if discount.usage_limit is not None else "∞",
+            ),
+            reply_markup=self.main_menu_keyboard(profile),
+        )
+
+    def delete_discount_from_bot(self, profile: TelegramProfile, discount_id: str, message_id: int | None = None) -> None:
+        if not self.is_admin_profile(profile):
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+        try:
+            discount = self.commerce_logic.delete_discount_code(profile.user, discount_id=discount_id)
+        except Exception as exc:
+            self.client.send_message(profile.chat_id, self.warning_text(html.escape(self.validation_message(exc))), reply_markup=self.main_menu_keyboard(profile))
+            return
+        self.send_chain_message(profile, self.t(profile, "discounts_deleted", code=html.escape(discount.code)), reply_markup=self.main_menu_keyboard(profile), message_id=message_id)
+
+    def start_checkout_discount_flow(self, profile: TelegramProfile, course_id, message_id: int | None = None) -> None:
+        user = self.require_linked_user(profile)
+        if not user:
+            return
+        self.clear_all_flow_data(profile.chat_id)
+        self.set_checkout_flow_data(profile.chat_id, {"course_id": str(course_id)})
+        self.set_action(profile.chat_id, self.STATE_CHECKOUT_DISCOUNT_CODE)
+        self.send_chain_message(profile, self.t(profile, "checkout_discount_prompt"), reply_markup=self.cancel_keyboard(profile), message_id=message_id)
+
+    def handle_checkout_discount_code_text(self, profile: TelegramProfile, text: str) -> None:
+        data = self.get_checkout_flow_data(profile.chat_id)
+        course_id = data.get("course_id")
+        if not course_id:
+            self.clear_action(profile.chat_id)
+            self.client.send_message(profile.chat_id, self.t(profile, "courses_empty"), reply_markup=self.main_menu_keyboard(profile))
+            return
+        discount_code = "" if (text or "").strip() == self.COMMERCE_FEATURE.CLEAR_VALUE_MARKER else (text or "").strip()
+        try:
+            self.checkout_course_from_bot(profile, course_id, discount_code=discount_code)
+        except Exception as exc:
+            if discount_code:
+                self.client.send_message(profile.chat_id, self.t(profile, "checkout_discount_invalid", error=html.escape(self.validation_message(exc))), reply_markup=self.cancel_keyboard(profile))
+                return
+            self.client.send_message(profile.chat_id, self.warning_text(html.escape(self.validation_message(exc))), reply_markup=self.main_menu_keyboard(profile))
+            return
+        self.clear_checkout_flow_data(profile.chat_id)
+        self.clear_action(profile.chat_id)
+
+    def send_support_menu(self, profile: TelegramProfile, message_id: int | None = None) -> None:
+        if not profile.user_id or not profile.is_verified:
+            self.client.send_message(profile.chat_id, self.t(profile, "not_linked"), reply_markup=self.main_menu_keyboard(profile))
+            return
+        if self.is_admin_profile(profile):
+            self.send_support_queue(profile, message_id=message_id)
+            return
+        rows = [
+            [self.inline_button(self.t(profile, "support_new_button"), self.CALLBACK_SUPPORT_NEW)],
+            [self.inline_button(self.t(profile, "support_my_tickets_button"), "sup:mine")],
+        ]
+        rows.append([self.inline_button(self.t(profile, "main_menu_button"), self.CALLBACK_MAIN_MENU)])
+        text = "\n".join([self.t(profile, "support_title"), "", self.t(profile, "support_hint")])
+        self.send_chain_message(profile, text, reply_markup=self.inline_keyboard(rows), message_id=message_id)
+
+    def start_support_ticket_flow(self, profile: TelegramProfile, message_id: int | None = None) -> None:
+        if not profile.user_id or not profile.is_verified:
+            self.client.send_message(profile.chat_id, self.t(profile, "not_linked"), reply_markup=self.main_menu_keyboard(profile))
+            return
+        self.clear_all_flow_data(profile.chat_id)
+        self.set_action(profile.chat_id, self.STATE_SUPPORT_MESSAGE)
+        self.send_chain_message(profile, self.t(profile, "support_prompt"), reply_markup=self.cancel_keyboard(profile), message_id=message_id)
+
+    def handle_support_message_text(self, profile: TelegramProfile, text: str) -> None:
+        message_text = (text or "").strip()
+        if not message_text:
+            self.client.send_message(profile.chat_id, self.t(profile, "support_empty"), reply_markup=self.cancel_keyboard(profile))
+            return
+        data = self.get_support_flow_data(profile.chat_id)
+        ticket_id = data.get("ticket_id")
+        try:
+            if ticket_id:
+                ticket, msg = self.support_logic.add_user_message(provider=self.MESSENGER_PROVIDER, ticket_id=ticket_id, profile=profile, message=message_text)
+            else:
+                ticket = self.support_logic.create_ticket(provider=self.MESSENGER_PROVIDER, profile=profile, message=message_text)
+                self.notify_admins_about_support_ticket(profile, ticket, message_text)
+        except Exception as exc:
+            self.client.send_message(profile.chat_id, self.warning_text(html.escape(self.validation_message(exc))), reply_markup=self.cancel_keyboard(profile))
+            return
+        self.clear_support_flow_data(profile.chat_id)
+        self.clear_action(profile.chat_id)
+        self.client.send_message(profile.chat_id, self.t(profile, "support_created", ticket_id=ticket.id), reply_markup=self.main_menu_keyboard(profile))
+
+
+    def send_user_support_tickets(self, profile: TelegramProfile, message_id: int | None = None) -> None:
+        if not profile.user_id or not profile.is_verified:
+            self.client.send_message(profile.chat_id, self.t(profile, "not_linked"), reply_markup=self.main_menu_keyboard(profile))
+            return
+        tickets = self.support_logic.list_user_tickets(provider=self.MESSENGER_PROVIDER, profile=profile, limit=10)
+        if not tickets:
+            self.send_chain_message(profile, self.t(profile, "support_admin_queue_empty"), reply_markup=self.main_menu_keyboard(profile), message_id=message_id)
+            return
+        rows = []
+        lines = [self.t(profile, "support_my_tickets_button"), ""]
+        for ticket in tickets:
+            lines.append(f"#{ticket.id} | <code>{html.escape(ticket.status)}</code> | {html.escape(ticket.subject[:120])}")
+            rows.append([self.inline_button(f"#{ticket.id}", f"sup:d:{ticket.id}")])
+        rows.append([self.inline_button(self.t(profile, "main_menu_button"), self.CALLBACK_MAIN_MENU)])
+        self.send_chain_message(profile, "\n\n".join(lines), reply_markup=self.inline_keyboard(rows), message_id=message_id)
+
+    def start_user_support_reply_flow(self, profile: TelegramProfile, ticket_id: str, message_id: int | None = None) -> None:
+        self.set_support_flow_data(profile.chat_id, {"ticket_id": str(ticket_id)})
+        self.set_action(profile.chat_id, self.STATE_SUPPORT_MESSAGE)
+        self.send_chain_message(profile, self.t(profile, "support_user_reply_prompt", ticket_id=ticket_id), reply_markup=self.cancel_keyboard(profile), message_id=message_id)
+
+    def send_support_queue(self, profile: TelegramProfile, message_id: int | None = None) -> None:
+        if not self.is_admin_profile(profile):
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+        tickets = self.support_logic.list_admin_tickets(provider=self.MESSENGER_PROVIDER, status=BotSupportTicket.STATUS_OPEN, limit=10)
+        if not tickets:
+            self.send_chain_message(profile, self.t(profile, "support_admin_queue_empty"), reply_markup=self.main_menu_keyboard(profile), message_id=message_id)
+            return
+        rows = []
+        lines = [self.t(profile, "support_queue_button"), ""]
+        for ticket in tickets:
+            user_label = ticket.user.email if ticket.user_id and ticket.user.email else ticket.profile.username or ticket.profile.chat_id
+            last_message = ticket.messages.last().message if ticket.messages.exists() else ticket.subject
+            lines.append(f"#{ticket.id} | {html.escape(user_label)} | {html.escape(ticket.status)}\n{html.escape(last_message[:120])}")
+            rows.append([self.inline_button(f"#{ticket.id}", f"sup:d:{ticket.id}")])
+        rows.append([self.inline_button(self.t(profile, "main_menu_button"), self.CALLBACK_MAIN_MENU)])
+        self.send_chain_message(profile, "\n\n".join(lines), reply_markup=self.inline_keyboard(rows), message_id=message_id)
+
+    def send_support_ticket_detail(self, profile: TelegramProfile, ticket_id: str, message_id: int | None = None) -> None:
+        try:
+            ticket = self.support_logic.get_ticket(provider=self.MESSENGER_PROVIDER, ticket_id=ticket_id)
+        except Exception as exc:
+            self.client.send_message(profile.chat_id, self.warning_text(html.escape(self.validation_message(exc))), reply_markup=self.main_menu_keyboard(profile))
+            return
+        if not self.is_admin_profile(profile) and ticket.profile_id != profile.id:
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+        lines = [f"Ticket <code>{ticket.id}</code> | <code>{html.escape(ticket.status)}</code>", ""]
+        for msg in ticket.messages.all()[:10]:
+            sender = "Admin" if msg.sender_type == "admin" else "User"
+            lines.append(f"<b>{sender}</b>: {html.escape(msg.message)}")
+        rows = []
+        if self.is_admin_profile(profile) and ticket.status != BotSupportTicket.STATUS_CLOSED:
+            rows.append([self.inline_button(self.t(profile, "support_admin_reply_button"), f"sup:r:{ticket.id}")])
+            rows.append([self.inline_button(self.t(profile, "support_admin_close_button"), f"sup:c:{ticket.id}")])
+        elif ticket.profile_id == profile.id and ticket.status != BotSupportTicket.STATUS_CLOSED:
+            rows.append([self.inline_button(self.t(profile, "support_admin_reply_button"), f"sup:ur:{ticket.id}")])
+        rows.append([self.inline_button(self.t(profile, "main_menu_button"), self.CALLBACK_MAIN_MENU)])
+        self.send_chain_message(profile, "\n\n".join(lines), reply_markup=self.inline_keyboard(rows), message_id=message_id)
+
+    def start_support_reply_flow(self, profile: TelegramProfile, ticket_id: str, message_id: int | None = None) -> None:
+        if not self.is_admin_profile(profile):
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+        self.set_support_flow_data(profile.chat_id, {"ticket_id": str(ticket_id)})
+        self.set_action(profile.chat_id, self.STATE_SUPPORT_REPLY)
+        self.send_chain_message(profile, self.t(profile, "support_admin_reply_prompt", ticket_id=ticket_id), reply_markup=self.cancel_keyboard(profile), message_id=message_id)
+
+    def handle_support_reply_text(self, profile: TelegramProfile, text: str) -> None:
+        data = self.get_support_flow_data(profile.chat_id)
+        ticket_id = data.get("ticket_id")
+        if not ticket_id:
+            self.clear_action(profile.chat_id)
+            self.client.send_message(profile.chat_id, self.t(profile, "support_admin_queue_empty"), reply_markup=self.main_menu_keyboard(profile))
+            return
+        try:
+            ticket, msg = self.support_logic.reply(ticket_id=ticket_id, admin_user=profile.user, message=text)
+            self.client.send_message(
+                ticket.profile.chat_id,
+                self.t(ticket.profile, "support_user_notification", ticket_id=ticket.id, message=html.escape(text)),
+            )
+        except Exception as exc:
+            self.client.send_message(profile.chat_id, self.warning_text(html.escape(self.validation_message(exc))), reply_markup=self.cancel_keyboard(profile))
+            return
+        self.clear_support_flow_data(profile.chat_id)
+        self.clear_action(profile.chat_id)
+        self.client.send_message(profile.chat_id, self.t(profile, "support_admin_replied"), reply_markup=self.main_menu_keyboard(profile))
+
+    def close_support_ticket_from_bot(self, profile: TelegramProfile, ticket_id: str, message_id: int | None = None) -> None:
+        if not self.is_admin_profile(profile):
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+        try:
+            self.support_logic.close(ticket_id=ticket_id, admin_user=profile.user)
+        except Exception as exc:
+            self.client.send_message(profile.chat_id, self.warning_text(html.escape(self.validation_message(exc))), reply_markup=self.main_menu_keyboard(profile))
+            return
+        self.send_chain_message(profile, self.t(profile, "support_closed"), reply_markup=self.main_menu_keyboard(profile), message_id=message_id)
+
+    def notify_admins_about_support_ticket(self, profile: TelegramProfile, ticket, message_text: str) -> None:
+        try:
+            admins = TelegramProfile.objects.filter(messenger_provider=self.MESSENGER_PROVIDER, is_active=True, is_verified=True, user__isnull=False).filter(Q(user__is_staff=True) | Q(user__is_superuser=True)).exclude(chat_id=profile.chat_id)
+            user_label = profile.user.email if profile.user_id and profile.user.email else profile.username or profile.chat_id
+            for admin_profile in admins[:20]:
+                self.client.send_message(
+                    admin_profile.chat_id,
+                    self.t(admin_profile, "support_admin_new_ticket_notice", ticket_id=ticket.id, user=html.escape(str(user_label)), message=html.escape(message_text)),
+                    reply_markup=self.inline_keyboard([[self.inline_button(self.t(admin_profile, "support_admin_reply_button"), f"sup:r:{ticket.id}")]]),
+                )
+        except Exception:
+            logger.debug("Failed to notify admins about support ticket", exc_info=True)
+
+    def send_bot_settings_overview(self, profile: TelegramProfile, message_id: int | None = None) -> None:
+        if not self.is_admin_profile(profile):
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+
+        groups = BotSettingLogicRepository().list_all()
+        lines = [self.t(profile, "bot_settings_title"), "", self.t(profile, "bot_settings_hint")]
+        keyboard: list[list[dict[str, Any]]] = []
+        for group in groups:
+            provider = group.get("provider", "")
+            settings_count = len(group.get("settings", []))
+            configured_count = sum(1 for item in group.get("settings", []) if item.get("is_configured"))
+            lines.append(f"• <b>{html.escape(provider)}</b>: {configured_count}/{settings_count}")
+            keyboard.append([self.inline_button(provider, f"bs:p:{provider}")])
+
+        keyboard.append([self.inline_button(self.t(profile, "main_menu_button"), self.CALLBACK_MAIN_MENU)])
+        self.send_chain_message(
+            profile,
+            "\n".join(lines),
+            reply_markup=self.inline_keyboard(keyboard),
+            message_id=message_id,
+        )
+
+    def send_bot_provider_settings(self, profile: TelegramProfile, provider: str, message_id: int | None = None) -> None:
+        if not self.is_admin_profile(profile):
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+
+        try:
+            group = BotSettingLogicRepository().provider_settings(provider)
+        except Exception as exc:
+            self.client.send_message(profile.chat_id, self.warning_text(html.escape(self.validation_message(exc))), reply_markup=self.main_menu_keyboard(profile))
+            return
+
+        lines = [self.t(profile, "bot_settings_provider_title", provider=html.escape(provider)), ""]
+        not_configured = self.t(profile, "bot_settings_not_configured")
+        for item in group.get("settings", []):
+            label = html.escape(str(item.get("label") or item.get("key") or ""))
+            source = html.escape(str(item.get("source") or ""))
+            value = item.get("value") if item.get("is_configured") else not_configured
+            value = html.escape(str(value or not_configured))
+            lines.append(f"• <b>{label}</b>: <code>{value}</code> ({source})")
+
+        lines.extend(["", self.t(profile, "bot_settings_choose_key")])
+
+        keyboard: list[list[dict[str, Any]]] = []
+        for index, item in enumerate(group.get("settings", [])):
+            key = str(item.get("key") or "")
+            label = str(item.get("label") or key)
+            button_text = self.with_icon(TelegramBotIconKeyVO.EDIT, label)
+            keyboard.append([self.inline_button(button_text, f"bs:k:{provider}:{index}")])
+
+        keyboard.extend(
+            [
+                [self.inline_button(self.button(profile, "bot_settings"), self.CALLBACK_BOT_SETTINGS)],
+                [self.inline_button(self.t(profile, "main_menu_button"), self.CALLBACK_MAIN_MENU)],
+            ]
+        )
+        self.send_chain_message(
+            profile,
+            "\n".join(lines),
+            reply_markup=self.inline_keyboard(keyboard),
+            message_id=message_id,
+        )
+
+    def send_bot_setting_edit_options(
+        self,
+        profile: TelegramProfile,
+        *,
+        provider: str,
+        key_index: int,
+        message_id: int | None = None,
+    ) -> None:
+        if not self.is_admin_profile(profile):
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+
+        definition = self.bot_setting_definition_by_index(provider, key_index)
+        if definition is None:
+            self.client.send_message(profile.chat_id, self.t(profile, "unknown"), reply_markup=self.main_menu_keyboard(profile))
+            return
+
+        try:
+            presentation = BotSettingLogicRepository().presentation(definition)
+        except Exception as exc:
+            self.client.send_message(profile.chat_id, self.warning_text(html.escape(self.validation_message(exc))), reply_markup=self.main_menu_keyboard(profile))
+            return
+
+        not_configured = self.t(profile, "bot_settings_not_configured")
+        value = presentation.value if presentation.is_configured else not_configured
+        lines = [
+            self.t(profile, "bot_settings_edit_title"),
+            "",
+            f"<b>{html.escape(presentation.label)}</b>",
+            f"Provider: <code>{html.escape(provider)}</code>",
+            f"Key: <code>{html.escape(definition.key)}</code>",
+            f"Env fallback: <code>{html.escape(definition.env_name)}</code>",
+            f"{self.t(profile, 'bot_settings_current_value')}: <code>{html.escape(str(value or not_configured))}</code>",
+            f"{self.t(profile, 'bot_settings_source')}: <code>{html.escape(str(presentation.source))}</code>",
+            f"{self.t(profile, 'bot_settings_type')}: <code>{html.escape(str(definition.value_type))}</code>",
+        ]
+        if definition.choices:
+            choices = ", ".join(html.escape(choice) for choice in definition.choices)
+            lines.append(f"{self.t(profile, 'bot_settings_choices')}: <code>{choices}</code>")
+        if definition.help_text:
+            lines.extend(["", html.escape(definition.help_text)])
+
+        lines.extend(["", self.t(profile, "bot_settings_db_only_notice")])
+        keyboard: list[list[dict[str, Any]]] = []
+        if definition.choices:
+            for choice_index, choice in enumerate(definition.choices):
+                keyboard.append([self.inline_button(self.with_icon(TelegramBotIconKeyVO.SUCCESS, choice), f"bs:v:{provider}:{key_index}:{choice_index}")])
+            keyboard.append([self.inline_button(self.t(profile, "bot_settings_custom_value_button"), f"bs:w:{provider}:{key_index}:db")])
+        else:
+            keyboard.append([self.inline_button(self.t(profile, "bot_settings_edit_value_button"), f"bs:w:{provider}:{key_index}:db")])
+        keyboard.extend([
+            [self.inline_button(self.t(profile, "bot_settings_delete_db_value_button"), f"bs:del:{provider}:{key_index}")],
+            [self.inline_button(self.t(profile, "bot_settings_provider_title", provider=provider), f"bs:p:{provider}")],
+            [self.inline_button(self.button(profile, "bot_settings"), self.CALLBACK_BOT_SETTINGS)],
+        ])
+        self.send_chain_message(
+            profile,
+            "\n".join(lines),
+            reply_markup=self.inline_keyboard(keyboard),
+            message_id=message_id,
+        )
+
+    def start_bot_setting_edit_flow(
+        self,
+        profile: TelegramProfile,
+        *,
+        provider: str,
+        key_index: int,
+        write_target: str,
+        message_id: int | None = None,
+    ) -> None:
+        if not self.is_admin_profile(profile):
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+
+        definition = self.bot_setting_definition_by_index(provider, key_index)
+        if definition is None:
+            self.client.send_message(profile.chat_id, self.t(profile, "unknown"), reply_markup=self.main_menu_keyboard(profile))
+            return
+
+        if write_target != "db":
+            self.client.send_message(
+                profile.chat_id,
+                self.t(profile, "bot_settings_env_write_disabled"),
+                reply_markup=self.main_menu_keyboard(profile),
+            )
+            return
+
+        self.set_bot_setting_edit_data(
+            profile.chat_id,
+            {
+                "provider": provider,
+                "key": definition.key,
+                "key_index": key_index,
+                "write_target": "db",
+            },
+        )
+        self.set_action(profile.chat_id, self.STATE_BOT_SETTING_VALUE)
+
+        lines = [
+            self.t(
+                profile,
+                "bot_settings_send_value_prompt",
+                label=html.escape(definition.label),
+                env_name=html.escape(definition.env_name),
+            )
+        ]
+        if definition.choices:
+            choices = ", ".join(f"<code>{html.escape(choice)}</code>" for choice in definition.choices)
+            lines.extend(["", f"{self.t(profile, 'bot_settings_choices')}: {choices}"])
+
+        self.send_chain_message(
+            profile,
+            "\n".join(lines),
+            reply_markup=self.cancel_keyboard(profile),
+            message_id=message_id,
+        )
+
+    def handle_bot_setting_value_text(self, profile: TelegramProfile, text: str) -> None:
+        if not self.is_admin_profile(profile):
+            self.clear_action(profile.chat_id)
+            self.clear_bot_setting_edit_data(profile.chat_id)
+            self.clear_bot_setting_email_code(profile.chat_id)
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+
+        pending_data = self.get_bot_setting_edit_data(profile.chat_id)
+        provider = str(pending_data.get("provider") or "")
+        key = str(pending_data.get("key") or "")
+        if not provider or not key:
+            self.clear_action(profile.chat_id)
+            self.clear_bot_setting_edit_data(profile.chat_id)
+            self.clear_bot_setting_email_code(profile.chat_id)
+            self.client.send_message(
+                profile.chat_id,
+                self.t(profile, "bot_settings_pending_missing"),
+                reply_markup=self.main_menu_keyboard(profile),
+            )
+            return
+
+        definition = BotSettingRegistryVO.definition(provider, key)
+        if definition is None:
+            self.clear_action(profile.chat_id)
+            self.clear_bot_setting_edit_data(profile.chat_id)
+            self.clear_bot_setting_email_code(profile.chat_id)
+            self.client.send_message(profile.chat_id, self.t(profile, "unknown"), reply_markup=self.main_menu_keyboard(profile))
+            return
+
+        raw_value = "" if text.strip() == self.COMMERCE_FEATURE.CLEAR_VALUE_MARKER else text.strip()
+        try:
+            value = BotSettingLogicRepository.normalize_value(definition=definition, raw_value=raw_value)
+        except Exception as exc:
+            self.client.send_message(
+                profile.chat_id,
+                self.t(profile, "bot_settings_invalid_value", error=html.escape(self.validation_message(exc))),
+                reply_markup=self.cancel_keyboard(profile),
+            )
+            return
+
+        user = profile.user if profile.user_id else None
+        if not user or not getattr(user, "email", ""):
+            self.clear_action(profile.chat_id)
+            self.clear_bot_setting_edit_data(profile.chat_id)
+            self.clear_bot_setting_email_code(profile.chat_id)
+            self.client.send_message(
+                profile.chat_id,
+                self.t(profile, "bot_settings_email_missing"),
+                reply_markup=self.main_menu_keyboard(profile),
+            )
+            return
+
+        pending_data.update({"value": value, "write_target": "db"})
+        self.set_bot_setting_edit_data(profile.chat_id, pending_data)
+
+        try:
+            self.send_bot_setting_confirmation_email(profile, definition)
+        except Exception as exc:
+            logger.exception("Failed to send bot setting confirmation email.")
+            self.client.send_message(
+                profile.chat_id,
+                self.t(profile, "bot_settings_email_send_failed", error=html.escape(self.validation_message(exc))),
+                reply_markup=self.cancel_keyboard(profile),
+            )
+            return
+
+        self.set_action(profile.chat_id, self.STATE_BOT_SETTING_EMAIL_CODE)
+        self.client.send_message(
+            profile.chat_id,
+            self.t(
+                profile,
+                "bot_settings_email_code_sent",
+                email=html.escape(self.mask_email(user.email)),
+                minutes=self.BOT_SETTING_CONFIRM_CODE_EXPIRATION_MINUTES,
+            ),
+            reply_markup=self.cancel_keyboard(profile),
+        )
+
+    def handle_bot_setting_email_code_text(self, profile: TelegramProfile, code: str) -> None:
+        code = code.strip()
+        if not code.isdigit() or len(code) != 6:
+            self.client.send_message(
+                profile.chat_id,
+                self.t(profile, "code_only"),
+                reply_markup=self.cancel_keyboard(profile),
+            )
+            return
+
+        if not self.is_admin_profile(profile):
+            self.clear_action(profile.chat_id)
+            self.clear_bot_setting_edit_data(profile.chat_id)
+            self.clear_bot_setting_email_code(profile.chat_id)
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+
+        pending_data = self.get_bot_setting_edit_data(profile.chat_id)
+        provider = str(pending_data.get("provider") or "")
+        key = str(pending_data.get("key") or "")
+        value = pending_data.get("value")
+        is_delete_operation = bool(pending_data.get("delete"))
+        if not provider or not key or (value is None and not is_delete_operation):
+            self.clear_action(profile.chat_id)
+            self.clear_bot_setting_edit_data(profile.chat_id)
+            self.clear_bot_setting_email_code(profile.chat_id)
+            self.client.send_message(
+                profile.chat_id,
+                self.t(profile, "bot_settings_pending_missing"),
+                reply_markup=self.main_menu_keyboard(profile),
+            )
+            return
+
+        if not self.verify_bot_setting_email_code(profile.chat_id, code):
+            self.client.send_message(
+                profile.chat_id,
+                self.t(profile, "bot_settings_email_code_invalid"),
+                reply_markup=self.cancel_keyboard(profile),
+            )
+            return
+
+        try:
+            if is_delete_operation:
+                result = BotSettingLogicRepository().delete_provider_setting(
+                    provider=provider,
+                    key=key,
+                    user=profile.user,
+                )
+            else:
+                BotSettingLogicRepository().update_provider_settings(
+                    provider=provider,
+                    raw_settings={key: value},
+                    user=profile.user,
+                    write_to_database=True,
+                    write_to_env=False,
+                )
+                result = {"deleted": False}
+        except Exception as exc:
+            self.client.send_message(
+                profile.chat_id,
+                self.t(profile, "bot_settings_invalid_value", error=html.escape(self.validation_message(exc))),
+                reply_markup=self.cancel_keyboard(profile),
+            )
+            return
+
+        self.clear_action(profile.chat_id)
+        self.clear_bot_setting_edit_data(profile.chat_id)
+        self.clear_bot_setting_email_code(profile.chat_id)
+        if is_delete_operation:
+            message_key = "bot_settings_db_value_deleted" if result.get("deleted") else "bot_settings_db_value_not_found"
+            self.client.send_message(
+                profile.chat_id,
+                self.t(profile, message_key, provider=html.escape(provider), key=html.escape(key)),
+                reply_markup=self.main_menu_keyboard(profile),
+            )
+        else:
+            self.client.send_message(
+                profile.chat_id,
+                self.t(
+                    profile,
+                    "bot_settings_value_saved",
+                    provider=html.escape(provider),
+                    key=html.escape(key),
+                    target=html.escape(self.bot_setting_target_label(profile, "db")),
+                ),
+                reply_markup=self.main_menu_keyboard(profile),
+            )
+        self.send_bot_provider_settings(profile, provider)
+
+
+    def choose_bot_setting_choice_value(
+        self,
+        profile: TelegramProfile,
+        *,
+        provider: str,
+        key_index: int,
+        choice_index: int,
+        message_id: int | None = None,
+    ) -> None:
+        if not self.is_admin_profile(profile):
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+
+        definition = self.bot_setting_definition_by_index(provider, key_index)
+        if definition is None or not definition.choices or choice_index < 0 or choice_index >= len(definition.choices):
+            self.client.send_message(profile.chat_id, self.t(profile, "unknown"), reply_markup=self.main_menu_keyboard(profile))
+            return
+
+        self.set_bot_setting_edit_data(
+            profile.chat_id,
+            {
+                "provider": provider,
+                "key": definition.key,
+                "key_index": key_index,
+                "write_target": "db",
+            },
+        )
+        self.set_action(profile.chat_id, self.STATE_BOT_SETTING_VALUE)
+        self.handle_bot_setting_value_text(profile, str(definition.choices[choice_index]))
+
+    def confirm_delete_bot_setting_database_value(
+        self,
+        profile: TelegramProfile,
+        *,
+        provider: str,
+        key_index: int,
+        message_id: int | None = None,
+    ) -> None:
+        if not self.is_admin_profile(profile):
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+
+        definition = self.bot_setting_definition_by_index(provider, key_index)
+        if definition is None:
+            self.client.send_message(profile.chat_id, self.t(profile, "unknown"), reply_markup=self.main_menu_keyboard(profile))
+            return
+
+        text = self.t(
+            profile,
+            "bot_settings_delete_confirm",
+            label=html.escape(definition.label),
+            provider=html.escape(provider),
+            key=html.escape(definition.key),
+        )
+        keyboard = self.inline_keyboard(
+            [
+                [self.inline_button(self.t(profile, "confirm_delete_button"), f"bs:delc:{provider}:{key_index}")],
+                [self.inline_button(self.t(profile, "bot_settings_provider_title", provider=provider), f"bs:p:{provider}")],
+            ]
+        )
+        self.send_chain_message(profile, text, reply_markup=keyboard, message_id=message_id)
+
+    def delete_bot_setting_database_value(
+        self,
+        profile: TelegramProfile,
+        *,
+        provider: str,
+        key_index: int,
+        message_id: int | None = None,
+    ) -> None:
+        if not self.is_admin_profile(profile):
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+
+        definition = self.bot_setting_definition_by_index(provider, key_index)
+        if definition is None:
+            self.client.send_message(profile.chat_id, self.t(profile, "unknown"), reply_markup=self.main_menu_keyboard(profile))
+            return
+
+        user = profile.user if profile.user_id else None
+        if not user or not getattr(user, "email", ""):
+            self.client.send_message(
+                profile.chat_id,
+                self.t(profile, "bot_settings_email_missing"),
+                reply_markup=self.main_menu_keyboard(profile),
+            )
+            return
+
+        self.set_bot_setting_edit_data(
+            profile.chat_id,
+            {
+                "provider": provider,
+                "key": definition.key,
+                "key_index": key_index,
+                "write_target": "db",
+                "delete": True,
+            },
+        )
+        try:
+            self.send_bot_setting_confirmation_email(profile, definition)
+        except Exception as exc:
+            logger.exception("Failed to send bot setting delete confirmation email.")
+            self.client.send_message(
+                profile.chat_id,
+                self.t(profile, "bot_settings_email_send_failed", error=html.escape(self.validation_message(exc))),
+                reply_markup=self.cancel_keyboard(profile),
+            )
+            return
+
+        self.set_action(profile.chat_id, self.STATE_BOT_SETTING_EMAIL_CODE)
+        self.send_chain_message(
+            profile,
+            self.t(
+                profile,
+                "bot_settings_delete_email_code_sent",
+                email=html.escape(self.mask_email(user.email)),
+                minutes=self.BOT_SETTING_CONFIRM_CODE_EXPIRATION_MINUTES,
+            ),
+            reply_markup=self.cancel_keyboard(profile),
+            message_id=message_id,
+        )
+
+    def send_bot_setting_confirmation_email(self, profile: TelegramProfile, definition) -> None:
+        user = profile.user
+        code = str(secrets.randbelow(900000) + 100000)
+        self.set_bot_setting_email_code(profile.chat_id, code)
+        send_html_email_async(
+            subject="تایید تغییر تنظیمات بات",
+            template_name="emails/fa_verification_code.html",
+            context={
+                "subject": "کد تایید تغییر تنظیمات بات",
+                "app_name": "Devixa",
+                "user_name": user.first_name or user.username or "there",
+                "code": code,
+                "expiration_minutes": self.BOT_SETTING_CONFIRM_CODE_EXPIRATION_MINUTES,
+                "current_year": datetime.now().year,
+            },
+            recipient_list=[user.email],
+        )
+
+    @staticmethod
+    def mask_email(email: str) -> str:
+        value = str(email or "").strip()
+        if "@" not in value:
+            return value
+        local, domain = value.split("@", 1)
+        if len(local) <= 2:
+            masked_local = local[:1] + "*"
+        else:
+            masked_local = local[:2] + "*" * max(len(local) - 2, 1)
+        return f"{masked_local}@{domain}"
+
+    @staticmethod
+    def bot_setting_definition_by_index(provider: str, key_index: int):
+        definitions = BotSettingRegistryVO.definitions(provider)
+        if key_index < 0 or key_index >= len(definitions):
+            return None
+        return definitions[key_index]
+
+    def bot_setting_target_label(self, profile: TelegramProfile, write_target: str) -> str:
+        return self.t(profile, "bot_settings_target_db")
+
+    @staticmethod
+    def bot_setting_target_flags(write_target: str) -> tuple[bool, bool]:
+        return True, False
+
     def send_channels_invite(self, profile: TelegramProfile) -> None:
         links = self.channel_invite_links(profile)
         if not links:
@@ -1459,9 +3186,9 @@ class TelegramBotService:
 
     def channel_invite_links(self, profile: TelegramProfile | None = None) -> list[tuple[str, str]]:
         values = [
-            ("telegram_channel", os.environ.get("CHANNEL_INVITE_TELEGRAM_URL") or ""),
-            ("bale_channel", os.environ.get("CHANNEL_INVITE_BALE_URL") or ""),
-            ("rubika_channel", os.environ.get("CHANNEL_INVITE_RUBIKA_URL") or ""),
+            ("telegram_channel", BotRuntimeConfigProvider.get_env("CHANNEL_INVITE_TELEGRAM_URL")),
+            ("bale_channel", BotRuntimeConfigProvider.get_env("CHANNEL_INVITE_BALE_URL")),
+            ("rubika_channel", BotRuntimeConfigProvider.get_env("CHANNEL_INVITE_RUBIKA_URL")),
         ]
         return [(self.t(profile, key), url.strip()) for key, url in values if url.strip()]
 
@@ -1487,6 +3214,13 @@ class TelegramBotService:
         return str(value)
 
     @staticmethod
+    def safe_int(value: Any, default: int = 0) -> int:
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return default
+
+    @staticmethod
     def parse_positive_int(value: str, default: int = 1) -> int:
         try:
             number = int(value)
@@ -1496,7 +3230,7 @@ class TelegramBotService:
 
     @staticmethod
     def configured_list_page_size(default: int = 5, maximum: int = 20) -> int:
-        value = os.environ.get("TELEGRAM_LIST_PAGE_SIZE", str(default))
+        value = BotRuntimeConfigProvider.get(BotSettingProviderEnum.TELEGRAM.value, "list_page_size", str(default))
         try:
             page_size = int(value)
         except (TypeError, ValueError):
@@ -1652,6 +3386,30 @@ class TelegramBotService:
                 self.send_admin_course_detail(profile, parts[2], message_id=message_id)
                 return True
 
+            if len(parts) == 3 and parts[0] == "a" and parts[1] == "e":
+                self.send_course_edit_fields(profile, parts[2], message_id=message_id)
+                return True
+
+            if len(parts) == 4 and parts[0] == "a" and parts[1] == "ef":
+                self.start_course_edit_field_flow(profile, course_id=parts[2], field=parts[3], message_id=message_id)
+                return True
+
+            if len(parts) == 5 and parts[0] == "a" and parts[1] == "ev":
+                self.update_course_field_from_bot(profile, course_id=parts[2], field=parts[3], raw_value=parts[4], message_id=message_id)
+                return True
+
+            if len(parts) == 4 and parts[0] == "a" and parts[1] == "cv":
+                self.handle_course_create_choice_callback(profile, field=parts[2], raw_value=parts[3], message_id=message_id)
+                return True
+
+            if len(parts) == 3 and parts[0] == "a" and parts[1] == "del":
+                self.confirm_delete_course_from_bot(profile, course_id=parts[2], message_id=message_id)
+                return True
+
+            if len(parts) == 3 and parts[0] == "a" and parts[1] == "delc":
+                self.delete_course_from_bot(profile, course_id=parts[2], message_id=message_id)
+                return True
+
             if len(parts) == 3 and parts[0] == "a" and parts[1] == "p":
                 self.update_course_status_from_bot(profile, course_id=parts[2], status=CourseStatusEnum.PUBLISHED.value, message_id=message_id)
                 return True
@@ -1685,7 +3443,7 @@ class TelegramBotService:
                 return True
 
             if len(parts) == 3 and parts[0] == "c" and parts[1] == "buy":
-                self.checkout_course_from_bot(profile, parts[2], message_id=message_id)
+                self.start_checkout_discount_flow(profile, parts[2], message_id=message_id)
                 return True
 
             if len(parts) == 3 and parts[0] == "c" and parts[1] == "rr":
@@ -1731,7 +3489,7 @@ class TelegramBotService:
             logger.exception("Telegram commerce callback failed")
             self.client.send_message(
                 profile.chat_id,
-                f"⚠️ {html.escape(self.validation_message(error))}",
+                self.warning_text(html.escape(self.validation_message(error))),
                 reply_markup=self.main_menu_keyboard(profile),
             )
             return True
@@ -1739,7 +3497,7 @@ class TelegramBotService:
         return False
 
     def send_course_list(self, profile: TelegramProfile, page: int = 1, *, message_id: int | None = None) -> None:
-        courses, has_next = self.commerce_logic.list_courses(page=page, page_size=5)
+        courses, has_next = self.commerce_logic.list_courses(page=page, page_size=self.COMMERCE_FEATURE.PUBLIC_LIST_PAGE_SIZE)
         if not courses:
             self.send_chain_message(
                 profile,
@@ -1753,7 +3511,7 @@ class TelegramBotService:
         keyboard: list[list[dict[str, Any]]] = []
         for index, course in enumerate(courses, start=((page - 1) * 5) + 1):
             rating = getattr(course, "average_rating", None)
-            rating_text = f" ⭐ {float(rating):.1f}" if rating else ""
+            rating_text = f" {self.icon(TelegramBotIconKeyVO.STAR)} {float(rating):.1f}" if rating else ""
             lines.append(
                 self.t(
                     profile,
@@ -1791,7 +3549,7 @@ class TelegramBotService:
     def send_course_detail(self, profile: TelegramProfile, course_id_or_slug: str, *, message_id: int | None = None) -> None:
         course = self.commerce_logic.get_course(course_id_or_slug)
         rating = getattr(course, "average_rating", None)
-        rating_text = f"⭐ {float(rating):.1f}" if rating else "⭐ -"
+        rating_text = f"{self.icon(TelegramBotIconKeyVO.STAR)} {float(rating):.1f}" if rating else f"{self.icon(TelegramBotIconKeyVO.STAR)} -"
         lessons_count = course.lessons.count() if hasattr(course, "lessons") else 0
         text = self.t(
             profile,
@@ -1828,7 +3586,7 @@ class TelegramBotService:
         if not lessons:
             lines.append(self.t(profile, "no_lessons"))
         for lesson in lessons:
-            lock = "🔓" if lesson.is_preview or is_enrolled else "🔒"
+            lock = self.icon(TelegramBotIconKeyVO.UNLOCKED) if lesson.is_preview or is_enrolled else self.icon(TelegramBotIconKeyVO.LOCKED)
             lines.append(
                 self.t(
                     profile,
@@ -1881,19 +3639,19 @@ class TelegramBotService:
             message_id=message_id,
         )
 
-    def checkout_course_from_bot(self, profile: TelegramProfile, course_id: str, *, message_id: int | None = None) -> None:
+    def checkout_course_from_bot(self, profile: TelegramProfile, course_id: str, *, discount_code: str = "", message_id: int | None = None) -> None:
         user = self.require_linked_user(profile)
         if not user:
             return
         try:
-            order, payment, paid_now = self.commerce_logic.checkout_course(user=user, course_id=course_id)
+            order, payment, paid_now = self.commerce_logic.checkout_course(user=user, course_id=course_id, discount_code=discount_code)
         except Exception as error:
             message = self.validation_message(error)
             if "already" in message.lower():
                 message = self.t(profile, "course_already_owned")
             self.client.send_message(
                 profile.chat_id,
-                f"⚠️ {html.escape(message)}",
+                self.warning_text(html.escape(message)),
                 reply_markup=self.main_menu_keyboard(profile),
             )
             return
@@ -1958,7 +3716,7 @@ class TelegramBotService:
             logger.exception("Telegram payment receipt registration failed")
             self.client.send_message(
                 profile.chat_id,
-                f"⚠️ {html.escape(self.validation_message(error))}",
+                self.warning_text(html.escape(self.validation_message(error))),
                 reply_markup=self.main_menu_keyboard(profile),
             )
             self.clear_all_flow_data(profile.chat_id)
@@ -2083,7 +3841,7 @@ class TelegramBotService:
             )
         except Exception as error:
             logger.exception("Telegram payment receipt moderation failed")
-            self.client.send_message(profile.chat_id, f"⚠️ {html.escape(self.validation_message(error))}", reply_markup=self.main_menu_keyboard(profile))
+            self.client.send_message(profile.chat_id, self.warning_text(html.escape(self.validation_message(error))), reply_markup=self.main_menu_keyboard(profile))
             return
 
         self.send_chain_message(
@@ -2215,7 +3973,7 @@ class TelegramBotService:
 
     def handle_review_title_text(self, profile: TelegramProfile, text: str) -> None:
         data = self.get_review_flow_data(profile.chat_id)
-        title = "" if text.strip() == "-" else text.strip()[:180]
+        title = "" if text.strip() == self.COMMERCE_FEATURE.CLEAR_VALUE_MARKER else text.strip()[:180]
         data["title"] = title
         self.set_review_flow_data(profile.chat_id, data)
         self.set_action(profile.chat_id, self.STATE_REVIEW_COMMENT)
@@ -2260,7 +4018,7 @@ class TelegramBotService:
             logger.exception("Telegram review submission failed")
             self.client.send_message(
                 profile.chat_id,
-                f"⚠️ {html.escape(self.validation_message(error))}",
+                self.warning_text(html.escape(self.validation_message(error))),
                 reply_markup=self.main_menu_keyboard(profile),
             )
             return
@@ -2400,6 +4158,23 @@ class TelegramBotService:
         TelegramBotCacheRepository.delete_value(cls.course_flow_cache_key(chat_id))
 
     @classmethod
+    def course_edit_flow_cache_key(cls, chat_id: int) -> str:
+        return f"{cls.CACHE_PREFIX}_admin_course_edit:{chat_id}"
+
+    @classmethod
+    def get_course_edit_flow_data(cls, chat_id: int) -> dict[str, Any]:
+        data = TelegramBotCacheRepository.get_value(cls.course_edit_flow_cache_key(chat_id))
+        return data if isinstance(data, dict) else {}
+
+    @classmethod
+    def set_course_edit_flow_data(cls, chat_id: int, data: dict[str, Any]) -> None:
+        TelegramBotCacheRepository.set_value(cls.course_edit_flow_cache_key(chat_id), data, timeout=cls.ACTION_TIMEOUT_SECONDS)
+
+    @classmethod
+    def clear_course_edit_flow_data(cls, chat_id: int) -> None:
+        TelegramBotCacheRepository.delete_value(cls.course_edit_flow_cache_key(chat_id))
+
+    @classmethod
     def lesson_flow_cache_key(cls, chat_id: int) -> str:
         return f"{cls.CACHE_PREFIX}_admin_lesson:{chat_id}"
 
@@ -2428,7 +4203,7 @@ class TelegramBotService:
     @staticmethod
     def parse_optional_positive_int(text: str) -> int | None:
         value = text.strip()
-        if value == "-":
+        if value == self.COMMERCE_FEATURE.CLEAR_VALUE_MARKER:
             return None
         try:
             parsed = int(value)
@@ -2475,7 +4250,7 @@ class TelegramBotService:
 
     def handle_course_description_text(self, profile: TelegramProfile, text: str) -> None:
         data = self.get_course_flow_data(profile.chat_id)
-        data["description"] = "" if text.strip() == "-" else text.strip()
+        data["description"] = "" if text.strip() == self.COMMERCE_FEATURE.CLEAR_VALUE_MARKER else text.strip()
         self.set_course_flow_data(profile.chat_id, data)
         self.set_action(profile.chat_id, self.STATE_COURSE_PRICE)
         self.client.send_message(profile.chat_id, self.t(profile, "course_price_prompt"), reply_markup=self.cancel_keyboard(profile))
@@ -2501,7 +4276,7 @@ class TelegramBotService:
         data["duration_minutes"] = duration or 0
         self.set_course_flow_data(profile.chat_id, data)
         self.set_action(profile.chat_id, self.STATE_COURSE_LEVEL)
-        self.client.send_message(profile.chat_id, self.t(profile, "course_level_prompt"), reply_markup=self.cancel_keyboard(profile))
+        self.client.send_message(profile.chat_id, self.t(profile, "course_level_prompt"), reply_markup=self.course_level_create_keyboard(profile))
 
     def handle_course_level_text(self, profile: TelegramProfile, text: str) -> None:
         level = text.strip().lower()
@@ -2513,7 +4288,7 @@ class TelegramBotService:
         data["level"] = level
         self.set_course_flow_data(profile.chat_id, data)
         self.set_action(profile.chat_id, self.STATE_COURSE_PUBLISH)
-        self.client.send_message(profile.chat_id, self.t(profile, "course_publish_prompt"), reply_markup=self.cancel_keyboard(profile))
+        self.client.send_message(profile.chat_id, self.t(profile, "course_publish_prompt"), reply_markup=self.course_publish_create_keyboard(profile))
 
     def handle_course_publish_text(self, profile: TelegramProfile, text: str) -> None:
         should_publish = self.parse_yes_no(text)
@@ -2536,7 +4311,7 @@ class TelegramBotService:
             )
         except Exception as error:
             logger.exception("Telegram course creation failed")
-            self.client.send_message(profile.chat_id, f"⚠️ {html.escape(self.validation_message(error))}", reply_markup=self.main_menu_keyboard(profile))
+            self.client.send_message(profile.chat_id, self.warning_text(html.escape(self.validation_message(error))), reply_markup=self.main_menu_keyboard(profile))
             self.clear_action(profile.chat_id)
             self.clear_course_flow_data(profile.chat_id)
             return
@@ -2546,6 +4321,268 @@ class TelegramBotService:
             profile.chat_id,
             f"{self.t(profile, 'course_created')}\n\n{self.admin_course_text(profile, course)}",
             reply_markup=self.admin_course_keyboard(profile, course),
+        )
+
+
+    @classmethod
+    def course_editable_fields(cls) -> list[str]:
+        return list(cls.COMMERCE_FEATURE.EDITABLE_FIELDS)
+
+    def course_field_label(self, profile: TelegramProfile, field: str) -> str:
+        return self.t(profile, self.COMMERCE_FEATURE.field_text_key(field))
+
+    @classmethod
+    def course_field_choices(cls, field: str) -> list[str]:
+        if field == cls.COMMERCE_FEATURE.FIELD_LEVEL:
+            return [item.value for item in CourseLevelEnum]
+        if field == cls.COMMERCE_FEATURE.FIELD_CURRENCY:
+            return [item.value for item in CurrencyEnum]
+        if field == cls.COMMERCE_FEATURE.FIELD_STATUS:
+            return [item.value for item in CourseStatusEnum]
+        if field == cls.COMMERCE_FEATURE.FIELD_IS_FEATURED:
+            return [cls.COMMERCE_FEATURE.BOOLEAN_TRUE_VALUE, cls.COMMERCE_FEATURE.BOOLEAN_FALSE_VALUE]
+        return []
+
+    def course_level_create_keyboard(self, profile: TelegramProfile) -> dict[str, Any]:
+        rows = [[self.inline_button(level.value, f"a:cv:{self.COMMERCE_FEATURE.CREATE_LEVEL_FIELD}:{level.value}")] for level in CourseLevelEnum]
+        rows.append([self.inline_button(self.t(profile, "main_menu_button"), self.CALLBACK_MAIN_MENU)])
+        return self.inline_keyboard(rows)
+
+    def course_publish_create_keyboard(self, profile: TelegramProfile) -> dict[str, Any]:
+        return self.inline_keyboard(
+            [
+                [self.inline_button(self.t(profile, "publish_button"), f"a:cv:{self.COMMERCE_FEATURE.CREATE_PUBLISH_FIELD}:{self.COMMERCE_FEATURE.BOOLEAN_TRUE_VALUE}")],
+                [self.inline_button(self.t(profile, "unpublish_button"), f"a:cv:{self.COMMERCE_FEATURE.CREATE_PUBLISH_FIELD}:{self.COMMERCE_FEATURE.BOOLEAN_FALSE_VALUE}")],
+                [self.inline_button(self.t(profile, "main_menu_button"), self.CALLBACK_MAIN_MENU)],
+            ]
+        )
+
+    def lesson_preview_create_keyboard(self, profile: TelegramProfile) -> dict[str, Any]:
+        return self.inline_keyboard(
+            [
+                [self.inline_button(self.t(profile, "yes"), f"a:cv:{self.COMMERCE_FEATURE.CREATE_PREVIEW_FIELD}:{self.COMMERCE_FEATURE.BOOLEAN_TRUE_VALUE}")],
+                [self.inline_button(self.t(profile, "no"), f"a:cv:{self.COMMERCE_FEATURE.CREATE_PREVIEW_FIELD}:{self.COMMERCE_FEATURE.BOOLEAN_FALSE_VALUE}")],
+                [self.inline_button(self.t(profile, "main_menu_button"), self.CALLBACK_MAIN_MENU)],
+            ]
+        )
+
+    def course_edit_choice_keyboard(self, profile: TelegramProfile, *, course_id: str, field: str) -> dict[str, Any]:
+        rows: list[list[dict[str, Any]]] = []
+        for value in self.course_field_choices(field):
+            label = value
+            if field == self.COMMERCE_FEATURE.FIELD_IS_FEATURED:
+                label = self.t(profile, "yes") if value == self.COMMERCE_FEATURE.BOOLEAN_TRUE_VALUE else self.t(profile, "no")
+            rows.append([self.inline_button(label, f"a:ev:{course_id}:{field}:{value}")])
+        rows.append([self.inline_button(self.t(profile, "course_edit_back_button"), f"a:e:{course_id}")])
+        return self.inline_keyboard(rows)
+
+    def send_course_edit_fields(self, profile: TelegramProfile, course_id: str, *, message_id: int | None = None) -> None:
+        if not self.is_admin_profile(profile):
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+        course = self.commerce_logic.get_admin_course(course_id)
+        compact_course_id = self.compact_id(course.id)
+        lines = [self.t(profile, "course_edit_title", title=html.escape(course.title)), "", self.admin_course_text(profile, course)]
+        rows: list[list[dict[str, Any]]] = []
+        for field in self.course_editable_fields():
+            rows.append([self.inline_button(self.with_icon(TelegramBotIconKeyVO.EDIT, self.course_field_label(profile, field)), f"a:ef:{compact_course_id}:{field}")])
+        rows.extend(
+            [
+                [self.inline_button(self.t(profile, "delete_course_button"), f"a:del:{compact_course_id}")],
+                [self.inline_button(self.t(profile, "course_back_button"), f"a:d:{compact_course_id}")],
+                [self.inline_button(self.t(profile, "all_courses_button"), "a:c:1")],
+            ]
+        )
+        self.send_chain_message(profile, "\n".join(lines), reply_markup=self.inline_keyboard(rows), message_id=message_id)
+
+    def start_course_edit_field_flow(
+        self,
+        profile: TelegramProfile,
+        *,
+        course_id: str,
+        field: str,
+        message_id: int | None = None,
+    ) -> None:
+        if not self.is_admin_profile(profile):
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+        if field not in self.course_editable_fields():
+            self.client.send_message(profile.chat_id, self.t(profile, "unknown"), reply_markup=self.main_menu_keyboard(profile))
+            return
+        course = self.commerce_logic.get_admin_course(course_id)
+        compact_course_id = self.compact_id(course.id)
+        current_value = getattr(course, field)
+        label = self.course_field_label(profile, field)
+        if self.course_field_choices(field):
+            text = self.t(
+                profile,
+                "course_edit_choice_prompt",
+                field=html.escape(label),
+                current=html.escape(str(current_value)),
+            )
+            self.send_chain_message(
+                profile,
+                text,
+                reply_markup=self.course_edit_choice_keyboard(profile, course_id=compact_course_id, field=field),
+                message_id=message_id,
+            )
+            return
+
+        self.set_course_edit_flow_data(profile.chat_id, {"course_id": compact_course_id, "field": field})
+        self.set_action(profile.chat_id, self.STATE_COURSE_EDIT_VALUE)
+        text = self.t(
+            profile,
+            "course_edit_value_prompt",
+            field=html.escape(label),
+            current=html.escape(str(current_value if current_value is not None else "")),
+        )
+        self.send_chain_message(profile, text, reply_markup=self.cancel_keyboard(profile), message_id=message_id)
+
+    def handle_course_create_choice_callback(
+        self,
+        profile: TelegramProfile,
+        *,
+        field: str,
+        raw_value: str,
+        message_id: int | None = None,
+    ) -> None:
+        action = self.get_action(profile.chat_id)
+        if field == self.COMMERCE_FEATURE.CREATE_LEVEL_FIELD and action == self.STATE_COURSE_LEVEL:
+            self.handle_course_level_text(profile, raw_value)
+            return
+        if field == self.COMMERCE_FEATURE.CREATE_PUBLISH_FIELD and action == self.STATE_COURSE_PUBLISH:
+            self.handle_course_publish_text(profile, "yes" if raw_value == self.COMMERCE_FEATURE.BOOLEAN_TRUE_VALUE else "no")
+            return
+        if field == self.COMMERCE_FEATURE.CREATE_PREVIEW_FIELD and action == self.STATE_LESSON_PREVIEW:
+            self.handle_lesson_preview_text(profile, "yes" if raw_value == self.COMMERCE_FEATURE.BOOLEAN_TRUE_VALUE else "no")
+            return
+        self.client.send_message(profile.chat_id, self.t(profile, "course_choice_session_expired"), reply_markup=self.main_menu_keyboard(profile))
+
+    def handle_course_edit_value_text(self, profile: TelegramProfile, text: str) -> None:
+        pending_data = self.get_course_edit_flow_data(profile.chat_id)
+        course_id = str(pending_data.get("course_id") or "")
+        field = str(pending_data.get("field") or "")
+        if not course_id or not field:
+            self.clear_action(profile.chat_id)
+            self.clear_course_edit_flow_data(profile.chat_id)
+            self.client.send_message(profile.chat_id, self.t(profile, "course_edit_session_expired"), reply_markup=self.main_menu_keyboard(profile))
+            return
+        self.update_course_field_from_bot(profile, course_id=course_id, field=field, raw_value=text)
+
+    def update_course_field_from_bot(
+        self,
+        profile: TelegramProfile,
+        *,
+        course_id: str,
+        field: str,
+        raw_value: str,
+        message_id: int | None = None,
+    ) -> None:
+        if not self.is_admin_profile(profile):
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+        try:
+            value = self.normalize_course_edit_value(field, raw_value)
+            if field == self.COMMERCE_FEATURE.FIELD_STATUS:
+                course = self.commerce_logic.update_course_status(admin_user=profile.user, course_id=course_id, status=value)
+            else:
+                course = self.commerce_logic.update_course_field(admin_user=profile.user, course_id=course_id, field=field, value=value)
+        except Exception as error:
+            logger.exception("Telegram course field update failed")
+            self.client.send_message(profile.chat_id, self.warning_text(html.escape(self.validation_message(error))), reply_markup=self.cancel_keyboard(profile))
+            return
+        self.clear_action(profile.chat_id)
+        self.clear_course_edit_flow_data(profile.chat_id)
+        self.send_chain_message(
+            profile,
+            f"{self.t(profile, 'course_field_updated')}\n\n{self.admin_course_text(profile, course)}",
+            reply_markup=self.admin_course_keyboard(profile, course),
+            message_id=message_id,
+        )
+
+    def normalize_course_edit_value(self, field: str, raw_value: Any):
+        value = str(raw_value or "").strip()
+        if field not in self.course_editable_fields():
+            raise ValidationError("Unsupported course field.")
+        if field == self.COMMERCE_FEATURE.FIELD_TITLE:
+            if len(value) < 3 or len(value) > 180:
+                raise ValidationError(self.t(None, "course_title_invalid"))
+            return value
+        if field == self.COMMERCE_FEATURE.FIELD_SHORT_DESCRIPTION:
+            value = "" if value == self.COMMERCE_FEATURE.CLEAR_VALUE_MARKER else value
+            if len(value) > 300:
+                raise ValidationError("Short description must be at most 300 characters.")
+            return value
+        if field == self.COMMERCE_FEATURE.FIELD_DESCRIPTION:
+            return "" if value == self.COMMERCE_FEATURE.CLEAR_VALUE_MARKER else value
+        if field == self.COMMERCE_FEATURE.FIELD_PRICE:
+            amount = self.parse_decimal_amount(value)
+            if amount is None:
+                raise ValidationError("Course price must be a non-negative number.")
+            return amount
+        if field == self.COMMERCE_FEATURE.FIELD_DURATION_MINUTES:
+            if value == "0":
+                return 0
+            duration = self.parse_optional_positive_int(value)
+            if duration is None:
+                raise ValidationError("Duration must be 0 or a positive integer.")
+            return duration
+        if field == self.COMMERCE_FEATURE.FIELD_CURRENCY:
+            allowed = {item.value for item in CurrencyEnum}
+            if value not in allowed:
+                raise ValidationError(f"Currency must be one of: {', '.join(sorted(allowed))}")
+            return value
+        if field == self.COMMERCE_FEATURE.FIELD_LEVEL:
+            allowed = {item.value for item in CourseLevelEnum}
+            if value not in allowed:
+                raise ValidationError(f"Level must be one of: {', '.join(sorted(allowed))}")
+            return value
+        if field == self.COMMERCE_FEATURE.FIELD_STATUS:
+            allowed = {item.value for item in CourseStatusEnum}
+            if value not in allowed:
+                raise ValidationError(f"Status must be one of: {', '.join(sorted(allowed))}")
+            return value
+        if field == self.COMMERCE_FEATURE.FIELD_IS_FEATURED:
+            parsed = self.parse_yes_no(value)
+            if parsed is None:
+                if value.lower() == self.COMMERCE_FEATURE.BOOLEAN_TRUE_VALUE:
+                    return True
+                if value.lower() == self.COMMERCE_FEATURE.BOOLEAN_FALSE_VALUE:
+                    return False
+                raise ValidationError("Featured must be yes/no.")
+            return parsed
+        return value
+
+    def confirm_delete_course_from_bot(self, profile: TelegramProfile, *, course_id: str, message_id: int | None = None) -> None:
+        if not self.is_admin_profile(profile):
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+        course = self.commerce_logic.get_admin_course(course_id)
+        compact_course_id = self.compact_id(course.id)
+        text = self.t(profile, "course_delete_confirm", title=html.escape(course.title))
+        keyboard = self.inline_keyboard(
+            [
+                [self.inline_button(self.t(profile, "confirm_delete_button"), f"a:delc:{compact_course_id}")],
+                [self.inline_button(self.t(profile, "course_back_button"), f"a:d:{compact_course_id}")],
+            ]
+        )
+        self.send_chain_message(profile, text, reply_markup=keyboard, message_id=message_id)
+
+    def delete_course_from_bot(self, profile: TelegramProfile, *, course_id: str, message_id: int | None = None) -> None:
+        if not self.is_admin_profile(profile):
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+        try:
+            course = self.commerce_logic.delete_course(admin_user=profile.user, course_id=course_id)
+        except Exception as error:
+            logger.exception("Telegram course delete failed")
+            self.client.send_message(profile.chat_id, self.warning_text(html.escape(self.validation_message(error))), reply_markup=self.main_menu_keyboard(profile))
+            return
+        self.send_chain_message(
+            profile,
+            self.t(profile, "course_deleted", title=html.escape(course.title)),
+            reply_markup=self.inline_keyboard([[self.inline_button(self.t(profile, "all_courses_button"), "a:c:1")]]),
+            message_id=message_id,
         )
 
     def start_lesson_flow(self, profile: TelegramProfile, course_id: str) -> None:
@@ -2570,21 +4607,21 @@ class TelegramBotService:
 
     def handle_lesson_description_text(self, profile: TelegramProfile, text: str) -> None:
         data = self.get_lesson_flow_data(profile.chat_id)
-        data["description"] = "" if text.strip() == "-" else text.strip()
+        data["description"] = "" if text.strip() == self.COMMERCE_FEATURE.CLEAR_VALUE_MARKER else text.strip()
         self.set_lesson_flow_data(profile.chat_id, data)
         self.set_action(profile.chat_id, self.STATE_LESSON_CONTENT)
         self.client.send_message(profile.chat_id, self.t(profile, "lesson_content_prompt"), reply_markup=self.cancel_keyboard(profile))
 
     def handle_lesson_content_text(self, profile: TelegramProfile, text: str) -> None:
         data = self.get_lesson_flow_data(profile.chat_id)
-        data["content"] = "" if text.strip() == "-" else text.strip()
+        data["content"] = "" if text.strip() == self.COMMERCE_FEATURE.CLEAR_VALUE_MARKER else text.strip()
         self.set_lesson_flow_data(profile.chat_id, data)
         self.set_action(profile.chat_id, self.STATE_LESSON_VIDEO_URL)
         self.client.send_message(profile.chat_id, self.t(profile, "lesson_video_url_prompt"), reply_markup=self.cancel_keyboard(profile))
 
     def handle_lesson_video_url_text(self, profile: TelegramProfile, text: str) -> None:
         data = self.get_lesson_flow_data(profile.chat_id)
-        data["video_url"] = "" if text.strip() == "-" else text.strip()
+        data["video_url"] = "" if text.strip() == self.COMMERCE_FEATURE.CLEAR_VALUE_MARKER else text.strip()
         self.set_lesson_flow_data(profile.chat_id, data)
         self.set_action(profile.chat_id, self.STATE_LESSON_DURATION)
         self.client.send_message(profile.chat_id, self.t(profile, "lesson_duration_prompt"), reply_markup=self.cancel_keyboard(profile))
@@ -2609,7 +4646,7 @@ class TelegramBotService:
         data["position"] = position
         self.set_lesson_flow_data(profile.chat_id, data)
         self.set_action(profile.chat_id, self.STATE_LESSON_PREVIEW)
-        self.client.send_message(profile.chat_id, self.t(profile, "lesson_preview_prompt"), reply_markup=self.cancel_keyboard(profile))
+        self.client.send_message(profile.chat_id, self.t(profile, "lesson_preview_prompt"), reply_markup=self.lesson_preview_create_keyboard(profile))
 
     def handle_lesson_preview_text(self, profile: TelegramProfile, text: str) -> None:
         is_preview = self.parse_yes_no(text)
@@ -2631,7 +4668,7 @@ class TelegramBotService:
             )
         except Exception as error:
             logger.exception("Telegram lesson creation failed")
-            self.client.send_message(profile.chat_id, f"⚠️ {html.escape(self.validation_message(error))}", reply_markup=self.main_menu_keyboard(profile))
+            self.client.send_message(profile.chat_id, self.warning_text(html.escape(self.validation_message(error))), reply_markup=self.main_menu_keyboard(profile))
             self.clear_action(profile.chat_id)
             self.clear_lesson_flow_data(profile.chat_id)
             return
@@ -2647,7 +4684,7 @@ class TelegramBotService:
         if not self.is_admin_profile(profile):
             self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
             return
-        courses, has_next = self.commerce_logic.list_admin_courses(page=page, page_size=5)
+        courses, has_next = self.commerce_logic.list_admin_courses(page=page, page_size=self.COMMERCE_FEATURE.ADMIN_LIST_PAGE_SIZE)
         if not courses:
             self.send_chain_message(
                 profile,
@@ -2695,7 +4732,7 @@ class TelegramBotService:
             course = self.commerce_logic.update_course_status(admin_user=profile.user, course_id=course_id, status=status)
         except Exception as error:
             logger.exception("Telegram course status update failed")
-            self.client.send_message(profile.chat_id, f"⚠️ {html.escape(self.validation_message(error))}", reply_markup=self.main_menu_keyboard(profile))
+            self.client.send_message(profile.chat_id, self.warning_text(html.escape(self.validation_message(error))), reply_markup=self.main_menu_keyboard(profile))
             return
         self.send_chain_message(
             profile,
@@ -2722,6 +4759,7 @@ class TelegramBotService:
     def admin_course_keyboard(self, profile: TelegramProfile, course) -> dict[str, Any]:
         course_id = self.compact_id(course.id)
         rows: list[list[dict[str, Any]]] = []
+        rows.append([self.inline_button(self.t(profile, "edit_course_button"), f"a:e:{course_id}")])
         rows.append([self.inline_button(self.t(profile, "add_lesson_button"), f"a:lc:{course_id}")])
         if course.status != CourseStatusEnum.PUBLISHED.value:
             rows.append([self.inline_button(self.t(profile, "publish_button"), f"a:p:{course_id}")])
@@ -2729,6 +4767,7 @@ class TelegramBotService:
             rows.append([self.inline_button(self.t(profile, "unpublish_button"), f"a:u:{course_id}")])
         if course.status != CourseStatusEnum.ARCHIVED.value:
             rows.append([self.inline_button(self.t(profile, "archive_button"), f"a:x:{course_id}")])
+        rows.append([self.inline_button(self.t(profile, "delete_course_button"), f"a:del:{course_id}")])
         rows.append([
             self.inline_button(self.t(profile, "public_view_button"), f"c:d:{course_id}"),
             self.inline_button(self.t(profile, "all_courses_button"), "a:c:1"),
@@ -2769,10 +4808,14 @@ class TelegramBotService:
                 rows.append([cls.button(profile, "admin_courses"), cls.button(profile, "create_course")])
                 rows.append([cls.button(profile, "create_user"), cls.button(profile, "review_queue")])
                 rows.append([cls.button(profile, "payment_queue"), cls.button(profile, "forgot_password")])
+                rows.append([cls.button(profile, "bot_settings"), cls.button(profile, "admin_notification")])
+                rows.append([cls.button(profile, "discounts"), cls.button(profile, "support_queue")])
                 rows.append([cls.button(profile, "channels"), cls.button(profile, "help")])
+                rows.append([cls.button(profile, "language")])
             else:
-                rows.append([cls.button(profile, "forgot_password"), cls.button(profile, "channels")])
-                rows.append([cls.button(profile, "help"), cls.button(profile, "language")])
+                rows.append([cls.button(profile, "support"), cls.button(profile, "forgot_password")])
+                rows.append([cls.button(profile, "channels"), cls.button(profile, "help")])
+                rows.append([cls.button(profile, "language")])
             if profile and profile.user and not profile.user.email_verified:
                 rows.append([cls.button(profile, "verify_email"), cls.button(profile, "unlink")])
             else:
@@ -2844,7 +4887,7 @@ class TelegramBotService:
 
     @staticmethod
     def web_app_url() -> str:
-        return os.environ.get("TELEGRAM_WEBAPP_URL") or ""
+        return BotRuntimeConfigProvider.get(BotSettingProviderEnum.TELEGRAM.value, "webapp_url")
 
     @classmethod
     def web_app_button(cls, profile: TelegramProfile | None = None) -> str:

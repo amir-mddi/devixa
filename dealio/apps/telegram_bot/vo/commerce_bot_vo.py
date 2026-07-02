@@ -28,6 +28,22 @@ class TelegramBotCallbackVO:
     UNLINK_CONFIRM = "menu:unlink_confirm"
     CANCEL = "menu:cancel"
     CHANNELS = "menu:channels"
+    BOT_SETTINGS = "bs:menu"
+    ADMIN_NOTIFICATION = "ntf:menu"
+    ADMIN_NOTIFICATION_START = "ntf:start"
+    ADMIN_NOTIFICATION_CONFIRM = "ntf:confirm"
+    ADMIN_NOTIFICATION_CONFIRM_NOW = "ntf:confirm_now"
+    ADMIN_NOTIFICATION_SCHEDULE = "ntf:schedule"
+    DISCOUNTS = "dsc:menu"
+    DISCOUNT_CREATE = "dsc:create"
+    DISCOUNT_TYPE_PERCENT = "dsc:type:percent"
+    DISCOUNT_TYPE_AMOUNT = "dsc:type:amount"
+    DISCOUNT_SCOPE_ALL = "dsc:scope:all"
+    DISCOUNT_USAGE_LIMIT_UNLIMITED = "dsc:limit:none"
+    DISCOUNT_USAGE_LIMIT_CUSTOM = "dsc:limit:set"
+    SUPPORT = "sup:menu"
+    SUPPORT_NEW = "sup:new"
+    SUPPORT_QUEUE = "sup:q"
 
 
 class TelegramBotStateVO:
@@ -60,6 +76,19 @@ class TelegramBotStateVO:
     LESSON_POSITION = "admin_lesson_position"
     LESSON_PREVIEW = "admin_lesson_preview"
     PAYMENT_RECEIPT_TRACKING = "payment_receipt_tracking"
+    BOT_SETTING_VALUE = "bot_setting_value"
+    BOT_SETTING_EMAIL_CODE = "bot_setting_email_code"
+    COURSE_EDIT_VALUE = "admin_course_edit_value"
+    ADMIN_NOTIFICATION_MESSAGE = "admin_notification_message"
+    ADMIN_NOTIFICATION_EMAIL_CODE = "admin_notification_email_code"
+    ADMIN_NOTIFICATION_SCHEDULE_AT = "admin_notification_schedule_at"
+    SUPPORT_MESSAGE = "support_message"
+    SUPPORT_REPLY = "support_reply"
+    DISCOUNT_CREATE = "discount_create"
+    DISCOUNT_CODE = "discount_code"
+    DISCOUNT_VALUE = "discount_value"
+    DISCOUNT_USAGE_LIMIT = "discount_usage_limit"
+    CHECKOUT_DISCOUNT_CODE = "checkout_discount_code"
 
 
 class TelegramBotButtonKeyVO:
@@ -82,6 +111,11 @@ class TelegramBotButtonKeyVO:
     MAIN_MENU = "main_menu"
     CANCEL = "cancel"
     CHANNELS = "channels"
+    BOT_SETTINGS = "bot_settings"
+    ADMIN_NOTIFICATION = "admin_notification"
+    DISCOUNTS = "discounts"
+    SUPPORT = "support"
+    SUPPORT_QUEUE = "support_queue"
     YES_UNLINK = "yes_unlink"
     CONFIRM_CREATE = "confirm_create"
 
@@ -104,6 +138,11 @@ class TelegramBotButtonTextVO:
             TelegramBotButtonKeyVO.UNLINK: "🚪 Unlink",
             TelegramBotButtonKeyVO.HELP: "❓ Help",
             TelegramBotButtonKeyVO.CHANNELS: "📣 Channels",
+            TelegramBotButtonKeyVO.BOT_SETTINGS: "⚙️ Bot settings",
+            TelegramBotButtonKeyVO.ADMIN_NOTIFICATION: "📣 Send notification",
+            TelegramBotButtonKeyVO.DISCOUNTS: "🏷 Discounts",
+            TelegramBotButtonKeyVO.SUPPORT: "💬 Support",
+            TelegramBotButtonKeyVO.SUPPORT_QUEUE: "🎧 Support tickets",
             TelegramBotButtonKeyVO.COURSES: "📚 Courses",
             TelegramBotButtonKeyVO.MY_COURSES: "🎓 My courses",
             TelegramBotButtonKeyVO.MY_ORDERS: "🧾 My orders",
@@ -127,6 +166,11 @@ class TelegramBotButtonTextVO:
             TelegramBotButtonKeyVO.UNLINK: "🚪 قطع اتصال",
             TelegramBotButtonKeyVO.HELP: "❓ راهنما",
             TelegramBotButtonKeyVO.CHANNELS: "📣 کانال‌ها",
+            TelegramBotButtonKeyVO.BOT_SETTINGS: "⚙️ تنظیمات بات",
+            TelegramBotButtonKeyVO.ADMIN_NOTIFICATION: "📣 ارسال اعلان",
+            TelegramBotButtonKeyVO.DISCOUNTS: "🏷 تخفیف‌ها",
+            TelegramBotButtonKeyVO.SUPPORT: "💬 پشتیبانی",
+            TelegramBotButtonKeyVO.SUPPORT_QUEUE: "🎧 مدیریت تیکت‌ها",
             TelegramBotButtonKeyVO.COURSES: "📚 دوره‌ها",
             TelegramBotButtonKeyVO.MY_COURSES: "🎓 دوره‌های من",
             TelegramBotButtonKeyVO.MY_ORDERS: "🧾 سفارش‌های من",
@@ -162,6 +206,11 @@ class TelegramBotAliasVO:
         TelegramBotButtonKeyVO.UNLINK: {"unlink", "قطع اتصال"},
         TelegramBotButtonKeyVO.HELP: {"help", "راهنما"},
         TelegramBotButtonKeyVO.CHANNELS: {"channels", "channel", "کانال", "کانال‌ها", "کانال ها"},
+        TelegramBotButtonKeyVO.BOT_SETTINGS: {"bot settings", "settings", "تنظیمات بات", "تنظیمات"},
+        TelegramBotButtonKeyVO.ADMIN_NOTIFICATION: {"send notification", "notification", "broadcast", "announcement", "ارسال اعلان", "اعلان", "پیام همگانی", "نوتیفیکیشن"},
+        TelegramBotButtonKeyVO.DISCOUNTS: {"discounts", "discount", "coupon", "coupons", "تخفیف", "تخفیف‌ها", "کد تخفیف"},
+        TelegramBotButtonKeyVO.SUPPORT: {"support", "ticket", "help desk", "پشتیبانی", "تیکت"},
+        TelegramBotButtonKeyVO.SUPPORT_QUEUE: {"support tickets", "tickets", "support queue", "تیکت‌های پشتیبانی", "صف پشتیبانی", "مدیریت تیکت‌ها", "مدیریت تیکت ها"},
         TelegramBotButtonKeyVO.COURSES: {"courses", "course", "دوره", "دوره‌ها", "دوره ها"},
         TelegramBotButtonKeyVO.MY_COURSES: {"my courses", "my course", "دوره‌های من", "دوره های من"},
         TelegramBotButtonKeyVO.MY_ORDERS: {"my orders", "orders", "سفارش‌های من", "سفارش های من"},
@@ -170,6 +219,100 @@ class TelegramBotAliasVO:
         TelegramBotButtonKeyVO.ADMIN_COURSES: {"admin courses", "manage courses", "course admin", "مدیریت دوره‌ها", "مدیریت دوره ها"},
         TelegramBotButtonKeyVO.CREATE_COURSE: {"create course", "new course", "ساخت دوره", "دوره جدید"},
     }
+
+
+class TelegramBotIconKeyVO:
+    WARNING = "warning"
+    EDIT = "edit"
+    SUCCESS = "success"
+    STAR = "star"
+    UNLOCKED = "unlocked"
+    LOCKED = "locked"
+
+
+class TelegramBotIconVO:
+    """Central place for visual symbols used by Telegram bot presentation.
+
+    Services and repositories should never hard-code icons directly. This keeps
+    platform-specific UI copy in VO and makes it cheap to disable/replace icons.
+    """
+
+    ICONS = {
+        TelegramBotIconKeyVO.WARNING: "⚠️",
+        TelegramBotIconKeyVO.EDIT: "✏️",
+        TelegramBotIconKeyVO.SUCCESS: "✅",
+        TelegramBotIconKeyVO.STAR: "⭐",
+        TelegramBotIconKeyVO.UNLOCKED: "🔓",
+        TelegramBotIconKeyVO.LOCKED: "🔒",
+    }
+
+    @classmethod
+    def get(cls, key: str) -> str:
+        return cls.ICONS.get(key, "")
+
+    @classmethod
+    def prefix(cls, key: str, text: str, *, separator: str = " ") -> str:
+        icon = cls.get(key)
+        return f"{icon}{separator}{text}" if icon else text
+
+
+class TelegramCommerceFeatureVO:
+    """Commerce/domain configuration used by the bot orchestration layer.
+
+    Keep business-model naming, field lists, clear markers and callback-facing
+    values here. To change the bot from courses to another purchasable domain
+    such as gym plans, change the feature VO plus repository adapter/logic;
+    TelegramBotService should not need copy or icon edits.
+    """
+
+    PUBLIC_LIST_PAGE_SIZE = 5
+    ADMIN_LIST_PAGE_SIZE = 5
+    CLEAR_VALUE_MARKER = "-"
+    ADMIN_NOTIFICATION_MAX_LENGTH = 3500
+    SUPPORT_MESSAGE_MAX_LENGTH = 2500
+
+    FIELD_TITLE = "title"
+    FIELD_SHORT_DESCRIPTION = "short_description"
+    FIELD_DESCRIPTION = "description"
+    FIELD_PRICE = "price"
+    FIELD_CURRENCY = "currency"
+    FIELD_DURATION_MINUTES = "duration_minutes"
+    FIELD_LEVEL = "level"
+    FIELD_STATUS = "status"
+    FIELD_IS_FEATURED = "is_featured"
+
+    EDITABLE_FIELDS = [
+        FIELD_TITLE,
+        FIELD_SHORT_DESCRIPTION,
+        FIELD_DESCRIPTION,
+        FIELD_PRICE,
+        FIELD_CURRENCY,
+        FIELD_DURATION_MINUTES,
+        FIELD_LEVEL,
+        FIELD_STATUS,
+        FIELD_IS_FEATURED,
+    ]
+
+    CHOICE_FIELDS = {
+        FIELD_CURRENCY,
+        FIELD_LEVEL,
+        FIELD_STATUS,
+        FIELD_IS_FEATURED,
+    }
+
+    BOOLEAN_TRUE_VALUE = "true"
+    BOOLEAN_FALSE_VALUE = "false"
+    CREATE_LEVEL_FIELD = "level"
+    CREATE_PUBLISH_FIELD = "publish"
+    CREATE_PREVIEW_FIELD = "preview"
+
+    @classmethod
+    def field_text_key(cls, field: str) -> str:
+        return f"course_field_{field}"
+
+    @classmethod
+    def is_choice_field(cls, field: str) -> bool:
+        return field in cls.CHOICE_FIELDS
 
 
 class TelegramBotMessageTextVO:
@@ -217,6 +360,108 @@ class TelegramBotMessageTextVO:
             "webapp_missing": "Web app URL is not configured yet.",
             "webapp_open": "Open the app here: <a href=\"{url}\">Open app</a>",
             "admin_only": "Only a linked admin can use this Telegram admin action.",
+            "bot_settings_title": "⚙️ Bot runtime settings",
+            "bot_settings_hint": "Tap a provider, choose a setting, then send the new value. The value is saved in the database only. Secrets are masked.",
+            "bot_settings_provider_title": "⚙️ Runtime settings: {provider}",
+            "bot_settings_not_configured": "not configured",
+            "bot_settings_choose_key": "Choose a setting to edit:",
+            "bot_settings_edit_title": "✏️ Edit setting",
+            "bot_settings_current_value": "Current value",
+            "bot_settings_source": "Source",
+            "bot_settings_type": "Type",
+            "bot_settings_choices": "Allowed values",
+            "bot_settings_write_target_prompt": "This value will be saved in the database only.",
+            "bot_settings_target_db": "Database only",
+            "bot_settings_target_env": ".env only",
+            "bot_settings_target_both": "Database + .env",
+            "bot_settings_send_value_prompt": "Send the new value for <b>{label}</b>.\n\nIt will be saved in the database only. Env fallback: <code>{env_name}</code>\n\nSend <code>-</code> to clear optional values. For secrets, send the real new value; the bot will not show it back. After this, a confirmation code will be sent to your email.",
+            "bot_settings_value_saved": "✅ Setting updated successfully after email confirmation.\n\nProvider: <code>{provider}</code>\nKey: <code>{key}</code>\nSaved to: <code>{target}</code>",
+            "bot_settings_invalid_value": "⚠️ Invalid value: {error}\n\nPlease send a valid value again or cancel.",
+            "bot_settings_pending_missing": "The edit session expired. Please choose the setting again.",
+            "bot_settings_env_only_warning": "Editing .env from Telegram is disabled. Runtime bot settings are saved in the database only.",
+            "bot_settings_db_only_notice": "For security, Telegram can update only the database value. .env editing is disabled.",
+            "bot_settings_edit_value_button": "✏️ Edit database value",
+            "bot_settings_custom_value_button": "✍️ Enter custom value",
+            "bot_settings_delete_db_value_button": "🗑 Delete database value",
+            "bot_settings_delete_confirm": "Delete the database override for <b>{label}</b>?\n\nProvider: <code>{provider}</code>\nKey: <code>{key}</code>\n\nAfter deletion, the bot will fall back to env/default value.",
+            "bot_settings_db_value_deleted": "✅ Database value deleted.\n\nProvider: <code>{provider}</code>\nKey: <code>{key}</code>",
+            "bot_settings_db_value_not_found": "No database value existed for this setting. Env/default fallback is still active.\n\nProvider: <code>{provider}</code>\nKey: <code>{key}</code>",
+            "confirm_delete_button": "✅ Yes, delete",
+            "bot_settings_email_code_sent": "I sent a 6-digit confirmation code to <code>{email}</code>. Send that code here within {minutes} minutes to save the change.",
+            "bot_settings_delete_email_code_sent": "I sent a 6-digit confirmation code to <code>{email}</code>. Send that code here within {minutes} minutes to delete the database value.",
+            "bot_settings_email_code_invalid": "Invalid or expired confirmation code. Try again or cancel.",
+            "bot_settings_email_missing": "Your linked admin account has no email address, so this setting cannot be changed from Telegram.",
+            "bot_settings_email_send_failed": "Could not send the confirmation email: {error}",
+            "bot_settings_env_write_disabled": "Editing .env values from Telegram is disabled. Please choose the database edit option again.",
+            "admin_notification_title": "Admin notification",
+            "discounts_title": "Discount codes",
+            "discounts_hint": "Manage discounts step by step. You do not need to remember any command format.",
+            "discounts_create_button": "Create discount",
+            "discounts_empty": "No discount codes exist yet.",
+            "discounts_list_count": "Total discounts: <code>{count}</code>",
+            "discounts_item_text": "Code: <code>{code}</code>\nType: <code>{discount_type}</code>\nValue: <code>{value}</code>\nScope: <code>{scope}</code>\nUsage: <code>{used}</code>/<code>{limit}</code>",
+            "discounts_create_prompt": "Step 1 of 5\nSend the discount code.\n\nExample: <code>DJANGO30</code>",
+            "discounts_code_invalid": "Code is invalid. Use English letters, numbers, dash, or underscore. Example: <code>DJANGO30</code>",
+            "discounts_type_prompt": "Step 2 of 5\nChoose discount type for <code>{code}</code>.",
+            "discounts_type_percent_button": "Percent",
+            "discounts_type_amount_button": "Fixed amount",
+            "discounts_value_prompt_percent": "Step 3 of 5\nSend percent value for <code>{code}</code>.\n\nExample: <code>30</code> means 30% off.",
+            "discounts_value_prompt_amount": "Step 3 of 5\nSend fixed discount amount for <code>{code}</code>.\n\nExample: <code>500000</code>",
+            "discounts_value_invalid": "Discount value is invalid. Send a positive number. Percent must be between 1 and 100.",
+            "discounts_scope_prompt": "Step 4 of 5\nChoose where this discount can be used.",
+            "discounts_scope_all_button": "All courses",
+            "discounts_scope_course_button": "Course: {title}",
+            "discounts_usage_limit_prompt": "Step 5 of 5\nChoose usage limit for <code>{code}</code>.",
+            "discounts_usage_unlimited_button": "Unlimited",
+            "discounts_usage_custom_button": "Set limit",
+            "discounts_usage_custom_prompt": "Send maximum usage count. Example: <code>100</code>",
+            "discounts_usage_invalid": "Usage limit is invalid. Send a positive whole number.",
+            "discounts_session_expired": "Discount creation session expired. Start again from discounts menu.",
+            "discounts_created": "Discount created successfully.\n\nCode: <code>{code}</code>\nType: <code>{discount_type}</code>\nValue: <code>{value}</code>\nScope: <code>{scope}</code>\nUsage limit: <code>{usage_limit}</code>",
+            "discounts_invalid_format": "Discount data is incomplete. Please use the step-by-step buttons.",
+            "discounts_delete_button": "Delete",
+            "discounts_deleted": "Discount deleted: <code>{code}</code>",
+            "checkout_discount_prompt": "Send a discount code, or send <code>-</code> to continue without discount.",
+            "checkout_discount_invalid": "Discount could not be applied: {error}\n\nSend another code or <code>-</code> to continue without discount.",
+            "support_title": "Support",
+            "support_hint": "Send a support ticket to admins. You can also view your recent tickets.",
+            "support_new_button": "New ticket",
+            "support_my_tickets_button": "My tickets",
+            "support_queue_button": "Support queue",
+            "support_prompt": "Send your support message now. An admin will receive it.",
+            "support_empty": "Support message cannot be empty. Send a message or cancel.",
+            "support_created": "Your support ticket was created. Ticket ID: <code>{ticket_id}</code>",
+            "support_user_reply_prompt": "Send your reply for ticket <code>{ticket_id}</code>.",
+            "support_reply_sent": "Reply sent.",
+            "support_admin_queue_empty": "No open support tickets.",
+            "support_admin_reply_button": "Reply",
+            "support_admin_close_button": "Close",
+            "support_admin_reply_prompt": "Send admin reply for ticket <code>{ticket_id}</code>.",
+            "support_admin_replied": "Admin reply sent to user.",
+            "support_closed": "Ticket closed.",
+            "support_user_notification": "Support reply for ticket <code>{ticket_id}</code>:\n\n{message}",
+            "support_admin_new_ticket_notice": "New support ticket <code>{ticket_id}</code> from <code>{user}</code>:\n\n{message}",
+            "admin_notification_send_now_button": "Send now",
+            "admin_notification_schedule_button": "Schedule",
+            "admin_notification_schedule_prompt": "Send schedule time as <code>YYYY-MM-DD HH:MM</code>. Example: <code>2026-07-03 10:30</code>",
+            "admin_notification_schedule_invalid": "Invalid date/time. Use <code>YYYY-MM-DD HH:MM</code>.",
+            "admin_notification_scheduled_result": "Notification scheduled.\n\nID: <code>{id}</code>\nTime: <code>{scheduled_at}</code>\nRecipients now: <code>{count}</code>",
+            "admin_notification_hint": "Send one message to all linked active Telegram bot users. Current recipients: <code>{count}</code>. Max length: <code>{max_length}</code> characters. Email confirmation is required before delivery.",
+            "admin_notification_start_button": "Create notification",
+            "admin_notification_prompt": "Send the notification text now. It will be shown to all linked active bot users after email confirmation.",
+            "admin_notification_empty": "Notification text cannot be empty. Send a message or cancel.",
+            "admin_notification_too_long": "Notification is too long. Max length is <code>{max_length}</code> characters. Send a shorter message or cancel.",
+            "admin_notification_preview": "Preview for <code>{count}</code> recipients:\n\n{message}",
+            "admin_notification_confirm_button": "Send after email verification",
+            "admin_notification_edit_button": "Edit message",
+            "admin_notification_email_subject": "Confirm bot notification",
+            "admin_notification_email_code_sent": "I sent a 6-digit confirmation code to <code>{email}</code>. Send that code here within {minutes} minutes to deliver the notification.",
+            "admin_notification_email_code_invalid": "Invalid or expired confirmation code. Try again or cancel.",
+            "admin_notification_email_missing": "Your linked admin account has no email address, so the notification cannot be sent from Telegram.",
+            "admin_notification_email_send_failed": "Could not send the confirmation email: {error}",
+            "admin_notification_pending_missing": "The notification session expired. Start again from the admin notification menu.",
+            "admin_notification_delivery_text": "<b>Announcement</b>\n\n{message}",
+            "admin_notification_sent_result": "Notification delivery finished.\n\nRecipients: <code>{total}</code>\nDelivered: <code>{success}</code>\nFailed: <code>{failed}</code>",
             "admin_courses_empty": "No courses exist yet.",
             "course_create_start": "Create a new course. Send the course title first.",
             "course_short_description_prompt": "Send a short description for the course. Max 300 chars.",
@@ -227,6 +472,26 @@ class TelegramBotMessageTextVO:
             "course_publish_prompt": "Publish now? Send <code>yes</code> to publish or <code>no</code> to keep it as draft.",
             "course_created": "✅ Course created successfully.",
             "course_status_updated": "✅ Course status updated.",
+            "course_field_updated": "✅ Course field updated.",
+            "course_edit_title": "✏️ Edit course: {title}",
+            "course_edit_value_prompt": "Send new value for <b>{field}</b>.\n\nCurrent: <code>{current}</code>\n\nSend <code>-</code> to clear optional text fields.",
+            "course_edit_choice_prompt": "Choose new value for <b>{field}</b>.\n\nCurrent: <code>{current}</code>",
+            "course_edit_session_expired": "The course edit session expired. Choose the course field again.",
+            "course_choice_session_expired": "This choice session expired. Start the course flow again.",
+            "course_delete_confirm": "Are you sure you want to delete <b>{title}</b>?\n\nThis is a soft delete and the course will be hidden from users.",
+            "course_deleted": "✅ Course deleted: <b>{title}</b>",
+            "edit_course_button": "✏️ Edit course",
+            "delete_course_button": "🗑 Delete course",
+            "course_edit_back_button": "⬅️ Edit fields",
+            "course_field_title": "Title",
+            "course_field_short_description": "Short description",
+            "course_field_description": "Description",
+            "course_field_price": "Price",
+            "course_field_currency": "Currency",
+            "course_field_duration_minutes": "Duration",
+            "course_field_level": "Level",
+            "course_field_status": "Status",
+            "course_field_is_featured": "Featured",
             "lesson_create_start": "Add a lesson to this course. Send the lesson title first.",
             "lesson_description_prompt": "Send lesson description, or send <code>-</code> to skip.",
             "lesson_content_prompt": "Send lesson content/text, or send <code>-</code> to skip.",
@@ -382,6 +647,108 @@ class TelegramBotMessageTextVO:
             "webapp_missing": "آدرس برنامه وب هنوز تنظیم نشده است.",
             "webapp_open": "برنامه را از اینجا باز کنید: <a href=\"{url}\">باز کردن برنامه</a>",
             "admin_only": "فقط ادمین متصل‌شده می‌تواند از این قابلیت مدیریتی تلگرام استفاده کند.",
+            "bot_settings_title": "⚙️ تنظیمات runtime بات",
+            "bot_settings_hint": "روی provider بزن، یک setting را انتخاب کن و مقدار جدید را ارسال کن. مقدار فقط در دیتابیس ذخیره می‌شود. مقادیر حساس مخفی هستند.",
+            "bot_settings_provider_title": "⚙️ تنظیمات runtime: {provider}",
+            "bot_settings_not_configured": "تنظیم نشده",
+            "bot_settings_choose_key": "یک setting را برای ویرایش انتخاب کن:",
+            "bot_settings_edit_title": "✏️ ویرایش setting",
+            "bot_settings_current_value": "مقدار فعلی",
+            "bot_settings_source": "منبع",
+            "bot_settings_type": "نوع",
+            "bot_settings_choices": "مقادیر مجاز",
+            "bot_settings_write_target_prompt": "این مقدار فقط در دیتابیس ذخیره می‌شود.",
+            "bot_settings_target_db": "فقط دیتابیس",
+            "bot_settings_target_env": "فقط .env",
+            "bot_settings_target_both": "دیتابیس + .env",
+            "bot_settings_send_value_prompt": "مقدار جدید <b>{label}</b> را ارسال کن.\n\nفقط در دیتابیس ذخیره می‌شود. نام env فقط fallback است: <code>{env_name}</code>\n\nبرای خالی کردن مقدارهای اختیاری <code>-</code> بفرست. برای secret مقدار واقعی جدید را بفرست؛ بات آن را دوباره نمایش نمی‌دهد. بعد از این مرحله، کد تایید به ایمیل تو ارسال می‌شود.",
+            "bot_settings_value_saved": "✅ setting بعد از تایید ایمیل با موفقیت به‌روزرسانی شد.\n\nProvider: <code>{provider}</code>\nKey: <code>{key}</code>\nذخیره در: <code>{target}</code>",
+            "bot_settings_invalid_value": "⚠️ مقدار نامعتبر است: {error}\n\nدوباره مقدار معتبر را ارسال کن یا لغو کن.",
+            "bot_settings_pending_missing": "جلسه ویرایش منقضی شده است. دوباره setting را انتخاب کن.",
+            "bot_settings_env_only_warning": "ویرایش .env از تلگرام غیرفعال است. تنظیمات runtime بات فقط در دیتابیس ذخیره می‌شود.",
+            "bot_settings_db_only_notice": "برای امنیت، تلگرام فقط مقدار دیتابیس را تغییر می‌دهد. ویرایش .env غیرفعال است.",
+            "bot_settings_edit_value_button": "✏️ ویرایش مقدار دیتابیس",
+            "bot_settings_custom_value_button": "✍️ ورود مقدار دستی",
+            "bot_settings_delete_db_value_button": "🗑 حذف مقدار دیتابیس",
+            "bot_settings_delete_confirm": "مقدار دیتابیس <b>{label}</b> حذف شود؟\n\nProvider: <code>{provider}</code>\nKey: <code>{key}</code>\n\nبعد از حذف، بات از مقدار env/default استفاده می‌کند.",
+            "bot_settings_db_value_deleted": "✅ مقدار دیتابیس حذف شد.\n\nProvider: <code>{provider}</code>\nKey: <code>{key}</code>",
+            "bot_settings_db_value_not_found": "برای این setting مقدار دیتابیس وجود نداشت. مقدار env/default همچنان فعال است.\n\nProvider: <code>{provider}</code>\nKey: <code>{key}</code>",
+            "confirm_delete_button": "✅ بله، حذف کن",
+            "bot_settings_email_code_sent": "یک کد تایید ۶ رقمی به <code>{email}</code> فرستادم. برای ذخیره تغییر، کد را تا {minutes} دقیقه دیگر همین‌جا ارسال کن.",
+            "bot_settings_delete_email_code_sent": "یک کد تایید ۶ رقمی به <code>{email}</code> فرستادم. برای حذف مقدار دیتابیس، کد را تا {minutes} دقیقه دیگر همین‌جا ارسال کن.",
+            "bot_settings_email_code_invalid": "کد تایید نامعتبر یا منقضی شده است. دوباره تلاش کن یا لغو کن.",
+            "bot_settings_email_missing": "اکانت ادمین متصل‌شده ایمیل ندارد، بنابراین این setting از تلگرام قابل تغییر نیست.",
+            "bot_settings_email_send_failed": "ارسال ایمیل تایید ناموفق بود: {error}",
+            "bot_settings_env_write_disabled": "ویرایش مقدارهای .env از تلگرام غیرفعال است. دوباره گزینه ویرایش دیتابیس را انتخاب کن.",
+            "admin_notification_title": "ارسال اعلان مدیریتی",
+            "discounts_title": "مدیریت کدهای تخفیف",
+            "discounts_hint": "برای ساخت تخفیف لازم نیست فرمت خاصی حفظ کنید. بات مرحله‌به‌مرحله کد، نوع تخفیف، مقدار، دوره و محدودیت استفاده را می‌پرسد.",
+            "discounts_create_button": "ساخت کد تخفیف جدید",
+            "discounts_empty": "هنوز کد تخفیفی وجود ندارد.",
+            "discounts_list_count": "تعداد کدها: <code>{count}</code>",
+            "discounts_item_text": "کد: <code>{code}</code>\nنوع: <code>{discount_type}</code>\nمقدار: <code>{value}</code>\nقابل استفاده برای: <code>{scope}</code>\nاستفاده‌شده: <code>{used}</code>/<code>{limit}</code>",
+            "discounts_create_prompt": "مرحله ۱ از ۵\nکد تخفیف را بفرستید.\n\nمثال: <code>DJANGO30</code>",
+            "discounts_code_invalid": "کد تخفیف نامعتبر است. فقط حروف انگلیسی، عدد، خط تیره یا آندرلاین وارد کنید. مثال: <code>DJANGO30</code>",
+            "discounts_type_prompt": "مرحله ۲ از ۵\nنوع تخفیف برای <code>{code}</code> را انتخاب کنید.",
+            "discounts_type_percent_button": "درصدی",
+            "discounts_type_amount_button": "مبلغ ثابت",
+            "discounts_value_prompt_percent": "مرحله ۳ از ۵\nدرصد تخفیف را برای <code>{code}</code> بفرستید.\n\nمثال: <code>30</code> یعنی ۳۰ درصد تخفیف.",
+            "discounts_value_prompt_amount": "مرحله ۳ از ۵\nمبلغ تخفیف را برای <code>{code}</code> بفرستید.\n\nمثال: <code>500000</code>",
+            "discounts_value_invalid": "مقدار تخفیف نامعتبر است. یک عدد مثبت بفرستید. درصد باید بین ۱ تا ۱۰۰ باشد.",
+            "discounts_scope_prompt": "مرحله ۴ از ۵\nانتخاب کنید این تخفیف برای کجا قابل استفاده باشد.",
+            "discounts_scope_all_button": "همه دوره‌ها",
+            "discounts_scope_course_button": "دوره: {title}",
+            "discounts_usage_limit_prompt": "مرحله ۵ از ۵\nمحدودیت تعداد استفاده برای <code>{code}</code> را انتخاب کنید.",
+            "discounts_usage_unlimited_button": "بدون محدودیت",
+            "discounts_usage_custom_button": "تعیین تعداد",
+            "discounts_usage_custom_prompt": "حداکثر تعداد استفاده را بفرستید. مثال: <code>100</code>",
+            "discounts_usage_invalid": "محدودیت استفاده نامعتبر است. یک عدد صحیح مثبت بفرستید.",
+            "discounts_session_expired": "جلسه ساخت تخفیف منقضی شده است. دوباره از منوی تخفیف‌ها شروع کنید.",
+            "discounts_created": "کد تخفیف با موفقیت ساخته شد.\n\nکد: <code>{code}</code>\nنوع: <code>{discount_type}</code>\nمقدار: <code>{value}</code>\nقابل استفاده برای: <code>{scope}</code>\nمحدودیت استفاده: <code>{usage_limit}</code>",
+            "discounts_invalid_format": "اطلاعات تخفیف کامل نیست. لطفا از دکمه‌های مرحله‌به‌مرحله استفاده کنید.",
+            "discounts_delete_button": "حذف",
+            "discounts_deleted": "تخفیف حذف شد: <code>{code}</code>",
+            "checkout_discount_prompt": "کد تخفیف را بفرستید، یا برای ادامه بدون تخفیف <code>-</code> بفرستید.",
+            "checkout_discount_invalid": "کد تخفیف اعمال نشد: {error}\n\nکد دیگری بفرستید یا <code>-</code> را ارسال کنید.",
+            "support_title": "پشتیبانی",
+            "support_hint": "پیام خود را برای پشتیبانی ارسال کنید و وضعیت تیکت‌های قبلی را ببینید.",
+            "support_new_button": "تیکت جدید",
+            "support_my_tickets_button": "تیکت‌های من",
+            "support_queue_button": "مدیریت تیکت‌ها",
+            "support_prompt": "پیام پشتیبانی خود را بفرستید. ادمین آن را دریافت می‌کند.",
+            "support_empty": "پیام پشتیبانی نمی‌تواند خالی باشد. پیام را بفرستید یا لغو کنید.",
+            "support_created": "تیکت پشتیبانی ساخته شد. شناسه: <code>{ticket_id}</code>",
+            "support_user_reply_prompt": "پاسخ خود را برای تیکت <code>{ticket_id}</code> بفرستید.",
+            "support_reply_sent": "پاسخ ارسال شد.",
+            "support_admin_queue_empty": "تیکت باز وجود ندارد.",
+            "support_admin_reply_button": "پاسخ",
+            "support_admin_close_button": "بستن",
+            "support_admin_reply_prompt": "پاسخ ادمین برای تیکت <code>{ticket_id}</code> را بفرستید.",
+            "support_admin_replied": "پاسخ ادمین برای کاربر ارسال شد.",
+            "support_closed": "تیکت بسته شد.",
+            "support_user_notification": "پاسخ پشتیبانی برای تیکت <code>{ticket_id}</code>:\n\n{message}",
+            "support_admin_new_ticket_notice": "تیکت پشتیبانی جدید <code>{ticket_id}</code> از <code>{user}</code>:\n\n{message}",
+            "admin_notification_send_now_button": "ارسال فوری",
+            "admin_notification_schedule_button": "زمان‌بندی",
+            "admin_notification_schedule_prompt": "زمان ارسال را با فرمت <code>YYYY-MM-DD HH:MM</code> بفرستید. مثال: <code>2026-07-03 10:30</code>",
+            "admin_notification_schedule_invalid": "زمان نامعتبر است. از فرمت <code>YYYY-MM-DD HH:MM</code> استفاده کنید.",
+            "admin_notification_scheduled_result": "اعلان زمان‌بندی شد.\n\nID: <code>{id}</code>\nزمان: <code>{scheduled_at}</code>\nگیرنده‌های فعلی: <code>{count}</code>",
+            "admin_notification_hint": "یک پیام برای همه کاربران فعال و متصل‌شده به ربات تلگرام ارسال می‌شود. تعداد گیرنده‌های فعلی: <code>{count}</code>. حداکثر طول پیام: <code>{max_length}</code> کاراکتر. قبل از ارسال، تایید ایمیل لازم است.",
+            "admin_notification_start_button": "ساخت اعلان",
+            "admin_notification_prompt": "متن اعلان را ارسال کنید. بعد از تایید ایمیل، این پیام برای همه کاربران فعال و متصل‌شده به ربات ارسال می‌شود.",
+            "admin_notification_empty": "متن اعلان نمی‌تواند خالی باشد. پیام را ارسال کنید یا لغو کنید.",
+            "admin_notification_too_long": "متن اعلان بیش از حد طولانی است. حداکثر طول <code>{max_length}</code> کاراکتر است. پیام کوتاه‌تری ارسال کنید یا لغو کنید.",
+            "admin_notification_preview": "پیش‌نمایش برای <code>{count}</code> گیرنده:\n\n{message}",
+            "admin_notification_confirm_button": "ارسال بعد از تایید ایمیل",
+            "admin_notification_edit_button": "ویرایش پیام",
+            "admin_notification_email_subject": "تایید ارسال اعلان ربات",
+            "admin_notification_email_code_sent": "یک کد تایید ۶ رقمی به <code>{email}</code> فرستادم. برای ارسال اعلان، کد را تا {minutes} دقیقه دیگر همین‌جا ارسال کنید.",
+            "admin_notification_email_code_invalid": "کد تایید نامعتبر یا منقضی شده است. دوباره تلاش کنید یا لغو کنید.",
+            "admin_notification_email_missing": "اکانت ادمین متصل‌شده ایمیل ندارد، بنابراین اعلان از تلگرام قابل ارسال نیست.",
+            "admin_notification_email_send_failed": "ارسال ایمیل تایید ناموفق بود: {error}",
+            "admin_notification_pending_missing": "جلسه ارسال اعلان منقضی شده است. دوباره از منوی اعلان مدیریتی شروع کنید.",
+            "admin_notification_delivery_text": "<b>اعلان</b>\n\n{message}",
+            "admin_notification_sent_result": "ارسال اعلان تمام شد.\n\nگیرنده‌ها: <code>{total}</code>\nارسال موفق: <code>{success}</code>\nناموفق: <code>{failed}</code>",
             "admin_courses_empty": "هنوز دوره‌ای ساخته نشده است.",
             "course_create_start": "ساخت دوره جدید. ابتدا عنوان دوره را ارسال کنید.",
             "course_short_description_prompt": "توضیح کوتاه دوره را ارسال کنید. حداکثر ۳۰۰ کاراکتر.",
@@ -392,6 +759,26 @@ class TelegramBotMessageTextVO:
             "course_publish_prompt": "همین الان منتشر شود؟ برای انتشار <code>yes</code> و برای پیش‌نویس <code>no</code> ارسال کنید.",
             "course_created": "✅ دوره با موفقیت ساخته شد.",
             "course_status_updated": "✅ وضعیت دوره به‌روزرسانی شد.",
+            "course_field_updated": "✅ فیلد دوره به‌روزرسانی شد.",
+            "course_edit_title": "✏️ ویرایش دوره: {title}",
+            "course_edit_value_prompt": "مقدار جدید <b>{field}</b> را ارسال کنید.\n\nمقدار فعلی: <code>{current}</code>\n\nبرای خالی کردن متن‌های اختیاری <code>-</code> بفرستید.",
+            "course_edit_choice_prompt": "مقدار جدید <b>{field}</b> را انتخاب کنید.\n\nمقدار فعلی: <code>{current}</code>",
+            "course_edit_session_expired": "جلسه ویرایش دوره منقضی شد. دوباره فیلد دوره را انتخاب کنید.",
+            "course_choice_session_expired": "جلسه انتخاب منقضی شده است. دوباره فرایند دوره را شروع کنید.",
+            "course_delete_confirm": "آیا مطمئن هستید که <b>{title}</b> حذف شود؟\n\nاین حذف نرم است و دوره از دید کاربران مخفی می‌شود.",
+            "course_deleted": "✅ دوره حذف شد: <b>{title}</b>",
+            "edit_course_button": "✏️ ویرایش دوره",
+            "delete_course_button": "🗑 حذف دوره",
+            "course_edit_back_button": "⬅️ فیلدهای ویرایش",
+            "course_field_title": "عنوان",
+            "course_field_short_description": "توضیح کوتاه",
+            "course_field_description": "توضیحات",
+            "course_field_price": "قیمت",
+            "course_field_currency": "واحد پول",
+            "course_field_duration_minutes": "مدت",
+            "course_field_level": "سطح",
+            "course_field_status": "وضعیت",
+            "course_field_is_featured": "ویژه",
             "lesson_create_start": "افزودن درس به این دوره. ابتدا عنوان درس را ارسال کنید.",
             "lesson_description_prompt": "توضیح درس را ارسال کنید، یا برای رد شدن <code>-</code> بفرستید.",
             "lesson_content_prompt": "محتوای درس را ارسال کنید، یا برای رد شدن <code>-</code> بفرستید.",

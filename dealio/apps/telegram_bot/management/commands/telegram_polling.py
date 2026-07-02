@@ -4,6 +4,7 @@ from django.core.management.base import BaseCommand, CommandError
 
 from dealio.apps.telegram_bot.repositories.adapters.telegram_api_adapter import TelegramBotClient
 from dealio.apps.telegram_bot.services import TelegramBotService
+from dealio.apps.telegram_bot.factories.service_factory import TelegramBotServiceFactory
 from dealio.apps.telegram_bot.application_services.polling_service import BotPollingService
 
 
@@ -25,7 +26,7 @@ class Command(BaseCommand):
         polling_service = BotPollingService(
             provider=TelegramBotService.MESSENGER_PROVIDER,
             client=client,
-            service_factory=lambda: TelegramBotService(client=client),
+            service_factory=lambda: TelegramBotServiceFactory.create(client=client),
             update_id_getter=lambda update: update.get("update_id"),
         )
 

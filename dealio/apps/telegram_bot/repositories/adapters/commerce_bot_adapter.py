@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import os
 from uuid import UUID
 
 from django.db.models import QuerySet
 
 from dealio.apps.billing.dtos import (
     CheckoutDTO,
+    DiscountCreateDTO,
     PaymentConfirmDTO,
     PaymentReceiptReviewDTO,
     PaymentReceiptUploadDTO,
@@ -25,18 +25,25 @@ from dealio.apps.courses.dtos import (
     CourseCreateDTO,
     CourseLessonCreateDTO,
     CourseStatusUpdateDTO,
+    CourseUpdateDTO,
     ReviewCreateDTO,
     ReviewModerationDTO,
 )
 from dealio.apps.courses.enums import ReviewStatusEnum
 from dealio.apps.courses.models import Course, CourseReview
 from dealio.apps.courses.repositories.logic import CourseLogicRepository
+from dealio.apps.telegram_bot.enums.bot_setting_enums import BotSettingProviderEnum
+from dealio.apps.telegram_bot.repositories.logic.bot_setting_logic import BotRuntimeConfigProvider
 from dealio.apps.telegram_bot.dtos.commerce_bot_dtos import (
     TelegramCheckoutDTO,
     TelegramCourseCreateDTO,
+    TelegramCourseDeleteDTO,
     TelegramCourseLessonCreateDTO,
     TelegramCourseReviewDTO,
     TelegramCourseStatusDTO,
+    TelegramCourseUpdateFieldDTO,
+    TelegramDiscountCreateDTO,
+    TelegramDiscountDeleteDTO,
     TelegramPaginationDTO,
     TelegramPaymentReceiptDTO,
     TelegramPaymentReceiptReviewDTO,
@@ -84,6 +91,13 @@ class TelegramCommerceBotDjangoAdapter:
             admin_user=admin_user,
             dto=CourseStatusUpdateDTO(course_id=dto.course_id, status=dto.status),
         )
+
+    def update_course_field(self, admin_user, dto: TelegramCourseUpdateFieldDTO) -> Course:
+        payload = {"course_id": dto.course_id, dto.field: dto.value}
+        return self.course_logic.update_course(admin_user=admin_user, dto=CourseUpdateDTO(**payload))
+
+    def delete_course(self, admin_user, dto: TelegramCourseDeleteDTO) -> Course:
+        return self.course_logic.delete_course(admin_user=admin_user, course_id=dto.course_id)
 
     def create_lesson(self, admin_user, dto: TelegramCourseLessonCreateDTO):
         return self.course_logic.create_lesson(
@@ -134,7 +148,7 @@ class TelegramCommerceBotDjangoAdapter:
         )
 
     def create_checkout_and_payment(self, user, dto: TelegramCheckoutDTO) -> tuple[Order, Payment | None, bool]:
-        order, _ = self.billing_logic.create_checkout_order(user=user, dto=CheckoutDTO(course_id=dto.course_id))
+        order, _ = self.billing_logic.create_checkout_order(user=user, dto=CheckoutDTO(course_id=dto.course_id, discount_code=dto.discount_code))
         order.refresh_from_db()
         if order.status == OrderStatusEnum.PAID.value:
             return order, None, True
@@ -203,6 +217,27 @@ class TelegramCommerceBotDjangoAdapter:
             ),
         )
 
+
+    def list_discount_codes(self, page: int = 1, page_size: int = 10):
+        queryset = self.billing_logic.list_discount_codes_for_admin()
+        return self.paginate_queryset(queryset, TelegramPaginationDTO(page=page, page_size=page_size))
+
+    def create_discount_code(self, admin_user, dto: TelegramDiscountCreateDTO):
+        return self.billing_logic.create_discount_code(
+            actor=admin_user,
+            dto=DiscountCreateDTO(
+                code=dto.code,
+                discount_type=dto.discount_type,
+                value=dto.value,
+                title=dto.title,
+                course_id=dto.course_id,
+                usage_limit=dto.usage_limit,
+            ),
+        )
+
+    def delete_discount_code(self, admin_user, dto: TelegramDiscountDeleteDTO):
+        return self.billing_logic.delete_discount_code(actor=admin_user, discount_id=dto.discount_id)
+
     @staticmethod
     def normalize_provider(provider: str):
         value = (provider or "").strip().lower()
@@ -216,7 +251,8 @@ class TelegramCommerceBotDjangoAdapter:
 
     @staticmethod
     def sandbox_enabled() -> bool:
-        value = os.environ.get("PAYMENT_SANDBOX_ENABLED")
-        if value is None:
-            raise RuntimeError("PAYMENT_SANDBOX_ENABLED is required.")
-        return value.strip().lower() in {"1", "true", "yes"}
+        return BotRuntimeConfigProvider.get_bool(
+            BotSettingProviderEnum.COMMERCE_BOT.value,
+            "payment_sandbox_enabled",
+            False,
+        )
