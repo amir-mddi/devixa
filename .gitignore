@@ -15,6 +15,10 @@ db-test.sql
 error_handeling.json
 backup_2025_03_09.sql
 entity/management
+dealio.zip
+dealio/docs
+dealio.rar
+oauth-test
 test_social_oauth.py
 telegram_scraper.session
 tracing/management
