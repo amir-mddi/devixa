@@ -17,6 +17,9 @@ class OrderStatusEnum(BaseEnum):
 
 class PaymentStatusEnum(BaseEnum):
     INITIATED = "initiated"
+    PENDING_RECEIPT = "pending_receipt"
+    PENDING_VERIFICATION = "pending_verification"
+    RECEIPT_REJECTED = "receipt_rejected"
     SUCCEEDED = "succeeded"
     FAILED = "failed"
     CANCELLED = "cancelled"
@@ -25,4 +28,19 @@ class PaymentStatusEnum(BaseEnum):
 
 class PaymentProviderEnum(BaseEnum):
     MANUAL = "manual"
+    CARD_TO_CARD = "card_to_card"
+    PARDAKHTYAR = "pardakhtyar"
     SANDBOX = "sandbox"
+
+
+class PaymentReceiptStatusEnum(BaseEnum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
+class PaymentReceiptSourceEnum(BaseEnum):
+    WEB = "web"
+    TELEGRAM = "telegram"
+    BALE = "bale"
+    RUBIKA = "rubika"

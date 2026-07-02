@@ -5,12 +5,24 @@ from django.conf import settings
 from django.db import models
 from django.utils.timezone import now
 
-from dealio.apps.billing.enums import CurrencyEnum, OrderStatusEnum, PaymentProviderEnum, PaymentStatusEnum
+from dealio.apps.billing.enums import (
+    CurrencyEnum,
+    OrderStatusEnum,
+    PaymentProviderEnum,
+    PaymentReceiptSourceEnum,
+    PaymentReceiptStatusEnum,
+    PaymentStatusEnum,
+)
 from dealio.apps.core_models.entities.base.base import BaseModel
 
 
 def _number(prefix: str) -> str:
     return f"{prefix}-{now().strftime('%Y%m%d')}-{uuid4().hex[:12].upper()}"
+
+
+def payment_receipt_upload_to(instance, filename: str) -> str:
+    extension = filename.rsplit(".", 1)[-1].lower() if "." in filename else "bin"
+    return f"billing/receipts/{now().strftime('%Y/%m/%d')}/{instance.payment_id}/{uuid4().hex}.{extension}"
 
 
 class Order(BaseModel):
@@ -92,7 +104,7 @@ class Payment(BaseModel):
     provider = models.CharField(
         max_length=40,
         choices=PaymentProviderEnum.choices(),
-        default=PaymentProviderEnum.MANUAL.value,
+        default=PaymentProviderEnum.CARD_TO_CARD.value,
     )
     status = models.CharField(
         max_length=30,
@@ -120,6 +132,7 @@ class Payment(BaseModel):
         indexes = [
             models.Index(fields=["user", "status"], name="payment_user_status_idx"),
             models.Index(fields=["payment_number"], name="payment_number_idx"),
+            models.Index(fields=["provider", "authority"], name="payment_provider_auth_idx"),
         ]
 
     def save(self, *args, **kwargs):
@@ -129,3 +142,49 @@ class Payment(BaseModel):
 
     def __str__(self):
         return self.payment_number
+
+
+class PaymentReceipt(BaseModel):
+    payment = models.ForeignKey(Payment, related_name="receipts", on_delete=models.PROTECT)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="payment_receipts",
+        on_delete=models.PROTECT,
+    )
+    receipt_file = models.FileField(upload_to=payment_receipt_upload_to, blank=True, default="")
+    receipt_file_url = models.URLField(blank=True, default="")
+    tracking_code = models.CharField(max_length=120, blank=True, default="")
+    payer_card_last4 = models.CharField(max_length=4, blank=True, default="")
+    paid_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
+    note = models.TextField(blank=True, default="")
+    status = models.CharField(
+        max_length=30,
+        choices=PaymentReceiptStatusEnum.choices(),
+        default=PaymentReceiptStatusEnum.PENDING.value,
+        db_index=True,
+    )
+    source = models.CharField(
+        max_length=30,
+        choices=PaymentReceiptSourceEnum.choices(),
+        default=PaymentReceiptSourceEnum.WEB.value,
+    )
+    admin_note = models.TextField(blank=True, default="")
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="billing_payment_receipts_reviewed",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["payment", "status"], name="receipt_payment_status_idx"),
+            models.Index(fields=["user", "status"], name="receipt_user_status_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.payment.payment_number} - {self.status}"

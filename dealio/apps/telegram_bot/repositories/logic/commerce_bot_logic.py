@@ -10,6 +10,8 @@ from dealio.apps.telegram_bot.dtos.commerce_bot_dtos import (
     TelegramCourseReviewDTO,
     TelegramCourseStatusDTO,
     TelegramPaginationDTO,
+    TelegramPaymentReceiptDTO,
+    TelegramPaymentReceiptReviewDTO,
     TelegramReviewModerationDTO,
 )
 from dealio.apps.telegram_bot.repositories.adapters.commerce_bot_adapter import TelegramCommerceBotDjangoAdapter
@@ -96,8 +98,28 @@ class TelegramCommerceBotLogicRepository(metaclass=Singleton):
     def list_orders(self, user, limit: int = 10):
         return self.adapter.list_user_orders(user, limit=limit)
 
-    def list_pending_reviews(self, limit: int = 10):
-        return self.adapter.list_pending_reviews(limit=limit)
+    def upload_payment_receipt(self, user, *, payment_id, tracking_code: str = "", receipt_file_url: str = "", note: str = ""):
+        return self.adapter.upload_payment_receipt(
+            user=user,
+            dto=TelegramPaymentReceiptDTO(
+                payment_id=payment_id,
+                tracking_code=tracking_code,
+                receipt_file_url=receipt_file_url,
+                note=note,
+            ),
+        )
+
+    def list_pending_payment_receipts(self, page: int = 1, page_size: int = 10):
+        return self.adapter.list_pending_payment_receipts(TelegramPaginationDTO(page=page, page_size=page_size))
+
+    def review_payment_receipt(self, admin_user, *, receipt_id, approve: bool, admin_note: str = ""):
+        return self.adapter.review_payment_receipt(
+            admin_user=admin_user,
+            dto=TelegramPaymentReceiptReviewDTO(receipt_id=receipt_id, approve=approve, admin_note=admin_note),
+        )
+
+    def list_pending_reviews(self, page: int = 1, page_size: int = 10):
+        return self.adapter.list_pending_reviews(TelegramPaginationDTO(page=page, page_size=page_size))
 
     def moderate_review(self, admin_user, *, review_id, status: str, admin_note: str = ""):
         return self.adapter.moderate_review(

@@ -5,9 +5,21 @@ from uuid import UUID
 
 from django.db.models import QuerySet
 
-from dealio.apps.billing.dtos import CheckoutDTO, PaymentConfirmDTO, PaymentStartDTO
-from dealio.apps.billing.enums import OrderStatusEnum, PaymentProviderEnum, PaymentStatusEnum
-from dealio.apps.billing.models import Order, Payment
+from dealio.apps.billing.dtos import (
+    CheckoutDTO,
+    PaymentConfirmDTO,
+    PaymentReceiptReviewDTO,
+    PaymentReceiptUploadDTO,
+    PaymentStartDTO,
+)
+from dealio.apps.billing.enums import (
+    OrderStatusEnum,
+    PaymentProviderEnum,
+    PaymentReceiptSourceEnum,
+    PaymentReceiptStatusEnum,
+    PaymentStatusEnum,
+)
+from dealio.apps.billing.models import Order, Payment, PaymentReceipt
 from dealio.apps.billing.repositories.logic import BillingLogicRepository
 from dealio.apps.courses.dtos import (
     CourseCreateDTO,
@@ -26,6 +38,8 @@ from dealio.apps.telegram_bot.dtos.commerce_bot_dtos import (
     TelegramCourseReviewDTO,
     TelegramCourseStatusDTO,
     TelegramPaginationDTO,
+    TelegramPaymentReceiptDTO,
+    TelegramPaymentReceiptReviewDTO,
     TelegramReviewModerationDTO,
 )
 
@@ -86,6 +100,12 @@ class TelegramCommerceBotDjangoAdapter:
             ),
         )
 
+    @staticmethod
+    def paginate_queryset(queryset: QuerySet, dto: TelegramPaginationDTO):
+        items = list(queryset[dto.offset:dto.offset + dto.page_size + 1])
+        total_count = queryset.count()
+        return items[:dto.page_size], len(items) > dto.page_size, total_count
+
     def list_published_courses(self, dto: TelegramPaginationDTO) -> tuple[list[Course], bool]:
         queryset = self.course_logic.list_published_courses(filters={})
         courses = list(queryset[dto.offset:dto.offset + dto.page_size + 1])
@@ -143,9 +163,35 @@ class TelegramCommerceBotDjangoAdapter:
         queryset = self.billing_logic.list_user_orders(user)
         return list(queryset[:limit])
 
-    def list_pending_reviews(self, limit: int = 10):
+    def upload_payment_receipt(self, user, dto: TelegramPaymentReceiptDTO):
+        return self.billing_logic.upload_receipt(
+            user=user,
+            dto=PaymentReceiptUploadDTO(
+                payment_id=dto.payment_id,
+                tracking_code=(dto.tracking_code or "").strip(),
+                receipt_file_url=(dto.receipt_file_url or "").strip(),
+                note=dto.note,
+                source=PaymentReceiptSourceEnum.TELEGRAM,
+            ),
+        )
+
+    def list_pending_payment_receipts(self, dto: TelegramPaginationDTO):
+        queryset = self.billing_logic.list_receipts_for_admin(status=PaymentReceiptStatusEnum.PENDING.value)
+        return self.paginate_queryset(queryset, dto)
+
+    def review_payment_receipt(self, admin_user, dto: TelegramPaymentReceiptReviewDTO):
+        return self.billing_logic.review_receipt(
+            actor=admin_user,
+            dto=PaymentReceiptReviewDTO(
+                receipt_id=dto.receipt_id,
+                approve=dto.approve,
+                admin_note=dto.admin_note,
+            ),
+        )
+
+    def list_pending_reviews(self, dto: TelegramPaginationDTO):
         queryset = self.course_logic.list_reviews_for_admin(status=ReviewStatusEnum.PENDING.value)
-        return list(queryset[:limit])
+        return self.paginate_queryset(queryset, dto)
 
     def moderate_review(self, admin_user, dto: TelegramReviewModerationDTO) -> CourseReview:
         return self.course_logic.moderate_review(
@@ -162,7 +208,11 @@ class TelegramCommerceBotDjangoAdapter:
         value = (provider or "").strip().lower()
         if value == PaymentProviderEnum.SANDBOX.value:
             return PaymentProviderEnum.SANDBOX
-        return PaymentProviderEnum.MANUAL
+        if value == PaymentProviderEnum.PARDAKHTYAR.value:
+            return PaymentProviderEnum.PARDAKHTYAR
+        if value in {PaymentProviderEnum.CARD_TO_CARD.value, PaymentProviderEnum.MANUAL.value}:
+            return PaymentProviderEnum.CARD_TO_CARD
+        return PaymentProviderEnum.CARD_TO_CARD
 
     @staticmethod
     def sandbox_enabled() -> bool:

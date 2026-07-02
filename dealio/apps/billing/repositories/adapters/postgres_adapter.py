@@ -2,11 +2,17 @@ from datetime import timedelta
 from decimal import Decimal
 
 from django.db import transaction
+from django.db.models import Q
 from django.utils.timezone import now
 from rest_framework.exceptions import NotFound, ValidationError
 
-from dealio.apps.billing.enums import OrderStatusEnum, PaymentStatusEnum
-from dealio.apps.billing.models import Order, OrderItem, Payment
+from dealio.apps.billing.enums import (
+    OrderStatusEnum,
+    PaymentProviderEnum,
+    PaymentReceiptStatusEnum,
+    PaymentStatusEnum,
+)
+from dealio.apps.billing.models import Order, OrderItem, Payment, PaymentReceipt
 from dealio.apps.billing.vo import BillingMessagesVO
 from dealio.apps.common.helpers.metaclasses.singleton import Singleton
 from dealio.apps.courses.enums import CourseStatusEnum
@@ -33,7 +39,7 @@ class BillingPostgresAdapter(metaclass=Singleton):
     def get_payment_for_user(payment_id, user):
         payment = (
             Payment.objects.select_related("order", "user")
-            .prefetch_related("order__items", "order__items__course")
+            .prefetch_related("order__items", "order__items__course", "receipts")
             .filter(id=payment_id, is_deleted=False)
             .first()
         )
@@ -42,6 +48,39 @@ class BillingPostgresAdapter(metaclass=Singleton):
         if payment.user_id != user.id and not (getattr(user, "is_staff", False) or getattr(user, "is_superuser", False)):
             raise NotFound(BillingMessagesVO.PAYMENT_NOT_FOUND)
         return payment
+
+    @staticmethod
+    def get_payment_for_gateway_callback(provider: str, payload: dict):
+        payment_id = payload.get("payment_id") or payload.get("PaymentId") or payload.get("paymentId")
+        authority = payload.get("authority") or payload.get("Authority") or payload.get("token") or payload.get("ref_id")
+        order_number = payload.get("order_number") or payload.get("order_id") or payload.get("OrderId")
+
+        queryset = Payment.objects.select_related("order", "user").filter(provider=provider, is_deleted=False)
+        if payment_id:
+            payment = queryset.filter(id=payment_id).first()
+            if payment:
+                return payment
+        if authority:
+            payment = queryset.filter(authority=authority).first()
+            if payment:
+                return payment
+        if order_number:
+            payment = queryset.filter(order__order_number=order_number).order_by("-created_at").first()
+            if payment:
+                return payment
+        raise NotFound(BillingMessagesVO.PAYMENT_NOT_FOUND)
+
+    @staticmethod
+    def get_receipt_for_admin(receipt_id):
+        receipt = (
+            PaymentReceipt.objects.select_related("payment", "payment__order", "payment__user", "user")
+            .prefetch_related("payment__order__items", "payment__order__items__course")
+            .filter(id=receipt_id, is_deleted=False)
+            .first()
+        )
+        if not receipt:
+            raise NotFound(BillingMessagesVO.RECEIPT_NOT_FOUND)
+        return receipt
 
     @staticmethod
     def list_user_orders(user):
@@ -55,7 +94,7 @@ class BillingPostgresAdapter(metaclass=Singleton):
     def list_user_payments(user):
         return (
             Payment.objects.select_related("order")
-            .prefetch_related("order__items", "order__items__course")
+            .prefetch_related("order__items", "order__items__course", "receipts")
             .filter(user=user, is_deleted=False)
             .order_by("-created_at")
         )
@@ -69,7 +108,14 @@ class BillingPostgresAdapter(metaclass=Singleton):
 
     @staticmethod
     def list_payments_for_admin(status: str | None = None):
-        queryset = Payment.objects.select_related("order", "user").filter(is_deleted=False)
+        queryset = Payment.objects.select_related("order", "user").prefetch_related("receipts").filter(is_deleted=False)
+        if status:
+            queryset = queryset.filter(status=status)
+        return queryset.order_by("-created_at")
+
+    @staticmethod
+    def list_receipts_for_admin(status: str | None = None):
+        queryset = PaymentReceipt.objects.select_related("payment", "payment__order", "user", "reviewed_by").filter(is_deleted=False)
         if status:
             queryset = queryset.filter(status=status)
         return queryset.order_by("-created_at")
@@ -120,31 +166,140 @@ class BillingPostgresAdapter(metaclass=Singleton):
                 self.mark_order_paid(order=order, payment=None, actor=user)
             return order, True
 
-    def create_payment(self, user, order, provider: str, gateway_result):
+    @staticmethod
+    def initial_status_for_provider(provider: str) -> str:
+        if provider in {PaymentProviderEnum.CARD_TO_CARD.value, PaymentProviderEnum.MANUAL.value}:
+            return PaymentStatusEnum.PENDING_RECEIPT.value
+        return PaymentStatusEnum.INITIATED.value
+
+    def get_or_create_pending_payment(self, user, order, provider: str):
         if order.status == OrderStatusEnum.PAID.value:
             raise ValidationError(BillingMessagesVO.ORDER_ALREADY_PAID)
-        existing_payment = Payment.objects.filter(
-            order=order,
-            user=user,
-            provider=provider,
-            status=PaymentStatusEnum.INITIATED.value,
-            is_deleted=False,
-        ).order_by("-created_at").first()
+        reusable_statuses = [
+            PaymentStatusEnum.INITIATED.value,
+            PaymentStatusEnum.PENDING_RECEIPT.value,
+            PaymentStatusEnum.PENDING_VERIFICATION.value,
+            PaymentStatusEnum.RECEIPT_REJECTED.value,
+        ]
+        existing_payment = (
+            Payment.objects.filter(
+                order=order,
+                user=user,
+                provider=provider,
+                status__in=reusable_statuses,
+                is_deleted=False,
+            )
+            .exclude(status=PaymentStatusEnum.FAILED.value)
+            .order_by("-created_at")
+            .first()
+        )
         if existing_payment:
             return existing_payment
-        payment = Payment.objects.create(
+        return Payment.objects.create(
             order=order,
             user=user,
             provider=provider,
             amount=order.total_amount,
             currency=order.currency,
-            authority=gateway_result.authority,
-            payment_url=gateway_result.payment_url,
-            response_payload=gateway_result.raw_response,
+            status=self.initial_status_for_provider(provider),
             user_created_object=user,
             user_updated_object=user,
         )
+
+    @staticmethod
+    def update_payment_gateway_result(payment, gateway_request, gateway_result, actor):
+        payment.authority = gateway_result.authority
+        payment.payment_url = gateway_result.payment_url
+        payment.request_payload = gateway_request.as_payload()
+        payment.response_payload = gateway_result.raw_response
+        if gateway_result.next_status:
+            payment.status = gateway_result.next_status
+        payment.failure_message = ""
+        payment.user_updated_object = actor
+        payment.save()
         return payment
+
+    def create_payment(self, user, order, provider: str, gateway_result):
+        payment = self.get_or_create_pending_payment(user=user, order=order, provider=provider)
+        payment.authority = gateway_result.authority
+        payment.payment_url = gateway_result.payment_url
+        payment.response_payload = gateway_result.raw_response
+        if gateway_result.next_status:
+            payment.status = gateway_result.next_status
+        payment.user_updated_object = user
+        payment.save()
+        return payment
+
+    def upload_receipt(self, user, payment, dto):
+        if payment.user_id != user.id:
+            raise NotFound(BillingMessagesVO.PAYMENT_NOT_FOUND)
+        if payment.order.status == OrderStatusEnum.PAID.value:
+            raise ValidationError(BillingMessagesVO.ORDER_ALREADY_PAID)
+        if payment.provider not in {PaymentProviderEnum.CARD_TO_CARD.value, PaymentProviderEnum.MANUAL.value}:
+            raise ValidationError(BillingMessagesVO.RECEIPT_PROVIDER_NOT_ALLOWED)
+        if payment.status == PaymentStatusEnum.PENDING_VERIFICATION.value:
+            raise ValidationError(BillingMessagesVO.RECEIPT_ALREADY_PENDING)
+        if not dto.receipt_file and not dto.receipt_file_url and not dto.tracking_code:
+            raise ValidationError(BillingMessagesVO.RECEIPT_REQUIRED)
+
+        receipt = PaymentReceipt.objects.create(
+            payment=payment,
+            user=user,
+            receipt_file=dto.receipt_file or "",
+            receipt_file_url=dto.receipt_file_url,
+            tracking_code=dto.tracking_code.strip(),
+            payer_card_last4=dto.payer_card_last4.strip()[-4:],
+            paid_amount=dto.paid_amount or payment.amount,
+            paid_at=dto.paid_at,
+            note=dto.note.strip(),
+            source=dto.source.value if hasattr(dto.source, "value") else dto.source,
+            user_created_object=user,
+            user_updated_object=user,
+        )
+        payment.status = PaymentStatusEnum.PENDING_VERIFICATION.value
+        payment.failure_message = ""
+        payment.user_updated_object = user
+        payment.save(update_fields=["status", "failure_message", "user_updated_object", "updated_at"])
+        return receipt
+
+    def approve_receipt(self, receipt, actor, dto):
+        with transaction.atomic():
+            receipt.status = PaymentReceiptStatusEnum.APPROVED.value
+            receipt.admin_note = dto.admin_note.strip()
+            receipt.reviewed_by = actor
+            receipt.reviewed_at = now()
+            receipt.user_updated_object = actor
+            receipt.save()
+            verification_result = {
+                "is_success": True,
+                "transaction_id": dto.transaction_id or receipt.tracking_code,
+                "authority": dto.authority or receipt.payment.authority,
+                "raw_response": {
+                    "receipt_id": str(receipt.id),
+                    "reviewed_by": str(actor.id),
+                    "admin_note": receipt.admin_note,
+                    "source": receipt.source,
+                },
+            }
+            payment = self.mark_payment_succeeded(payment=receipt.payment, verification_result=verification_result, actor=actor)
+        return receipt, payment
+
+    @staticmethod
+    def reject_receipt(receipt, actor, admin_note: str = ""):
+        with transaction.atomic():
+            receipt.status = PaymentReceiptStatusEnum.REJECTED.value
+            receipt.admin_note = admin_note.strip()
+            receipt.reviewed_by = actor
+            receipt.reviewed_at = now()
+            receipt.user_updated_object = actor
+            receipt.save()
+            payment = receipt.payment
+            payment.status = PaymentStatusEnum.RECEIPT_REJECTED.value
+            payment.failure_message = receipt.admin_note or BillingMessagesVO.RECEIPT_REJECTED
+            payment.verified_at = now()
+            payment.user_updated_object = actor
+            payment.save(update_fields=["status", "failure_message", "verified_at", "user_updated_object", "updated_at"])
+        return receipt, payment
 
     def mark_payment_succeeded(self, payment, verification_result: dict, actor):
         with transaction.atomic():
@@ -152,6 +307,7 @@ class BillingPostgresAdapter(metaclass=Singleton):
             payment.transaction_id = verification_result.get("transaction_id", payment.transaction_id)
             payment.authority = verification_result.get("authority", payment.authority)
             payment.response_payload = verification_result.get("raw_response", payment.response_payload)
+            payment.failure_message = ""
             payment.paid_at = now()
             payment.verified_at = now()
             payment.user_updated_object = actor

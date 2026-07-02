@@ -61,3 +61,18 @@ class TelegramCourseLessonCreateDTO:
     duration_minutes: int
     position: int | None
     is_preview: bool
+
+
+@dataclass(frozen=True)
+class TelegramPaymentReceiptDTO:
+    payment_id: UUID
+    tracking_code: str = ""
+    receipt_file_url: str = ""
+    note: str = ""
+
+
+@dataclass(frozen=True)
+class TelegramPaymentReceiptReviewDTO:
+    receipt_id: UUID
+    approve: bool
+    admin_note: str = ""

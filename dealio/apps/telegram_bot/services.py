@@ -14,6 +14,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 
 from dealio.apps.accounts.repositories.account_logic import AccountLogicRepository
 from dealio.apps.common.helpers.validators.account_validators import (
@@ -39,6 +40,7 @@ from dealio.apps.telegram_bot.vo.commerce_bot_vo import (
 from dealio.apps.telegram_bot.repositories.logic import TelegramCommerceBotLogicRepository
 from dealio.apps.telegram_bot.repositories.logic.channel_sync_logic import ChannelSyncLogicRepository
 from dealio.apps.courses.enums import CourseLevelEnum, CourseStatusEnum, ReviewStatusEnum
+from dealio.apps.billing.enums import PaymentProviderEnum, PaymentReceiptStatusEnum, PaymentStatusEnum
 
 
 logger = logging.getLogger("dealio")
@@ -151,6 +153,7 @@ class TelegramBotService:
     CALLBACK_MY_COURSES = TelegramBotCallbackVO.MY_COURSES
     CALLBACK_MY_ORDERS = TelegramBotCallbackVO.MY_ORDERS
     CALLBACK_REVIEW_QUEUE = TelegramBotCallbackVO.REVIEW_QUEUE
+    CALLBACK_PAYMENT_QUEUE = TelegramBotCallbackVO.PAYMENT_QUEUE
     CALLBACK_UNLINK_ASK = TelegramBotCallbackVO.UNLINK_ASK
     CALLBACK_UNLINK_CONFIRM = TelegramBotCallbackVO.UNLINK_CONFIRM
     CALLBACK_CANCEL = TelegramBotCallbackVO.CANCEL
@@ -175,6 +178,7 @@ class TelegramBotService:
     BTN_MY_COURSES = TelegramBotButtonTextVO.BUTTONS[LANG_EN]["my_courses"]
     BTN_MY_ORDERS = TelegramBotButtonTextVO.BUTTONS[LANG_EN]["my_orders"]
     BTN_REVIEW_QUEUE = TelegramBotButtonTextVO.BUTTONS[LANG_EN]["review_queue"]
+    BTN_PAYMENT_QUEUE = TelegramBotButtonTextVO.BUTTONS[LANG_EN]["payment_queue"]
     BTN_ADMIN_COURSES = TelegramBotButtonTextVO.BUTTONS[LANG_EN]["admin_courses"]
     BTN_CREATE_COURSE = TelegramBotButtonTextVO.BUTTONS[LANG_EN]["create_course"]
     BTN_MAIN_MENU = TelegramBotButtonTextVO.BUTTONS[LANG_EN]["main_menu"]
@@ -211,8 +215,10 @@ class TelegramBotService:
     STATE_LESSON_DURATION = TelegramBotStateVO.LESSON_DURATION
     STATE_LESSON_POSITION = TelegramBotStateVO.LESSON_POSITION
     STATE_LESSON_PREVIEW = TelegramBotStateVO.LESSON_PREVIEW
+    STATE_PAYMENT_RECEIPT_TRACKING = TelegramBotStateVO.PAYMENT_RECEIPT_TRACKING
 
     ACTION_TIMEOUT_SECONDS = TelegramAccountLinkService.LINK_CODE_EXPIRATION_MINUTES * 60
+    MIN_REVIEW_COMMENT_CHARACTERS = 2
 
     def __init__(self, client: TelegramBotClient | None = None):
         self.client = client or TelegramBotClient()
@@ -261,6 +267,9 @@ class TelegramBotService:
             self.show_language_selection(profile)
             return
 
+        if not text and self._handle_waiting_attachment(profile, message):
+            return
+
         if not text:
             self.client.send_message(
                 chat_id,
@@ -272,11 +281,7 @@ class TelegramBotService:
         # ReplyKeyboard buttons arrive as normal text messages. Handle them before
         # command parsing so users can navigate without typing /commands.
         if self.is_main_menu_button(text):
-            self.clear_action(profile.chat_id)
-            self.clear_create_user_data(profile.chat_id)
-            self.clear_review_flow_data(profile.chat_id)
-            self.clear_course_flow_data(profile.chat_id)
-            self.clear_lesson_flow_data(profile.chat_id)
+            self.clear_all_flow_data(profile.chat_id)
             self.client.send_message(
                 chat_id,
                 self.menu_text(profile),
@@ -285,11 +290,7 @@ class TelegramBotService:
             return
 
         if self.is_cancel_button(text):
-            self.clear_action(profile.chat_id)
-            self.clear_create_user_data(profile.chat_id)
-            self.clear_review_flow_data(profile.chat_id)
-            self.clear_course_flow_data(profile.chat_id)
-            self.clear_lesson_flow_data(profile.chat_id)
+            self.clear_all_flow_data(profile.chat_id)
             self.client.send_message(
                 chat_id,
                 self.t(profile, "canceled"),
@@ -297,6 +298,9 @@ class TelegramBotService:
             )
             return
 
+        # Active step-by-step flows must own the next text message.
+        # Otherwise a normal review comment such as a short Persian word can be
+        # reinterpreted as a menu action or repeatedly prompt the same step.
         if self._handle_waiting_text(profile, text):
             return
 
@@ -361,11 +365,7 @@ class TelegramBotService:
             return
 
         if data == self.CALLBACK_MAIN_MENU:
-            self.clear_action(profile.chat_id)
-            self.clear_create_user_data(profile.chat_id)
-            self.clear_review_flow_data(profile.chat_id)
-            self.clear_course_flow_data(profile.chat_id)
-            self.clear_lesson_flow_data(profile.chat_id)
+            self.clear_all_flow_data(profile.chat_id)
             self.send_chain_message(
                 profile,
                 self.menu_text(profile),
@@ -420,11 +420,7 @@ class TelegramBotService:
             return
 
         if data == self.CALLBACK_CANCEL:
-            self.clear_action(profile.chat_id)
-            self.clear_create_user_data(profile.chat_id)
-            self.clear_review_flow_data(profile.chat_id)
-            self.clear_course_flow_data(profile.chat_id)
-            self.clear_lesson_flow_data(profile.chat_id)
+            self.clear_all_flow_data(profile.chat_id)
             self.client.send_message(
                 profile.chat_id,
                 self.t(profile, "canceled"),
@@ -553,6 +549,7 @@ class TelegramBotService:
             "my_courses": self.send_my_courses,
             "my_orders": self.send_my_orders,
             "review_queue": self.send_review_queue,
+            "payment_queue": self.send_payment_receipt_queue,
             "admin_courses": lambda p: self.send_admin_course_list(p, page=1),
             "create_course": self.start_create_course_flow,
         }
@@ -562,6 +559,7 @@ class TelegramBotService:
         for key, handler in action_by_key.items():
             possible = self.all_button_texts(key) | {self.normalize_button_text(item) for item in aliases[key]}
             if normalized in possible:
+                self.clear_all_flow_data(profile.chat_id)
                 handler(profile)
                 return True
 
@@ -590,6 +588,15 @@ class TelegramBotService:
     @classmethod
     def clear_action(cls, chat_id: int) -> None:
         TelegramBotCacheRepository.delete_value(cls.action_cache_key(chat_id))
+
+    @classmethod
+    def clear_all_flow_data(cls, chat_id: int) -> None:
+        cls.clear_action(chat_id)
+        cls.clear_create_user_data(chat_id)
+        cls.clear_review_flow_data(chat_id)
+        cls.clear_course_flow_data(chat_id)
+        cls.clear_lesson_flow_data(chat_id)
+        cls.clear_payment_receipt_flow_data(chat_id)
 
     @classmethod
     def create_user_cache_key(cls, chat_id: int) -> str:
@@ -708,6 +715,9 @@ class TelegramBotService:
             self.handle_review_comment_text(profile, text)
             return True
 
+        if action == self.STATE_PAYMENT_RECEIPT_TRACKING:
+            self.handle_payment_receipt_tracking_text(profile, text)
+            return True
 
         if action == self.STATE_COURSE_TITLE:
             self.handle_course_title_text(profile, text)
@@ -779,6 +789,85 @@ class TelegramBotService:
 
         self.clear_action(profile.chat_id)
         return False
+
+    def _handle_waiting_attachment(self, profile: TelegramProfile, message: dict[str, Any]) -> bool:
+        action = self.get_action(profile.chat_id)
+        if action != self.STATE_PAYMENT_RECEIPT_TRACKING:
+            return False
+        self.handle_payment_receipt_file_message(profile, message)
+        return True
+
+    @staticmethod
+    def telegram_receipt_attachment(message: dict[str, Any]) -> dict[str, str]:
+        photos = message.get("photo") or []
+        if photos:
+            selected = max(photos, key=lambda item: int(item.get("file_size") or 0))
+            return {
+                "file_id": selected.get("file_id", ""),
+                "kind": "photo",
+                "filename": "telegram-receipt.jpg",
+                "caption": (message.get("caption") or "").strip(),
+            }
+
+        document = message.get("document") or {}
+        if document:
+            return {
+                "file_id": document.get("file_id", ""),
+                "kind": "document",
+                "filename": document.get("file_name") or "telegram-receipt",
+                "caption": (message.get("caption") or "").strip(),
+            }
+
+        return {}
+
+    def handle_payment_receipt_file_message(self, profile: TelegramProfile, message: dict[str, Any]) -> None:
+        user = self.require_linked_user(profile)
+        if not user:
+            return
+
+        attachment = self.telegram_receipt_attachment(message)
+        file_id = attachment.get("file_id")
+        if not file_id:
+            self.client.send_message(profile.chat_id, self.t(profile, "payment_receipt_unsupported_file"), reply_markup=self.cancel_keyboard(profile))
+            return
+
+        data = self.get_payment_receipt_flow_data(profile.chat_id)
+        receipt_url = ""
+        try:
+            receipt_url = self.client.get_file_url(file_id)
+        except Exception:
+            logger.debug("Could not resolve Telegram receipt file URL", exc_info=True)
+
+        tracking_code = attachment.get("caption", "")[:120]
+        note_parts = ["Registered from Telegram bot.", f"telegram_file_id={file_id}", f"telegram_file_kind={attachment.get('kind', '')}"]
+        if attachment.get("filename"):
+            note_parts.append(f"filename={attachment['filename']}")
+
+        try:
+            receipt = self.commerce_logic.upload_payment_receipt(
+                user=user,
+                payment_id=data.get("payment_id"),
+                tracking_code=tracking_code,
+                receipt_file_url=receipt_url,
+                note=" | ".join(note_parts),
+            )
+        except Exception as error:
+            logger.exception("Telegram payment receipt file registration failed")
+            self.clear_all_flow_data(profile.chat_id)
+            self.client.send_message(
+                profile.chat_id,
+                f"⚠️ {html.escape(self.validation_message(error))}",
+                reply_markup=self.main_menu_keyboard(profile),
+            )
+            return
+
+        self.clear_all_flow_data(profile.chat_id)
+        self.notify_admins_about_payment_receipt(receipt)
+        self.client.send_message(
+            profile.chat_id,
+            self.t(profile, "payment_receipt_saved_with_id", message=self.t(profile, "payment_receipt_saved"), receipt_id=html.escape(str(receipt.id))),
+            reply_markup=self.main_menu_keyboard(profile),
+        )
 
     def start_link_flow(self, profile: TelegramProfile) -> None:
         if profile.user_id and profile.is_verified:
@@ -1405,6 +1494,39 @@ class TelegramBotService:
             return default
         return max(number, 1)
 
+    @staticmethod
+    def configured_list_page_size(default: int = 5, maximum: int = 20) -> int:
+        value = os.environ.get("TELEGRAM_LIST_PAGE_SIZE", str(default))
+        try:
+            page_size = int(value)
+        except (TypeError, ValueError):
+            page_size = default
+        return max(1, min(page_size, maximum))
+
+    @staticmethod
+    def total_pages(total_count: int, page_size: int) -> int:
+        if page_size <= 0:
+            return 1
+        return max(1, ((max(total_count, 0) - 1) // page_size) + 1)
+
+    def queue_navigation_rows(self, profile: TelegramProfile, *, page: int, has_next: bool, callback_prefix: str) -> list[list[dict[str, Any]]]:
+        refresh_button = self.inline_button(self.t(profile, "refresh_button"), f"{callback_prefix}:{page}")
+        main_menu_button = self.inline_button(self.t(profile, "main_menu_button"), self.CALLBACK_MAIN_MENU)
+
+        if page > 1 and has_next:
+            return [
+                [
+                    self.inline_button(self.t(profile, "prev_button"), f"{callback_prefix}:{page - 1}"),
+                    self.inline_button(self.t(profile, "next_button"), f"{callback_prefix}:{page + 1}"),
+                ],
+                [refresh_button, main_menu_button],
+            ]
+        if page > 1:
+            return [[self.inline_button(self.t(profile, "prev_button"), f"{callback_prefix}:{page - 1}"), refresh_button]]
+        if has_next:
+            return [[refresh_button, self.inline_button(self.t(profile, "next_button"), f"{callback_prefix}:{page + 1}")]]
+        return [[refresh_button, main_menu_button]]
+
     @classmethod
     def chain_message_cache_key(cls, chat_id: int) -> str:
         return f"{cls.CACHE_PREFIX}_chain_message:{chat_id}"
@@ -1578,8 +1700,28 @@ class TelegramBotService:
                 self.send_my_orders(profile, message_id=message_id)
                 return True
 
+            if len(parts) == 3 and parts[0] == "p" and parts[1] == "r":
+                self.start_payment_receipt_flow(profile, parts[2])
+                return True
+
+            if data == "pay:q":
+                self.send_payment_receipt_queue(profile, page=1, message_id=message_id)
+                return True
+
+            if len(parts) == 3 and parts[0] == "pay" and parts[1] == "q":
+                self.send_payment_receipt_queue(profile, page=self.parse_positive_int(parts[2]), message_id=message_id)
+                return True
+
+            if len(parts) == 3 and parts[0] == "pay" and parts[1] in {"a", "x"}:
+                self.review_payment_receipt_from_bot(profile, receipt_id=parts[2], approve=parts[1] == "a", message_id=message_id)
+                return True
+
             if data == "r:q":
-                self.send_review_queue(profile, message_id=message_id)
+                self.send_review_queue(profile, page=1, message_id=message_id)
+                return True
+
+            if len(parts) == 3 and parts[0] == "r" and parts[1] == "q":
+                self.send_review_queue(profile, page=self.parse_positive_int(parts[2]), message_id=message_id)
                 return True
 
             if len(parts) == 3 and parts[0] == "r" and parts[1] in {"a", "x"}:
@@ -1758,7 +1900,7 @@ class TelegramBotService:
 
         if paid_now:
             message = self.t(profile, "payment_success")
-        elif payment and payment.provider == "manual":
+        elif payment and payment.provider in {PaymentProviderEnum.MANUAL.value, PaymentProviderEnum.CARD_TO_CARD.value}:
             message = self.t(profile, "payment_manual")
         else:
             message = self.t(profile, "payment_created")
@@ -1766,14 +1908,233 @@ class TelegramBotService:
         self.send_chain_message(
             profile,
             self.order_payment_text(profile, order, payment, message),
-            reply_markup=self.inline_keyboard([
-                [
-                    self.inline_button(self.t(profile, "payment_my_courses_button"), "e:mine"),
-                    self.inline_button(self.t(profile, "payment_my_orders_button"), "o:mine"),
-                ],
-                [self.inline_button(self.t(profile, "course_back_button"), f"c:d:{course_id}")],
-            ]),
+            reply_markup=self.inline_keyboard(self.payment_action_keyboard(profile, payment, course_id)),
             message_id=message_id,
+        )
+
+    @classmethod
+    def payment_receipt_flow_cache_key(cls, chat_id: int) -> str:
+        return f"{cls.CACHE_PREFIX}_payment_receipt:{chat_id}"
+
+    @classmethod
+    def get_payment_receipt_flow_data(cls, chat_id: int) -> dict[str, Any]:
+        data = TelegramBotCacheRepository.get_value(cls.payment_receipt_flow_cache_key(chat_id))
+        return data if isinstance(data, dict) else {}
+
+    @classmethod
+    def set_payment_receipt_flow_data(cls, chat_id: int, data: dict[str, Any]) -> None:
+        TelegramBotCacheRepository.set_value(cls.payment_receipt_flow_cache_key(chat_id), data, timeout=cls.ACTION_TIMEOUT_SECONDS)
+
+    @classmethod
+    def clear_payment_receipt_flow_data(cls, chat_id: int) -> None:
+        TelegramBotCacheRepository.delete_value(cls.payment_receipt_flow_cache_key(chat_id))
+
+    def start_payment_receipt_flow(self, profile: TelegramProfile, payment_id: str) -> None:
+        user = self.require_linked_user(profile)
+        if not user:
+            return
+        self.set_payment_receipt_flow_data(profile.chat_id, {"payment_id": payment_id})
+        self.set_action(profile.chat_id, self.STATE_PAYMENT_RECEIPT_TRACKING)
+        self.delete_chain_message(profile.chat_id)
+        self.client.send_message(profile.chat_id, self.t(profile, "payment_receipt_prompt"), reply_markup=self.cancel_keyboard(profile))
+
+    def handle_payment_receipt_tracking_text(self, profile: TelegramProfile, text: str) -> None:
+        user = self.require_linked_user(profile)
+        if not user:
+            return
+        tracking_code = text.strip()
+        if len(tracking_code) < 3:
+            self.client.send_message(profile.chat_id, self.t(profile, "payment_receipt_prompt"), reply_markup=self.cancel_keyboard(profile))
+            return
+        data = self.get_payment_receipt_flow_data(profile.chat_id)
+        try:
+            receipt = self.commerce_logic.upload_payment_receipt(
+                user=user,
+                payment_id=data.get("payment_id"),
+                tracking_code=tracking_code,
+                note="Registered from bot.",
+            )
+        except Exception as error:
+            logger.exception("Telegram payment receipt registration failed")
+            self.client.send_message(
+                profile.chat_id,
+                f"⚠️ {html.escape(self.validation_message(error))}",
+                reply_markup=self.main_menu_keyboard(profile),
+            )
+            self.clear_all_flow_data(profile.chat_id)
+            return
+
+        self.clear_all_flow_data(profile.chat_id)
+        self.notify_admins_about_payment_receipt(receipt)
+        self.client.send_message(
+            profile.chat_id,
+            self.t(profile, "payment_receipt_saved_with_id", message=self.t(profile, "payment_receipt_saved"), receipt_id=html.escape(str(receipt.id))),
+            reply_markup=self.main_menu_keyboard(profile),
+        )
+
+    def payment_action_keyboard(self, profile: TelegramProfile, payment, course_id: str) -> list[list[dict[str, Any]]]:
+        keyboard = [
+            [
+                self.inline_button(self.t(profile, "payment_my_courses_button"), "e:mine"),
+                self.inline_button(self.t(profile, "payment_my_orders_button"), "o:mine"),
+            ]
+        ]
+        if payment and payment.provider in {PaymentProviderEnum.CARD_TO_CARD.value, PaymentProviderEnum.MANUAL.value} and payment.status in {PaymentStatusEnum.PENDING_RECEIPT.value, PaymentStatusEnum.RECEIPT_REJECTED.value}:
+            keyboard.append([self.inline_button(self.t(profile, "payment_receipt_button"), f"p:r:{self.compact_id(payment.id)}")])
+        if payment and payment.payment_url:
+            keyboard.append([{"text": self.t(profile, "order_payment_url", url="").replace(": ", "").strip() or "Open payment", "url": payment.payment_url}])
+        keyboard.append([self.inline_button(self.t(profile, "course_back_button"), f"c:d:{course_id}")])
+        return keyboard
+
+    def send_payment_receipt_queue(self, profile: TelegramProfile, page: int = 1, *, message_id: int | None = None) -> None:
+        if not self.is_admin_profile(profile):
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+
+        page_size = self.configured_list_page_size()
+        receipts, has_next, total_count = self.commerce_logic.list_pending_payment_receipts(page=page, page_size=page_size)
+        if not receipts:
+            self.send_chain_message(profile, self.t(profile, "payment_queue_empty"), reply_markup=self.main_menu_keyboard(profile), message_id=message_id)
+            return
+
+        total_pages = self.total_pages(total_count, page_size)
+        lines = [
+            self.t(profile, "payment_queue_heading"),
+            self.t(profile, "list_page_indicator", page=page, total_pages=total_pages, total_count=total_count),
+        ]
+        keyboard: list[list[dict[str, Any]]] = []
+        start_index = ((page - 1) * page_size) + 1
+        for index, receipt in enumerate(receipts, start=start_index):
+            lines.append(self.payment_receipt_admin_text(profile, receipt, index=index))
+            receipt_id = self.compact_id(receipt.id)
+            keyboard.append([
+                self.inline_button(self.t(profile, "approve_button"), f"pay:a:{receipt_id}"),
+                self.inline_button(self.t(profile, "reject_button"), f"pay:x:{receipt_id}"),
+            ])
+        keyboard.extend(self.queue_navigation_rows(profile, page=page, has_next=has_next, callback_prefix="pay:q"))
+        self.send_chain_message(profile, "\n\n".join(lines), reply_markup=self.inline_keyboard(keyboard), message_id=message_id)
+    def payment_receipt_admin_text(self, profile: TelegramProfile, receipt, *, index: int | None = None) -> str:
+        payment = receipt.payment
+        order = payment.order
+        user_name = html.escape(receipt.user.first_name or receipt.user.username or receipt.user.email or "-")
+        text = self.t(
+            profile,
+            "pending_payment_receipt_item",
+            order=html.escape(order.order_number),
+            user=user_name,
+            payment=html.escape(payment.payment_number),
+            amount=self.format_money(payment.amount, payment.currency),
+            tracking=html.escape(receipt.tracking_code or "-"),
+            source=html.escape(receipt.source or "-"),
+        )
+        prefix = f"<b>#{index}</b>\n" if index is not None else ""
+        receipt_url = self.receipt_visible_url(receipt)
+        if receipt_url:
+            link = f'<a href="{html.escape(receipt_url, quote=True)}">{html.escape(self.t(profile, "view_receipt_button"))}</a>'
+            return f"{prefix}{text}\n{link}"
+        return f"{prefix}{text}"
+
+    @staticmethod
+    def receipt_visible_url(receipt) -> str:
+        if receipt.receipt_file_url:
+            return receipt.receipt_file_url
+        receipt_file = getattr(receipt, "receipt_file", None)
+        if receipt_file:
+            try:
+                return receipt_file.url
+            except Exception:
+                return ""
+        return ""
+
+    @staticmethod
+    def telegram_receipt_file_metadata_from_note(note: str) -> dict[str, str]:
+        metadata: dict[str, str] = {}
+        for item in (note or "").split("|"):
+            key, separator, value = item.strip().partition("=")
+            if separator and key:
+                metadata[key.strip()] = value.strip()
+        return metadata
+
+    def send_receipt_media_to_admin(self, admin_profile: TelegramProfile, receipt) -> None:
+        metadata = self.telegram_receipt_file_metadata_from_note(receipt.note)
+        file_id = metadata.get("telegram_file_id")
+        if not file_id:
+            return
+
+        caption = self.t(admin_profile, "payment_receipt_admin_notified")
+        kind = metadata.get("telegram_file_kind")
+        if kind == "photo":
+            self.client.send_photo(admin_profile.chat_id, file_id, caption=caption)
+            return
+        self.client.send_document(admin_profile.chat_id, file_id, caption=caption)
+
+    def review_payment_receipt_from_bot(self, profile: TelegramProfile, *, receipt_id: str, approve: bool, message_id: int | None = None) -> None:
+        if not self.is_admin_profile(profile):
+            self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
+            return
+
+        note_key = "admin_payment_approve_note" if approve else "admin_payment_reject_note"
+        try:
+            receipt, _payment = self.commerce_logic.review_payment_receipt(
+                admin_user=profile.user,
+                receipt_id=receipt_id,
+                approve=approve,
+                admin_note=self.t(profile, note_key),
+            )
+        except Exception as error:
+            logger.exception("Telegram payment receipt moderation failed")
+            self.client.send_message(profile.chat_id, f"⚠️ {html.escape(self.validation_message(error))}", reply_markup=self.main_menu_keyboard(profile))
+            return
+
+        self.send_chain_message(
+            profile,
+            self.t(
+                profile,
+                "payment_receipt_moderated",
+                receipt_id=html.escape(str(receipt.id)),
+                status=html.escape(PaymentReceiptStatusEnum.APPROVED.value if approve else PaymentReceiptStatusEnum.REJECTED.value),
+            ),
+            reply_markup=self.inline_keyboard([[
+                self.inline_button(self.t(profile, "back_to_payment_queue_button"), "pay:q"),
+                self.inline_button(self.t(profile, "main_menu_button"), self.CALLBACK_MAIN_MENU),
+            ]]),
+            message_id=message_id,
+        )
+
+    def notify_admins_about_payment_receipt(self, receipt) -> None:
+        for admin_profile in self.admin_payment_profiles():
+            try:
+                self.send_receipt_media_to_admin(admin_profile, receipt)
+                keyboard: list[list[dict[str, Any]]] = []
+                receipt_url = self.receipt_visible_url(receipt)
+                keyboard.append([
+                    self.inline_button(self.t(admin_profile, "approve_button"), f"pay:a:{self.compact_id(receipt.id)}"),
+                    self.inline_button(self.t(admin_profile, "reject_button"), f"pay:x:{self.compact_id(receipt.id)}"),
+                ])
+                if receipt_url:
+                    keyboard.append([
+                        {"text": self.t(admin_profile, "view_receipt_button"), "url": receipt_url},
+                        self.inline_button(self.t(admin_profile, "back_to_payment_queue_button"), "pay:q"),
+                    ])
+                else:
+                    keyboard.append([
+                        self.inline_button(self.t(admin_profile, "back_to_payment_queue_button"), "pay:q"),
+                        self.inline_button(self.t(admin_profile, "main_menu_button"), self.CALLBACK_MAIN_MENU),
+                    ])
+                self.client.send_message(
+                    admin_profile.chat_id,
+                    f"{self.t(admin_profile, 'payment_receipt_admin_notified')}\n{self.payment_receipt_admin_text(admin_profile, receipt)}",
+                    reply_markup=self.inline_keyboard(keyboard),
+                )
+            except Exception:
+                logger.debug("Could not notify Telegram admin about payment receipt", exc_info=True)
+
+    def admin_payment_profiles(self):
+        return (
+            TelegramProfile.objects.select_related("user", "user__role")
+            .filter(messenger_provider=self.MESSENGER_PROVIDER, is_verified=True, is_active=True, user__is_active=True)
+            .filter(Q(user__is_staff=True) | Q(user__is_superuser=True) | Q(user__role__symbol="admin"))
+            .order_by("chat_id")
         )
 
     def send_my_courses(self, profile: TelegramProfile, *, message_id: int | None = None) -> None:
@@ -1860,15 +2221,33 @@ class TelegramBotService:
         self.set_action(profile.chat_id, self.STATE_REVIEW_COMMENT)
         self.client.send_message(profile.chat_id, self.t(profile, "review_comment_prompt"), reply_markup=self.cancel_keyboard(profile))
 
+    @classmethod
+    def is_valid_review_comment(cls, comment: str) -> bool:
+        compact_comment = "".join(comment.split())
+        return len(compact_comment) >= cls.MIN_REVIEW_COMMENT_CHARACTERS
+
     def handle_review_comment_text(self, profile: TelegramProfile, text: str) -> None:
         user = self.require_linked_user(profile)
         if not user:
+            self.clear_all_flow_data(profile.chat_id)
             return
+
         data = self.get_review_flow_data(profile.chat_id)
-        comment = text.strip()
-        if len(comment) < 5:
-            self.client.send_message(profile.chat_id, self.t(profile, "review_comment_prompt"), reply_markup=self.cancel_keyboard(profile))
+        if not data.get("course_id") or not data.get("rating"):
+            self.clear_all_flow_data(profile.chat_id)
+            self.client.send_message(profile.chat_id, self.t(profile, "canceled"), reply_markup=self.main_menu_keyboard(profile))
             return
+
+        comment = text.strip()
+        if not self.is_valid_review_comment(comment):
+            self.client.send_message(profile.chat_id, self.t(profile, "review_comment_too_short"), reply_markup=self.cancel_keyboard(profile))
+            return
+
+        # Clear the flow before the write. If Telegram retries the same update or
+        # the user sends another message quickly, the bot will not keep asking for
+        # the same comment step after a valid review text such as "عالی".
+        self.clear_all_flow_data(profile.chat_id)
+
         try:
             review = self.commerce_logic.submit_review(
                 user=user,
@@ -1884,47 +2263,48 @@ class TelegramBotService:
                 f"⚠️ {html.escape(self.validation_message(error))}",
                 reply_markup=self.main_menu_keyboard(profile),
             )
-            self.clear_action(profile.chat_id)
-            self.clear_review_flow_data(profile.chat_id)
             return
 
-        self.clear_action(profile.chat_id)
-        self.clear_review_flow_data(profile.chat_id)
         self.client.send_message(
             profile.chat_id,
             self.t(profile, "review_saved_with_id", message=self.t(profile, "review_pending"), review_id=html.escape(str(review.id))),
             reply_markup=self.main_menu_keyboard(profile),
         )
 
-    def send_review_queue(self, profile: TelegramProfile, *, message_id: int | None = None) -> None:
+    def send_review_queue(self, profile: TelegramProfile, page: int = 1, *, message_id: int | None = None) -> None:
         if not self.is_admin_profile(profile):
             self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
             return
-        reviews = self.commerce_logic.list_pending_reviews(limit=10)
+        page_size = self.configured_list_page_size()
+        reviews, has_next, total_count = self.commerce_logic.list_pending_reviews(page=page, page_size=page_size)
         if not reviews:
             self.send_chain_message(profile, self.t(profile, "review_queue_empty"), reply_markup=self.main_menu_keyboard(profile), message_id=message_id)
             return
-        lines = [self.t(profile, "review_queue_heading")]
+        total_pages = self.total_pages(total_count, page_size)
+        lines = [
+            self.t(profile, "review_queue_heading"),
+            self.t(profile, "list_page_indicator", page=page, total_pages=total_pages, total_count=total_count),
+        ]
         keyboard: list[list[dict[str, Any]]] = []
-        for review in reviews:
+        start_index = ((page - 1) * page_size) + 1
+        for index, review in enumerate(reviews, start=start_index):
             user_name = html.escape(review.user.first_name or review.user.username or TelegramBotMessageTextVO.DEFAULT_USER_NAME[self.lang(profile)])
             lines.append(
-                self.t(
+                f"<b>#{index}</b>\n" + self.t(
                     profile,
                     "pending_review_item",
                     course=html.escape(review.course.title),
                     user=user_name,
                     rating=review.rating,
-                    comment=html.escape(review.comment[:250]),
+                    comment=html.escape(review.comment[:220]),
                 )
             )
             keyboard.append([
                 self.inline_button(self.t(profile, "approve_button"), f"r:a:{self.compact_id(review.id)}"),
                 self.inline_button(self.t(profile, "reject_button"), f"r:x:{self.compact_id(review.id)}"),
             ])
-        keyboard.append([self.inline_button(self.t(profile, "refresh_button"), "r:q")])
-        self.send_chain_message(profile, "\n".join(lines), reply_markup=self.inline_keyboard(keyboard), message_id=message_id)
-
+        keyboard.extend(self.queue_navigation_rows(profile, page=page, has_next=has_next, callback_prefix="r:q"))
+        self.send_chain_message(profile, "\n\n".join(lines), reply_markup=self.inline_keyboard(keyboard), message_id=message_id)
     def moderate_review_from_bot(self, profile: TelegramProfile, *, review_id: str, approve: bool, message_id: int | None = None) -> None:
         if not self.is_admin_profile(profile):
             self.client.send_message(profile.chat_id, self.t(profile, "admin_only"), reply_markup=self.main_menu_keyboard(profile))
@@ -1939,7 +2319,10 @@ class TelegramBotService:
         self.send_chain_message(
             profile,
             self.t(profile, "review_moderated", review_id=html.escape(str(review.id)), status=html.escape(status)),
-            reply_markup=self.inline_keyboard([[self.inline_button(self.t(profile, "back_to_queue_button"), "r:q")]]),
+            reply_markup=self.inline_keyboard([[
+                self.inline_button(self.t(profile, "back_to_queue_button"), "r:q"),
+                self.inline_button(self.t(profile, "main_menu_button"), self.CALLBACK_MAIN_MENU),
+            ]]),
             message_id=message_id,
         )
 
@@ -1957,6 +2340,25 @@ class TelegramBotService:
             lines.append(cls.t(profile, "order_payment_payment", payment_number=html.escape(payment.payment_number)))
             lines.append(cls.t(profile, "order_payment_provider", provider=html.escape(payment.provider)))
             lines.append(cls.t(profile, "order_payment_payment_status", status=html.escape(payment.status)))
+            if payment.provider in {PaymentProviderEnum.CARD_TO_CARD.value, PaymentProviderEnum.MANUAL.value}:
+                card = html.escape(str(payment.response_payload.get("card_number", "")))
+                account = html.escape(str(payment.response_payload.get("account_number", "")))
+                holder = html.escape(str(payment.response_payload.get("card_holder", "")))
+                bank = html.escape(str(payment.response_payload.get("bank_name", "")))
+                iban = html.escape(str(payment.response_payload.get("iban", "")))
+                if card or account or holder or bank or iban:
+                    lines.append(
+                        cls.t(
+                            profile,
+                            "order_payment_card_info",
+                            card=card or "-",
+                            account=account or "-",
+                            holder=holder or "-",
+                            bank=bank or "-",
+                            iban=iban or "-",
+                        )
+                    )
+                lines.append(cls.t(profile, "order_payment_receipt_hint"))
             if payment.payment_url:
                 lines.append(cls.t(profile, "order_payment_url", url=html.escape(payment.payment_url)))
         return "\n".join(lines)
@@ -1975,6 +2377,9 @@ class TelegramBotService:
 
     def handle_review_queue(self, profile: TelegramProfile, command: TelegramCommand) -> None:
         self.send_review_queue(profile)
+
+    def handle_payment_queue(self, profile: TelegramProfile, command: TelegramCommand) -> None:
+        self.send_payment_receipt_queue(profile)
 
 
     @classmethod
@@ -2359,26 +2764,29 @@ class TelegramBotService:
 
         if is_linked:
             rows.append([cls.button(profile, "courses"), cls.button(profile, "my_courses")])
-            rows.append([cls.button(profile, "my_orders")])
+            rows.append([cls.button(profile, "my_orders"), cls.button(profile, "account")])
             if profile and cls.is_admin_profile(profile):
                 rows.append([cls.button(profile, "admin_courses"), cls.button(profile, "create_course")])
                 rows.append([cls.button(profile, "create_user"), cls.button(profile, "review_queue")])
+                rows.append([cls.button(profile, "payment_queue"), cls.button(profile, "forgot_password")])
+                rows.append([cls.button(profile, "channels"), cls.button(profile, "help")])
+            else:
+                rows.append([cls.button(profile, "forgot_password"), cls.button(profile, "channels")])
+                rows.append([cls.button(profile, "help"), cls.button(profile, "language")])
             if profile and profile.user and not profile.user.email_verified:
-                rows.append([cls.button(profile, "verify_email")])
-            rows.append([cls.button(profile, "account"), cls.button(profile, "forgot_password")])
+                rows.append([cls.button(profile, "verify_email"), cls.button(profile, "unlink")])
+            else:
+                rows.append([cls.button(profile, "language"), cls.button(profile, "unlink")])
             if cls.web_app_url():
-                rows.append([cls.web_app_button(profile)])
-            rows.append([cls.button(profile, "channels"), cls.button(profile, "help")])
-            rows.append([cls.button(profile, "language")])
-            rows.append([cls.button(profile, "unlink")])
+                rows.append([cls.web_app_button(profile), cls.button(profile, "help")])
         else:
-            rows.append([cls.button(profile, "courses")])
-            rows.append([cls.button(profile, "link")])
-            rows.append([cls.button(profile, "forgot_password")])
+            rows.append([cls.button(profile, "courses"), cls.button(profile, "link")])
+            rows.append([cls.button(profile, "forgot_password"), cls.button(profile, "channels")])
             if cls.web_app_url():
-                rows.append([cls.web_app_button(profile)])
-            rows.append([cls.button(profile, "channels"), cls.button(profile, "help")])
-            rows.append([cls.button(profile, "language")])
+                rows.append([cls.web_app_button(profile), cls.button(profile, "help")])
+                rows.append([cls.button(profile, "language")])
+            else:
+                rows.append([cls.button(profile, "help"), cls.button(profile, "language")])
 
         placeholder = cls.t(profile, "placeholder_main_menu")
         return cls.reply_keyboard(rows, placeholder=placeholder)

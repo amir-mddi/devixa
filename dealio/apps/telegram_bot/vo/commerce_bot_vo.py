@@ -23,6 +23,7 @@ class TelegramBotCallbackVO:
     MY_COURSES = "e:mine"
     MY_ORDERS = "o:mine"
     REVIEW_QUEUE = "r:q"
+    PAYMENT_QUEUE = "pay:q"
     UNLINK_ASK = "menu:unlink_ask"
     UNLINK_CONFIRM = "menu:unlink_confirm"
     CANCEL = "menu:cancel"
@@ -58,6 +59,7 @@ class TelegramBotStateVO:
     LESSON_DURATION = "admin_lesson_duration"
     LESSON_POSITION = "admin_lesson_position"
     LESSON_PREVIEW = "admin_lesson_preview"
+    PAYMENT_RECEIPT_TRACKING = "payment_receipt_tracking"
 
 
 class TelegramBotButtonKeyVO:
@@ -74,6 +76,7 @@ class TelegramBotButtonKeyVO:
     MY_COURSES = "my_courses"
     MY_ORDERS = "my_orders"
     REVIEW_QUEUE = "review_queue"
+    PAYMENT_QUEUE = "payment_queue"
     ADMIN_COURSES = "admin_courses"
     CREATE_COURSE = "create_course"
     MAIN_MENU = "main_menu"
@@ -105,6 +108,7 @@ class TelegramBotButtonTextVO:
             TelegramBotButtonKeyVO.MY_COURSES: "🎓 My courses",
             TelegramBotButtonKeyVO.MY_ORDERS: "🧾 My orders",
             TelegramBotButtonKeyVO.REVIEW_QUEUE: "🛡 Review queue",
+            TelegramBotButtonKeyVO.PAYMENT_QUEUE: "💳 Payment queue",
             TelegramBotButtonKeyVO.ADMIN_COURSES: "🧑‍🏫 Admin courses",
             TelegramBotButtonKeyVO.CREATE_COURSE: "➕ Create course",
             TelegramBotButtonKeyVO.MAIN_MENU: "⬅️ Main menu",
@@ -127,6 +131,7 @@ class TelegramBotButtonTextVO:
             TelegramBotButtonKeyVO.MY_COURSES: "🎓 دوره‌های من",
             TelegramBotButtonKeyVO.MY_ORDERS: "🧾 سفارش‌های من",
             TelegramBotButtonKeyVO.REVIEW_QUEUE: "🛡 بررسی دیدگاه‌ها",
+            TelegramBotButtonKeyVO.PAYMENT_QUEUE: "💳 بررسی پرداخت‌ها",
             TelegramBotButtonKeyVO.ADMIN_COURSES: "🧑‍🏫 مدیریت دوره‌ها",
             TelegramBotButtonKeyVO.CREATE_COURSE: "➕ ساخت دوره",
             TelegramBotButtonKeyVO.MAIN_MENU: "⬅️ منوی اصلی",
@@ -161,6 +166,7 @@ class TelegramBotAliasVO:
         TelegramBotButtonKeyVO.MY_COURSES: {"my courses", "my course", "دوره‌های من", "دوره های من"},
         TelegramBotButtonKeyVO.MY_ORDERS: {"my orders", "orders", "سفارش‌های من", "سفارش های من"},
         TelegramBotButtonKeyVO.REVIEW_QUEUE: {"review queue", "reviews queue", "بررسی دیدگاه‌ها", "بررسی دیدگاه ها"},
+        TelegramBotButtonKeyVO.PAYMENT_QUEUE: {"payment queue", "payments", "payment approvals", "بررسی پرداخت‌ها", "بررسی پرداخت ها", "پرداخت‌ها", "پرداخت ها"},
         TelegramBotButtonKeyVO.ADMIN_COURSES: {"admin courses", "manage courses", "course admin", "مدیریت دوره‌ها", "مدیریت دوره ها"},
         TelegramBotButtonKeyVO.CREATE_COURSE: {"create course", "new course", "ساخت دوره", "دوره جدید"},
     }
@@ -237,11 +243,28 @@ class TelegramBotMessageTextVO:
             "review_rating_prompt": "Send a rating from 1 to 5 for this course.",
             "review_title_prompt": "Optional: send a short review title, or send <code>-</code> to skip.",
             "review_comment_prompt": "Now send your review comment. It will be visible only after admin approval.",
+            "review_comment_too_short": "Please send at least 2 non-space characters for the review text.",
             "review_pending": "✅ Thanks! Your review is waiting for admin approval.",
             "review_queue_empty": "There are no pending reviews.",
-            "payment_manual": "✅ Order and manual payment were created. Admin confirmation is required before enrollment.",
+            "payment_manual": "✅ Card-to-card payment was created. Upload/register the receipt code; admin approval is required before enrollment.",
             "payment_success": "✅ Payment succeeded. You are now enrolled in the course.",
             "payment_created": "✅ Order/payment created successfully.",
+            "payment_receipt_button": "📎 Send receipt",
+            "payment_receipt_prompt": "Send the receipt photo/document, or send the tracking/reference number as text.",
+            "payment_receipt_saved": "✅ Receipt was registered and is waiting for admin verification.",
+            "payment_receipt_saved_with_id": "{message}\nReceipt ID: <code>{receipt_id}</code>",
+            "payment_receipt_admin_notified": "A new payment receipt was sent to admins for review.",
+            "payment_receipt_unsupported_file": "Please send a receipt photo/document, or send the tracking/reference number as text.",
+            "payment_queue_empty": "There are no pending payment receipts.",
+            "payment_queue_heading": "<b>💳 Pending payment receipts</b>",
+            "pending_payment_receipt_item": "\n<b>{order}</b>\nUser: <code>{user}</code>\nPayment: <code>{payment}</code>\nAmount: <code>{amount}</code>\nTracking: <code>{tracking}</code>\nSource: <code>{source}</code>",
+            "view_receipt_button": "👁 View receipt",
+            "back_to_payment_queue_button": "Back to payment queue",
+            "admin_payment_approve_note": "Approved from Telegram bot.",
+            "admin_payment_reject_note": "Rejected from Telegram bot.",
+            "payment_receipt_moderated": "✅ Payment receipt <code>{receipt_id}</code> marked as <b>{status}</b>.",
+            "order_payment_card_info": "Card: <code>{card}</code>\nAccount: <code>{account}</code>\nHolder: <code>{holder}</code>\nBank: <code>{bank}</code>\nIBAN: <code>{iban}</code>",
+            "order_payment_receipt_hint": "After transfer, send the receipt photo/document here or register the receipt code.",
             "course_already_owned": "You already purchased this course.",
             "create_start": "Create a new app user.\n\nSend the username first.\nExample: <code>ali_ahmadi</code>",
             "create_email": "Now send the user Gmail address.\nExample: <code>user@gmail.com</code>",
@@ -298,6 +321,7 @@ class TelegramBotMessageTextVO:
             "approve_button": "✅ Approve",
             "reject_button": "❌ Reject",
             "refresh_button": "Refresh",
+            "list_page_indicator": "Page <code>{page}</code> of <code>{total_pages}</code> • Total items: <code>{total_count}</code>",
             "admin_review_note": "Moderated from Telegram bot.",
             "review_moderated": "✅ Review <code>{review_id}</code> marked as <b>{status}</b>.",
             "back_to_queue_button": "Back to queue",
@@ -384,11 +408,28 @@ class TelegramBotMessageTextVO:
             "review_rating_prompt": "امتیاز این دوره را از ۱ تا ۵ ارسال کنید.",
             "review_title_prompt": "اختیاری: یک عنوان کوتاه برای دیدگاه بفرستید، یا برای رد شدن <code>-</code> ارسال کنید.",
             "review_comment_prompt": "حالا متن دیدگاه خود را ارسال کنید. دیدگاه فقط بعد از تأیید ادمین نمایش داده می‌شود.",
+            "review_comment_too_short": "متن دیدگاه باید حداقل ۲ کاراکتر غیر فاصله داشته باشد.",
             "review_pending": "✅ ممنون! دیدگاه شما در انتظار تأیید ادمین است.",
             "review_queue_empty": "دیدگاه در انتظار بررسی وجود ندارد.",
-            "payment_manual": "✅ سفارش و پرداخت دستی ایجاد شد. ثبت‌نام بعد از تأیید ادمین فعال می‌شود.",
+            "payment_manual": "✅ سفارش و پرداخت کارت‌به‌کارت ایجاد شد. بعد از ثبت رسید و تأیید ادمین، ثبت‌نام فعال می‌شود.",
             "payment_success": "✅ پرداخت موفق بود. شما در دوره ثبت‌نام شدید.",
             "payment_created": "✅ سفارش/پرداخت با موفقیت ایجاد شد.",
+            "payment_receipt_button": "📎 ارسال رسید",
+            "payment_receipt_prompt": "تصویر/فایل رسید را همینجا بفرستید، یا کد پیگیری/شماره ارجاع را به‌صورت متن ارسال کنید.",
+            "payment_receipt_saved": "✅ رسید ثبت شد و در انتظار تأیید ادمین است.",
+            "payment_receipt_saved_with_id": "{message}\nشناسه رسید: <code>{receipt_id}</code>",
+            "payment_receipt_admin_notified": "رسید جدید برای بررسی به ادمین‌ها ارسال شد.",
+            "payment_receipt_unsupported_file": "لطفاً تصویر/فایل رسید را بفرستید، یا کد پیگیری را به‌صورت متن ارسال کنید.",
+            "payment_queue_empty": "رسید پرداختی در انتظار بررسی وجود ندارد.",
+            "payment_queue_heading": "<b>💳 رسیدهای پرداخت در انتظار بررسی</b>",
+            "pending_payment_receipt_item": "\n<b>{order}</b>\nکاربر: <code>{user}</code>\nپرداخت: <code>{payment}</code>\nمبلغ: <code>{amount}</code>\nکد پیگیری: <code>{tracking}</code>\nمنبع: <code>{source}</code>",
+            "view_receipt_button": "👁 مشاهده رسید",
+            "back_to_payment_queue_button": "بازگشت به صف پرداخت‌ها",
+            "admin_payment_approve_note": "تأییدشده از ربات تلگرام.",
+            "admin_payment_reject_note": "ردشده از ربات تلگرام.",
+            "payment_receipt_moderated": "✅ رسید پرداخت <code>{receipt_id}</code> با وضعیت <b>{status}</b> ثبت شد.",
+            "order_payment_card_info": "کارت: <code>{card}</code>\nشماره حساب: <code>{account}</code>\nنام صاحب حساب: <code>{holder}</code>\nبانک: <code>{bank}</code>\nشبا: <code>{iban}</code>",
+            "order_payment_receipt_hint": "بعد از انتقال وجه، تصویر/فایل رسید را همینجا بفرستید یا کد رسید را ثبت کنید.",
             "course_already_owned": "شما قبلاً این دوره را خریده‌اید.",
             "create_start": "ساخت کاربر جدید.\n\nابتدا نام کاربری را ارسال کنید.\nمثال: <code>ali_ahmadi</code>",
             "create_email": "حالا آدرس جیمیل کاربر را ارسال کنید.\nمثال: <code>user@gmail.com</code>",
@@ -445,6 +486,7 @@ class TelegramBotMessageTextVO:
             "approve_button": "✅ تأیید",
             "reject_button": "❌ رد",
             "refresh_button": "به‌روزرسانی",
+            "list_page_indicator": "صفحه <code>{page}</code> از <code>{total_pages}</code> • مجموع آیتم‌ها: <code>{total_count}</code>",
             "admin_review_note": "بررسی‌شده از ربات تلگرام.",
             "review_moderated": "✅ دیدگاه <code>{review_id}</code> با وضعیت <b>{status}</b> ثبت شد.",
             "back_to_queue_button": "بازگشت به صف بررسی",
@@ -525,6 +567,7 @@ class TelegramBotProfileVO:
             {"command": "admin_courses", "description": "مدیریت دوره‌ها - فقط ادمین"},
             {"command": "create_course", "description": "ساخت دوره - فقط ادمین"},
             {"command": "review_queue", "description": "بررسی دیدگاه‌ها - فقط ادمین"},
+            {"command": "payment_queue", "description": "بررسی پرداخت‌ها - فقط ادمین"},
             {"command": "account", "description": "نمایش حساب من"},
             {"command": "verify_email", "description": "تأیید ایمیل"},
             {"command": "forgot_password", "description": "بازیابی رمز عبور"},
@@ -540,6 +583,7 @@ class TelegramBotProfileVO:
             {"command": "admin_courses", "description": "Manage courses - admin only"},
             {"command": "create_course", "description": "Create course - admin only"},
             {"command": "review_queue", "description": "Review queue - admin only"},
+            {"command": "payment_queue", "description": "Payment queue - admin only"},
             {"command": "account", "description": "Show my account"},
             {"command": "verify_email", "description": "Verify email"},
             {"command": "forgot_password", "description": "Recover password"},

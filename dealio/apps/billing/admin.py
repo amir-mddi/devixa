@@ -1,12 +1,30 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 
-from dealio.apps.billing.models import Order, OrderItem, Payment
+from dealio.apps.billing.dtos import PaymentReceiptReviewDTO
+from dealio.apps.billing.enums import PaymentReceiptStatusEnum
+from dealio.apps.billing.models import Order, OrderItem, Payment, PaymentReceipt
+from dealio.apps.billing.repositories.logic import BillingLogicRepository
 
 
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
     extra = 0
     readonly_fields = ("course_title", "unit_price", "quantity", "total_price")
+
+
+class PaymentReceiptInline(admin.TabularInline):
+    model = PaymentReceipt
+    extra = 0
+    readonly_fields = (
+        "status",
+        "source",
+        "receipt_file",
+        "receipt_file_url",
+        "tracking_code",
+        "paid_amount",
+        "reviewed_by",
+        "reviewed_at",
+    )
 
 
 @admin.register(Order)
@@ -30,3 +48,56 @@ class PaymentAdmin(admin.ModelAdmin):
     list_filter = ("provider", "status", "currency", "created_at", "paid_at")
     search_fields = ("payment_number", "order__order_number", "transaction_id", "authority", "user__username")
     readonly_fields = ("payment_number", "paid_at", "verified_at")
+    inlines = [PaymentReceiptInline]
+
+
+@admin.register(PaymentReceipt)
+class PaymentReceiptAdmin(admin.ModelAdmin):
+    list_display = (
+        "payment",
+        "user",
+        "status",
+        "source",
+        "tracking_code",
+        "paid_amount",
+        "reviewed_by",
+        "reviewed_at",
+        "created_at",
+    )
+    list_filter = ("status", "source", "created_at", "reviewed_at")
+    search_fields = ("payment__payment_number", "payment__order__order_number", "tracking_code", "user__username", "user__email")
+    readonly_fields = ("reviewed_at",)
+    actions = ["approve_selected_receipts", "reject_selected_receipts"]
+
+    @admin.action(description="Approve selected payment receipts and activate enrollments")
+    def approve_selected_receipts(self, request, queryset):
+        logic = BillingLogicRepository()
+        approved_count = 0
+        for receipt in queryset.filter(status=PaymentReceiptStatusEnum.PENDING.value, is_deleted=False):
+            logic.review_receipt(
+                actor=request.user,
+                dto=PaymentReceiptReviewDTO(
+                    receipt_id=receipt.id,
+                    approve=True,
+                    transaction_id=receipt.tracking_code,
+                    admin_note="Approved from Django admin.",
+                ),
+            )
+            approved_count += 1
+        self.message_user(request, f"{approved_count} receipt(s) approved.", level=messages.SUCCESS)
+
+    @admin.action(description="Reject selected payment receipts")
+    def reject_selected_receipts(self, request, queryset):
+        logic = BillingLogicRepository()
+        rejected_count = 0
+        for receipt in queryset.filter(status=PaymentReceiptStatusEnum.PENDING.value, is_deleted=False):
+            logic.review_receipt(
+                actor=request.user,
+                dto=PaymentReceiptReviewDTO(
+                    receipt_id=receipt.id,
+                    approve=False,
+                    admin_note="Rejected from Django admin.",
+                ),
+            )
+            rejected_count += 1
+        self.message_user(request, f"{rejected_count} receipt(s) rejected.", level=messages.WARNING)
