@@ -67,3 +67,84 @@
     --card-media-course:clamp(150px,14vw,200px);
     --card-media-course-mobile:clamp(140px,42vw,170px);
 }
+
+/* Semantic theme tokens: production light/dark contrast layer */
+:root,
+[data-theme="dark"]{
+    --bg-page:#070b14;
+    --bg-surface:#101827;
+    --bg-surface-strong:#0d1424;
+    --bg-card:#111827;
+    --bg-card-hover:#162033;
+    --bg-card-media:linear-gradient(135deg,rgba(79,124,255,.22),rgba(124,58,237,.26));
+    --bg-chip:rgba(255,255,255,.055);
+    --bg-input:#0d1524;
+
+    --text-primary:#f8fafc;
+    --text-secondary:#cbd5e1;
+    --text-muted:#9aa8bd;
+    --text-on-dark:#f8fafc;
+    --text-on-accent:#ffffff;
+
+    --border-soft:rgba(148,163,184,.22);
+    --border-strong:rgba(148,163,184,.38);
+
+    --accent:var(--primary);
+    --accent-hover:#6d8cff;
+    --accent-soft:rgba(79,124,255,.14);
+
+    --shadow-card:0 18px 48px rgba(0,0,0,.24);
+    --shadow-card-hover:0 26px 70px rgba(0,0,0,.32);
+
+    --bg:var(--bg-page);
+    --surface:var(--bg-surface);
+    --surface-soft:var(--bg-surface-strong);
+    --surface-muted:#0a1120;
+    --text:var(--text-primary);
+    --border:var(--border-soft);
+}
+
+.light-theme,
+[data-theme="light"]{
+    --bg-page:#f5f7ff;
+    --bg-surface:#ffffff;
+    --bg-surface-strong:#f8fbff;
+    --bg-card:#ffffff;
+    --bg-card-hover:#f1f5ff;
+    --bg-card-media:linear-gradient(135deg,#e8efff,#f0e9ff);
+    --bg-chip:#ffffff;
+    --bg-input:#ffffff;
+
+    --text-primary:#111827;
+    --text-secondary:#334155;
+    --text-muted:#64748b;
+    --text-on-dark:#f8fafc;
+    --text-on-accent:#ffffff;
+
+    --border-soft:#d8deea;
+    --border-strong:#bbc6d7;
+
+    --accent:#5b63ff;
+    --accent-hover:#4f46e5;
+    --accent-soft:rgba(91,99,255,.13);
+
+    --shadow-card:0 18px 48px rgba(30,41,59,.10);
+    --shadow-card-hover:0 26px 70px rgba(79,70,229,.18);
+
+    --bg:var(--bg-page);
+    --surface:var(--bg-surface);
+    --surface-soft:var(--bg-surface-strong);
+    --surface-muted:#eef2ff;
+    --text:var(--text-primary);
+    --border:var(--border-soft);
+}
+
+:root{
+    --card-grid-min:280px;
+    --card-grid-max:420px;
+    --card-grid-gap:24px;
+    --card-padding-compact:clamp(16px,2vw,24px);
+    --card-media-compact:clamp(140px,13vw,190px);
+    --card-button-height:46px;
+    --brand-accent-2:#7c3aed;
+}

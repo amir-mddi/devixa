@@ -16,8 +16,8 @@
 {% endblock %}
 
 {% block content %}
-<section class="single_course_hero">
-    <section class="introduction reveal_right">
+<section class="single_course_hero course-detail-hero">
+    <section class="introduction course-detail-hero__content reveal_right">
         <h4 class="badge flex-center"><span class="circle_gradient"></span>{{ course.category.title|default:"دوره آموزشی" }}</h4>
         <h1 class="title mt-3">{{ course.title }}</h1>
         <p class="subtitle mt-2" style="width:100%">{{ course.short_description|default:course.description|truncatechars:220 }}</p>
@@ -38,7 +38,7 @@
             </section>
         </section>
     </section>
-    <section class="dashboard_mockup reveal_left">
+    <section class="dashboard_mockup course-overview-card reveal_left">
         <h4>نمای کلی دوره</h4>
         <div class="card completed flex-between"><span>شروع مسیر</span><span>✅</span></div>
         <div class="card completed flex-between"><span>تمرین‌های عملی</span><span>✅</span></div>
@@ -47,12 +47,12 @@
     </section>
 </section>
 
-<section class="course_description_box">
+<section class="course_description_box course-detail-card">
     <h4 class="title">درباره این دوره</h4>
     <p class="subtitle mt-2" style="width:100%;text-align:right;">{{ course.description|default:course.short_description }}</p>
 </section>
 
-<section class="curriculum text-center">
+<section class="curriculum course-detail-section course-detail-curriculum text-center">
     <h4 class="title reveal">سرفصل‌های <span class="gradient_word">دوره</span></h4>
     <p class="subtitle mt-1 reveal_right" style="width:100%">لیست درس‌ها و بخش‌هایی که در این دوره یاد می‌گیرید.</p>
     <section class="summery_badges flex-around">
@@ -88,23 +88,23 @@
     </section>
 </section>
 
-<section class="will_learn">
+<section class="will_learn course-detail-section course-detail-learning">
     <h4 class="title reveal">در این دوره چه چیزی <span class="gradient_word">یاد می‌گیری؟</span></h4>
     <p class="subtitle mt-1 reveal_right" style="width:100%">تمرکز این دوره روی خروجی قابل ارائه و مهارت واقعی است.</p>
     <section class="card_learn mt-4">
-        <div class="card flex-center"><p class="title">کدنویسی تمیز و قابل توسعه</p></div>
-        <div class="card flex-center"><p class="title">ساخت پروژه واقعی</p></div>
-        <div class="card flex-center"><p class="title">آمادگی برای بازار کار</p></div>
+        <div class="card course-outcome-card flex-center"><p class="course-outcome-card__title">کدنویسی تمیز و قابل توسعه</p></div>
+        <div class="card course-outcome-card flex-center"><p class="course-outcome-card__title">ساخت پروژه واقعی</p></div>
+        <div class="card course-outcome-card flex-center"><p class="course-outcome-card__title">آمادگی برای بازار کار</p></div>
     </section>
 </section>
 
-<section class="instructor">
+<section class="instructor course-detail-section course-detail-instructor">
     <h4 class="badge flex-center">مدرس دوره</h4>
     <section class="teacher">
         <section class="intro_teacher">
             <section class="resume">
                 <h5 class="name title">{{ course|course_instructor_label }}</h5>
-                <h6 class="subtitle mt-1" style="width:100%">مدرس و منتور {{ project.display_name }}</h6>
+                <h6 class="subtitle mt-1" style="width:100%">مدرس و منتور <span class="brand-text">{{ project.display_name }}</span></h6>
                 <p class="subtitle mt-2" style="width:100%">این دوره با تمرکز روی پروژه، تمرین و ساخت نمونه‌کار طراحی شده است.</p>
             </section>
             <section class="picture flex-center">
@@ -114,7 +114,7 @@
     </section>
 </section>
 
-<section class="student_reviews">
+<section class="student_reviews course-detail-section course-detail-reviews">
     <h4 class="title text-center reveal">نظر دانشجوها</h4>
     {% if reviews %}
         <section class="carousel_wrapper">
@@ -133,11 +133,11 @@
     {% endif %}
 </section>
 
-<section class="related_courses_title text-center">
+<section class="related_courses_title course-detail-section text-center">
     <h4 class="title reveal">دوره‌های <span class="gradient_word">مرتبط</span></h4>
 </section>
 {% if related_courses %}
-    <section class="courses">
+    <section class="courses related-courses-grid">
         {% for course in related_courses %}
             {% include "web/courses/_course_card.html" with course=course %}
         {% endfor %}

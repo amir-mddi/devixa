@@ -63,10 +63,10 @@
     <h4 class="section-title text-center mt-4 reveal">نقشه راه‌های یادگیری</h4>
     <p class="subtitle text-center mt-3 reveal_right" style="width: 100%;">مسیرهای یادگیری طراحی شده برای رسیدن سریع‌تر به مهارت‌های واقعی و ورود به بازار کار</p>
 
-    <section class="category_chips mt-3 flex-around">
+    <section class="category_chips chip-list mt-3 flex-around">
         {% for category in category_filters %}
             <div class="chip flex-center">
-                <a class="flex-center {% if category.value == catalog.selected_category %}active{% endif %}"
+                <a class="category-chip flex-center {% if category.value == catalog.selected_category %}active is-active{% endif %}"
                    href="?category={{ category.value }}{% if catalog.search %}&search={{ catalog.search|urlencode }}{% endif %}">
                     <p>{{ category.label }}</p>
                 </a>

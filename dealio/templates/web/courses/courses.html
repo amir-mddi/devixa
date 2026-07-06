@@ -12,15 +12,15 @@
     <section class="courses_hero">
         <h4 class="badge flex-center">
             <span><svg class="lucide lucide-sparkles" fill="var(--primary)" height="32" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="32" xmlns="http://www.w3.org/2000/svg"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg></span>
-            کاتالوگ دوره‌های {{ project.display_name }}
+            کاتالوگ دوره‌های <span class="brand-text">{{ project.display_name }}</span>
         </h4>
         <h4 class="title text-center mt-4 reveal">دوره‌های پروژه محور</h4>
         <p class="subtitle text-center mt-3 reveal_right" style="width:100%">دوره مناسب خودت را با دسته‌بندی، سطح و جستجو پیدا کن.</p>
 
-        <section class="category_chips mt-3 flex-around">
+        <section class="category_chips chip-list mt-3 flex-around">
             {% for category in catalog.categories %}
                 <div class="chip flex-center">
-                    <a class="flex-center {% if category.value == catalog.selected_category %}active{% endif %}"
+                    <a class="category-chip flex-center {% if category.value == catalog.selected_category %}active is-active{% endif %}"
                        href="?category={{ category.value }}&level={{ catalog.selected_level }}{% if catalog.search %}&search={{ catalog.search|urlencode }}{% endif %}">
                         <p>{{ category.label }}</p>
                     </a>
@@ -28,10 +28,10 @@
             {% endfor %}
         </section>
 
-        <section class="courses_filter_group">
+        <section class="courses_filter_group filter-list">
             {% for level in level_filters %}
                 <div class="chip flex-center">
-                    <a class="flex-center {% if level.value == catalog.selected_level %}active{% endif %}"
+                    <a class="filter-chip flex-center {% if level.value == catalog.selected_level %}active is-active{% endif %}"
                        href="?category={{ catalog.selected_category }}&level={{ level.value }}{% if catalog.search %}&search={{ catalog.search|urlencode }}{% endif %}">
                         <p>{{ level.label }}</p>
                     </a>

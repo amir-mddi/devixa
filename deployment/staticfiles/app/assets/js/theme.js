@@ -10,11 +10,16 @@
     const shouldUseLight = savedTheme ? savedTheme === 'light' : prefersLight;
 
     function applyTheme(isLight) {
+        const themeName = isLight ? 'light' : 'dark';
         document.body.classList.toggle('light-theme', isLight);
+        document.body.dataset.theme = themeName;
+        document.documentElement.dataset.theme = themeName;
         toggle.checked = isLight;
         if (menubar) menubar.classList.toggle('background', isLight);
-        localStorage.setItem('theme', isLight ? 'light' : 'dark');
-        document.documentElement.style.colorScheme = isLight ? 'light' : 'dark';
+        localStorage.setItem('theme', themeName);
+        document.documentElement.style.colorScheme = themeName;
+        const themeColor = document.querySelector('meta[name="theme-color"]');
+        if (themeColor) themeColor.setAttribute('content', isLight ? '#f5f7ff' : '#070b14');
     }
 
     applyTheme(shouldUseLight);

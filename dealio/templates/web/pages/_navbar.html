@@ -4,16 +4,16 @@
             <div class="x flex-center">
                 <div class="hole"></div>
             </div>
-            <span>{{ project.display_name }}</span>
+            <span class="project-name brand-text brand-text--glow">{{ project.display_name }}</span>
         </a>
     </section>
-    <nav id="navmenu" class="menu flex-around">
-       <a class="nav-link" href="{% url 'pages_web:home' %}">خانه</a>
-       <a class="nav-link" href="{% url 'courses_web:course_list' %}">دوره‌ها</a>
-       <a class="nav-link" href="{% url 'courses_web:roadmap_list' %}">نقشه راه دوره‌ها</a>
-       <a class="nav-link" href="{% url 'pages_web:channels' %}">کانال‌ها</a>
-       <a class="nav-link" href="{% url 'pages_web:contact_us' %}">تماس</a>
-       <a class="nav-link" href="{% url 'pages_web:about_us' %}">درباره‌ما</a>
+    <nav id="navmenu" class="menu mobile-menu flex-around" aria-label="منوی اصلی">
+       <a class="nav-link mobile-menu__item" href="{% url 'pages_web:home' %}"><span>خانه</span></a>
+       <a class="nav-link mobile-menu__item" href="{% url 'courses_web:course_list' %}"><span>دوره‌ها</span></a>
+       <a class="nav-link mobile-menu__item" href="{% url 'courses_web:roadmap_list' %}"><span>نقشه راه دوره‌ها</span></a>
+       <a class="nav-link mobile-menu__item" href="{% url 'pages_web:channels' %}"><span>کانال‌ها</span></a>
+       <a class="nav-link mobile-menu__item" href="{% url 'pages_web:contact_us' %}"><span>تماس</span></a>
+       <a class="nav-link mobile-menu__item" href="{% url 'pages_web:about_us' %}"><span>درباره‌ما</span></a>
     </nav>
     <button type="button" onclick="respo();" class="bars" aria-label="باز کردن منو" aria-controls="navmenu" aria-expanded="false">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-menu-icon lucide-menu"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/></svg>

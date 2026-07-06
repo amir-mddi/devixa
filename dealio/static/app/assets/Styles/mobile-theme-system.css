@@ -1,0 +1,1291 @@
+/* ==========================================================
+   Mobile navigation + theme contrast + equal component sizing
+   Loaded last. Root fixes for light-mode contrast, menu/tabs,
+   and card text/height consistency.
+   ========================================================== */
+
+:root{
+    --app-header-height:64px;
+    --app-container:1280px;
+    --tap-size:44px;
+    --card-radius:24px;
+    --card-pad:24px;
+    --card-pad-sm:18px;
+    --menu-width:min(360px, calc(100vw - 24px));
+
+    --ds-card-bg:var(--bg-card);
+    --component-card-bg:var(--bg-card);
+    --ds-card-border:1px solid var(--border-soft);
+    --component-card-border:1px solid var(--border-soft);
+    --component-card-shadow:var(--shadow-card);
+    --component-card-shadow-hover:var(--shadow-card-hover);
+}
+
+html,
+body{
+    max-width:100%;
+    overflow-x:clip;
+    background:var(--bg-page);
+    color:var(--text-primary);
+}
+
+body{
+    color:var(--text-primary);
+    background:
+        radial-gradient(circle at 80% 0%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 32%),
+        var(--bg-page);
+}
+
+.light-theme{
+    color-scheme:light;
+}
+
+body:not(.light-theme){
+    color-scheme:dark;
+}
+
+:where(p,li,span,label,input,textarea,select,button,a){
+    color:inherit;
+}
+
+:where(.subtitle,.body-text,.course-card-description,.roadmap-card-description,.feature-card__description,.contact-card-value,.courses_summary,.roadmaps_summary){
+    color:var(--text-secondary) !important;
+}
+
+:where(.text-muted,.small-text,.meta-text,.course-card__meta-item,.roadmap-card__footer,.footer .submenu a){
+    color:var(--text-muted) !important;
+}
+
+:where(.section-title,.hero-title,.card-title,.course-card-title,.roadmap-card-title,.feature-card__title,.feature-card-title,.contact-card-title){
+    color:var(--text-primary) !important;
+}
+
+/* Page sections must use semantic theme backgrounds, not old dark-only values. */
+:where(.courses_section,.courses_catalog,.courses_cta,.roadmaps_hero,.roadmaps_categories,.learning_process,.aboutus_hero,.aboutUs_card,.contact_hero,.main_contact,.featured_courses,.learning_path,.dashboard,.student_success,.faq,.footer,.channels_hero){
+    background:var(--bg-page) !important;
+    color:var(--text-primary) !important;
+}
+
+.light-theme :where(.courses_section,.courses_catalog,.roadmaps_hero,.roadmaps_categories,.learning_process,.aboutus_hero,.aboutUs_card,.contact_hero,.main_contact,.featured_courses,.learning_path,.dashboard,.student_success,.faq,.channels_hero){
+    background:
+        radial-gradient(circle at 90% 0%, rgba(91,99,255,.10), transparent 30%),
+        radial-gradient(circle at 0% 35%, rgba(6,182,212,.08), transparent 34%),
+        var(--bg-page) !important;
+}
+
+/* Header / navbar: balanced RTL grid and safe contrast in both themes. */
+.navbar{
+    --nav-action:48px;
+    min-height:var(--app-header-height) !important;
+    background:linear-gradient(135deg, color-mix(in srgb, var(--secondary) 74%, var(--bg-page)), color-mix(in srgb, var(--bg-surface-strong) 82%, var(--secondary))) !important;
+    border-color:var(--border-soft) !important;
+    color:var(--text-on-dark) !important;
+    box-shadow:0 10px 34px rgba(0,0,0,.14);
+}
+
+.light-theme .navbar,
+.light-theme .navbar.background{
+    background:rgba(255,255,255,.88) !important;
+    color:var(--text-primary) !important;
+    border-color:var(--border-soft) !important;
+    box-shadow:0 10px 34px rgba(30,41,59,.10);
+    backdrop-filter:blur(18px);
+    -webkit-backdrop-filter:blur(18px);
+}
+
+.navbar .logo a,
+.navbar .logo span,
+.navbar .menu a,
+.navbar .bars,
+.navbar .nav_cta .login,
+.navbar .nav_cta .auth-menu__trigger,
+.navbar .nav_cta .theme label{
+    color:inherit !important;
+}
+
+.navbar .bars,
+.navbar .nav_cta .login,
+.navbar .nav_cta .auth-menu__trigger,
+.navbar .nav_cta .theme label{
+    background:color-mix(in srgb, var(--bg-surface) 12%, transparent) !important;
+    border:1px solid color-mix(in srgb, currentColor 20%, transparent) !important;
+}
+
+.light-theme .navbar .bars,
+.light-theme .navbar .nav_cta .login,
+.light-theme .navbar .nav_cta .auth-menu__trigger,
+.light-theme .navbar .nav_cta .theme label{
+    background:#ffffff !important;
+    border-color:var(--border-soft) !important;
+    box-shadow:0 8px 22px rgba(30,41,59,.07);
+}
+
+.navbar .nav_cta .starting,
+.course_filter_submit,
+:where(.courses_link,.btn_start,.Registration,input.submit,input.retry,.contact-form__submit){
+    background:linear-gradient(135deg,var(--primary),var(--secondary)) !important;
+    color:var(--text-on-accent) !important;
+    border-color:transparent !important;
+}
+
+/* Mobile menu: fixed-size equal items, no broken boxes. */
+@media (max-width:980px){
+    :root{--app-header-height:64px;}
+
+    .navbar{
+        --nav-action:44px;
+        grid-template-columns:minmax(0,1fr) auto auto !important;
+        gap:8px !important;
+        padding-block:8px !important;
+        padding-inline:12px !important;
+    }
+
+    .navbar .logo{
+        min-width:0 !important;
+        max-width:100% !important;
+    }
+
+    .navbar .logo a{
+        min-width:0 !important;
+        gap:7px !important;
+    }
+
+    .navbar .logo .x{
+        width:30px !important;
+        height:30px !important;
+    }
+
+    .navbar .logo span{
+        font-size:clamp(19px,6vw,28px) !important;
+        max-width:clamp(96px,38vw,210px) !important;
+    }
+
+    .navbar .bars,
+    .navbar .nav_cta .login,
+    .navbar .nav_cta .auth-menu__trigger,
+    .navbar .nav_cta .theme,
+    .navbar .nav_cta .theme label{
+        width:var(--nav-action) !important;
+        height:var(--nav-action) !important;
+        min-height:var(--nav-action) !important;
+        flex-basis:var(--nav-action) !important;
+        border-radius:16px !important;
+    }
+
+    .navbar .nav_cta{
+        gap:6px !important;
+        min-width:0 !important;
+    }
+
+    .navbar .menu.mobile-menu,
+    .navbar .menu{
+        position:fixed !important;
+        inset-block-start:calc(var(--app-header-height) + env(safe-area-inset-top,0px) + 8px) !important;
+        inset-inline-start:12px !important;
+        inset-inline-end:auto !important;
+        width:var(--menu-width) !important;
+        max-width:var(--menu-width) !important;
+        max-height:calc(100svh - var(--app-header-height) - 24px) !important;
+        margin:0 !important;
+        padding:14px !important;
+        display:grid !important;
+        grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+        align-items:stretch !important;
+        justify-content:start !important;
+        gap:12px !important;
+        border-radius:24px !important;
+        border:1px solid var(--border-soft) !important;
+        background:var(--bg-surface-strong) !important;
+        box-shadow:var(--shadow-card-hover) !important;
+        color:var(--text-primary) !important;
+        direction:rtl !important;
+        overflow:auto !important;
+        overscroll-behavior:contain;
+        opacity:0 !important;
+        visibility:hidden !important;
+        pointer-events:none !important;
+        transform:translateY(-8px) scale(.98) !important;
+        transition:opacity .18s ease, transform .18s ease, visibility .18s ease !important;
+        z-index:5050 !important;
+        backdrop-filter:blur(18px);
+        -webkit-backdrop-filter:blur(18px);
+    }
+
+    .navbar .menu.mobile-menu.responsive,
+    .navbar .menu.responsive{
+        opacity:1 !important;
+        visibility:visible !important;
+        pointer-events:auto !important;
+        transform:translateY(0) scale(1) !important;
+    }
+
+    .navbar .menu.mobile-menu .mobile-menu__item,
+    .navbar .menu a{
+        width:100% !important;
+        min-width:0 !important;
+        height:56px !important;
+        min-height:56px !important;
+        max-height:56px !important;
+        padding:0 12px !important;
+        margin:0 !important;
+        display:flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        text-align:center !important;
+        border-radius:16px !important;
+        background:var(--bg-card) !important;
+        color:var(--text-primary) !important;
+        border:1px solid var(--border-soft) !important;
+        font-size:14px !important;
+        font-weight:700 !important;
+        line-height:1.4 !important;
+        white-space:normal !important;
+        overflow:hidden !important;
+        box-shadow:none !important;
+    }
+
+    .navbar .menu.mobile-menu .mobile-menu__item span,
+    .navbar .menu a span{
+        display:-webkit-box !important;
+        -webkit-line-clamp:2;
+        -webkit-box-orient:vertical;
+        overflow:hidden;
+        max-width:100%;
+    }
+
+    body.mobile-menu-open::before{
+        content:"";
+        position:fixed;
+        inset:0;
+        background:rgba(2,6,23,.28);
+        z-index:5040;
+        pointer-events:none;
+    }
+
+    .light-theme body.mobile-menu-open::before,
+    body.light-theme.mobile-menu-open::before{
+        background:rgba(15,23,42,.16);
+    }
+}
+
+@media (max-width:360px){
+    .navbar{
+        --nav-action:40px;
+        gap:6px !important;
+        padding-inline:8px !important;
+    }
+
+    .navbar .logo .x{width:27px !important;height:27px !important;}
+    .navbar .logo span{font-size:clamp(18px,6.4vw,22px) !important;max-width:112px !important;}
+
+    .navbar .menu.mobile-menu,
+    .navbar .menu{
+        inset-inline-start:8px !important;
+        width:calc(100vw - 16px) !important;
+        max-width:calc(100vw - 16px) !important;
+        padding:12px !important;
+        gap:10px !important;
+    }
+
+    .navbar .menu.mobile-menu .mobile-menu__item,
+    .navbar .menu a{
+        height:54px !important;
+        min-height:54px !important;
+        max-height:54px !important;
+        font-size:13px !important;
+        padding-inline:8px !important;
+    }
+}
+
+@media (max-width:300px){
+    .navbar{--nav-action:38px;}
+    .navbar .logo span{font-size:17px !important;max-width:92px !important;}
+}
+
+/* Tabs / filter chips: equal height, readable, horizontal on small screens. */
+:where(.tab-list,.filter-list,.chip-list,.courses_filter_group,.category_chips,.roadmaps_hero .category_chips){
+    display:flex !important;
+    align-items:center !important;
+    gap:10px !important;
+    direction:rtl !important;
+    min-width:0 !important;
+}
+
+:where(.tab-list,.filter-list,.chip-list,.courses_filter_group,.category_chips){
+    scrollbar-width:none;
+    -ms-overflow-style:none;
+}
+
+:where(.tab-list,.filter-list,.chip-list,.courses_filter_group,.category_chips)::-webkit-scrollbar{display:none;}
+
+:where(.category_chips .chip,.courses_filter_group .chip){
+    flex:0 0 auto !important;
+    width:auto !important;
+    height:44px !important;
+    min-height:44px !important;
+    max-height:44px !important;
+    padding:0 !important;
+    margin:0 !important;
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+}
+
+:where(.tab,.filter-chip,.category-chip,.category_chips .chip > a,.courses_filter_group .chip > a){
+    min-width:max-content !important;
+    height:44px !important;
+    min-height:44px !important;
+    max-height:44px !important;
+    padding:0 18px !important;
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    text-align:center !important;
+    border-radius:999px !important;
+    background:var(--bg-chip) !important;
+    color:var(--text-primary) !important;
+    border:1px solid var(--border-soft) !important;
+    font-size:14px !important;
+    font-weight:700 !important;
+    line-height:1 !important;
+    white-space:nowrap !important;
+    overflow:hidden !important;
+    box-shadow:0 10px 28px rgba(15,23,42,.06);
+}
+
+:where(.tab,.filter-chip,.category-chip,.category_chips .chip > a,.courses_filter_group .chip > a) p{
+    margin:0 !important;
+    max-width:100%;
+    color:inherit !important;
+    line-height:1 !important;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+:where(.tab.is-active,.filter-chip.is-active,.category-chip.is-active,.category_chips .chip > a.active,.courses_filter_group .chip > a.active){
+    background:linear-gradient(135deg,var(--primary),var(--secondary)) !important;
+    color:var(--text-on-accent) !important;
+    border-color:transparent !important;
+    box-shadow:0 16px 36px rgba(79,124,255,.22);
+}
+
+@media (max-width:640px){
+    :where(.filter-list,.chip-list,.courses_filter_group,.category_chips,.roadmaps_hero .category_chips){
+        width:100% !important;
+        max-width:100% !important;
+        justify-content:flex-start !important;
+        flex-wrap:nowrap !important;
+        overflow-x:auto !important;
+        overscroll-behavior-inline:contain;
+        scroll-snap-type:inline proximity;
+        padding:4px max(12px, env(safe-area-inset-right)) 12px max(12px, env(safe-area-inset-left)) !important;
+        margin-inline:0 !important;
+    }
+
+    :where(.category_chips .chip,.courses_filter_group .chip){
+        scroll-snap-align:start;
+    }
+
+    :where(.tab,.filter-chip,.category-chip,.category_chips .chip > a,.courses_filter_group .chip > a){
+        height:44px !important;
+        padding-inline:16px !important;
+        font-size:14px !important;
+    }
+}
+
+/* Card contrast and equal height. */
+:where(.course-card,.courses .course_card,.roadmap-card,.feature-card,.contact-card,.about-stat-card,.stat_card,.card_path,.card_process,.dashboard_card,.testimonial_card,.faq_item,.faq_info,.channel_card,.contact-form,.courses_box,.home_empty_state,.course_empty_state,.course_description_box,.panel,.dashboard_mockup){
+    background:var(--bg-card) !important;
+    color:var(--text-primary) !important;
+    border-color:var(--border-soft) !important;
+    box-shadow:var(--shadow-card);
+}
+
+:where(.course-card:hover,.roadmap-card:hover,.feature-card:hover,.contact-card:hover,.stat_card:hover,.card_path:hover,.card_process:hover,.channel_card:hover){
+    background:var(--bg-card-hover) !important;
+    border-color:var(--border-strong) !important;
+    box-shadow:var(--shadow-card-hover) !important;
+}
+
+:where(.course-card__media,.courses .course_card .card_header,.roadmap-card__media,.roadmaps_categories .categories .card .card_header){
+    background:var(--bg-card-media) !important;
+    color:var(--primary) !important;
+    border:1px solid color-mix(in srgb, var(--primary) 20%, transparent) !important;
+}
+
+:where(.courses .course_card .card_header)::after{
+    color:var(--primary) !important;
+    text-shadow:none !important;
+}
+
+:where(.course-card__title,.course-card-title,.roadmap-card__title,.roadmap-card-title,.feature-card__title,.feature-card-title,.contact-card__title,.contact-card-title,.stats .stat_card .card_info h4,.channel_card h4,.faq_question p){
+    color:var(--text-primary) !important;
+}
+
+:where(.course-card__description,.course-card-description,.roadmap-card__description,.roadmap-card-description,.feature-card__description,.contact-card__value,.contact-card-value,.stats .stat_card .card_info p,.channel_card p,.dashboard_card span,.faq_item .faq_content,.faq_info p){
+    color:var(--text-secondary) !important;
+}
+
+/* Course card structure: equal row height, clamped text, bottom meta/actions. */
+.courses_catalog .courses,
+.featured_courses .courses,
+.courses{
+    display:grid !important;
+    grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)) !important;
+    grid-auto-rows:1fr !important;
+    align-items:stretch !important;
+    gap:clamp(18px,2.2vw,28px) !important;
+    direction:rtl !important;
+}
+
+.course-card,
+.courses .course_card{
+    height:100% !important;
+    min-height:clamp(500px,40vw,540px) !important;
+    display:flex !important;
+    flex-direction:column !important;
+    min-width:0 !important;
+    overflow:hidden !important;
+    padding:clamp(18px,1.8vw,24px) !important;
+    border-radius:26px !important;
+}
+
+.course-card__media,
+.courses .course_card .card_header{
+    height:clamp(150px,14vw,190px) !important;
+    min-height:clamp(150px,14vw,190px) !important;
+    flex:0 0 auto !important;
+    margin:0 0 18px !important;
+}
+
+.course-card__body,
+.courses .course_card .card_body{
+    flex:1 1 auto !important;
+    display:flex !important;
+    flex-direction:column !important;
+    min-height:0 !important;
+    padding:0 !important;
+}
+
+.course-card__title,
+.course-card-title{
+    min-height:2.9em !important;
+    margin:0 0 10px !important;
+    font-size:clamp(23px,1.8vw,30px) !important;
+    line-height:1.45 !important;
+    font-weight:800 !important;
+    display:-webkit-box !important;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden !important;
+    text-wrap:balance;
+}
+
+.course-card__description,
+.course-card-description{
+    min-height:5.55em !important;
+    margin:0 !important;
+    font-size:15px !important;
+    line-height:1.85 !important;
+    display:-webkit-box !important;
+    -webkit-line-clamp:3;
+    -webkit-box-orient:vertical;
+    overflow:hidden !important;
+}
+
+.course-card__meta,
+.courses .course_card .card_body .info_course.course-card__meta{
+    margin-top:auto !important;
+    padding-top:16px !important;
+    flex:0 0 auto !important;
+}
+
+.course-card__footer,
+.courses .course_card .card_footer{
+    margin-top:16px !important;
+    flex:0 0 auto !important;
+    display:grid !important;
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    gap:10px !important;
+    align-items:center !important;
+    padding:0 !important;
+}
+
+.course-card__price,
+.course-card__button,
+.courses .course_card .card_footer .price,
+.courses .course_card .card_footer .course_btn{
+    width:100% !important;
+    height:44px !important;
+    min-height:44px !important;
+    max-height:44px !important;
+    flex:0 0 auto !important;
+    margin:0 !important;
+    padding:0 12px !important;
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    border-radius:14px !important;
+    font-size:14px !important;
+    line-height:1.2 !important;
+    text-align:center !important;
+    overflow:hidden !important;
+}
+
+.course-card__button,
+.courses .course_card .card_footer .course_btn{
+    color:var(--text-primary) !important;
+    border:1px solid var(--border-soft) !important;
+    background:transparent !important;
+}
+
+.course-card__button:hover,
+.courses .course_card .card_footer .course_btn:hover{
+    color:var(--primary) !important;
+    border-color:var(--primary) !important;
+}
+
+@media (max-width:640px){
+    .courses_catalog .courses,
+    .featured_courses .courses,
+    .courses{
+        grid-template-columns:1fr !important;
+        width:min(100% - 24px, 520px) !important;
+        margin-inline:auto !important;
+    }
+
+    .course-card,
+    .courses .course_card{
+        min-height:440px !important;
+        padding:18px !important;
+        border-radius:24px !important;
+    }
+
+    .course-card__media,
+    .courses .course_card .card_header{
+        height:clamp(142px,40vw,166px) !important;
+        min-height:clamp(142px,40vw,166px) !important;
+    }
+
+    .course-card__title,
+    .course-card-title{
+        font-size:clamp(22px,6vw,27px) !important;
+    }
+
+    .course-card__footer,
+    .courses .course_card .card_footer{
+        grid-template-columns:1fr !important;
+    }
+}
+
+/* Feature/stat cards: equal height and readable text in light/dark. */
+.learning_path .paths,
+.learning_process .process,
+.aboutUs_card .history_cards{
+    display:grid !important;
+    grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)) !important;
+    grid-auto-rows:1fr !important;
+    gap:clamp(16px,2vw,24px) !important;
+    align-items:stretch !important;
+    direction:rtl !important;
+}
+
+.feature-card,
+.learning_path .paths a .card_path,
+.learning_process .process .card_process,
+.aboutUs_card .history_cards .card.about-feature-card{
+    height:100% !important;
+    min-height:220px !important;
+    display:flex !important;
+    flex-direction:column !important;
+    align-items:center !important;
+    justify-content:center !important;
+    padding:clamp(22px,2.3vw,30px) !important;
+    border-radius:24px !important;
+}
+
+.feature-card__title,
+.feature-card-title,
+.feature-title,
+.learning_path .paths a .card_path h4,
+.learning_process .process .card_process h4,
+.aboutUs_card .history_cards .card.about-feature-card h4{
+    min-height:2.9em !important;
+    font-size:clamp(22px,1.85vw,32px) !important;
+    line-height:1.45 !important;
+    font-weight:800 !important;
+    display:-webkit-box !important;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden !important;
+}
+
+.feature-card__description,
+.learning_path .paths a .card_path p,
+.learning_process .process .card_process p,
+.aboutUs_card .history_cards .card.about-feature-card p{
+    min-height:3.6em !important;
+    font-size:15px !important;
+    line-height:1.8 !important;
+    display:-webkit-box !important;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden !important;
+}
+
+@media (max-width:640px){
+    .learning_path .paths,
+    .learning_process .process,
+    .aboutUs_card .history_cards{
+        grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+        width:min(100% - 24px, 520px) !important;
+        margin-inline:auto !important;
+        gap:12px !important;
+    }
+
+    .feature-card,
+    .learning_path .paths a .card_path,
+    .learning_process .process .card_process,
+    .aboutUs_card .history_cards .card.about-feature-card{
+        min-height:190px !important;
+        padding:18px 14px !important;
+    }
+
+    .feature-card__title,
+    .feature-card-title,
+    .feature-title,
+    .learning_path .paths a .card_path h4,
+    .learning_process .process .card_process h4,
+    .aboutUs_card .history_cards .card.about-feature-card h4{
+        font-size:clamp(20px,5.8vw,25px) !important;
+    }
+
+    .feature-card__description,
+    .learning_path .paths a .card_path p,
+    .learning_process .process .card_process p,
+    .aboutUs_card .history_cards .card.about-feature-card p{
+        font-size:14px !important;
+    }
+}
+
+@media (max-width:340px){
+    .learning_path .paths,
+    .learning_process .process,
+    .aboutUs_card .history_cards{
+        grid-template-columns:1fr !important;
+    }
+}
+
+/* Contact cards: token contrast and no title leak. */
+.contact-card{
+    min-height:120px !important;
+    padding:20px 24px !important;
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) auto !important;
+    align-items:center !important;
+    gap:16px !important;
+    color:var(--text-primary) !important;
+}
+
+.contact-card__icon{
+    width:34px !important;
+    height:34px !important;
+    min-width:34px !important;
+    color:var(--text-primary) !important;
+    opacity:1 !important;
+}
+
+.contact-card__title,
+.contact-card-title,
+.contact-card :where(h1,h2,h3,h4,.title){
+    font-size:clamp(20px,1.6vw,26px) !important;
+    line-height:1.45 !important;
+    font-weight:700 !important;
+    color:var(--text-primary) !important;
+    display:-webkit-box !important;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden !important;
+}
+
+.contact-card__value,
+.contact-card-value{
+    font-size:14px !important;
+    line-height:1.7 !important;
+    color:var(--text-secondary) !important;
+    display:-webkit-box !important;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden !important;
+    overflow-wrap:anywhere;
+}
+
+.contact-form__input,
+.contact-form__textarea,
+.roadmap_filter_form input,
+.courses_section .courses_hero input.search_box{
+    background:var(--bg-input) !important;
+    color:var(--text-primary) !important;
+    border-color:var(--border-soft) !important;
+}
+
+.contact-form__input::placeholder,
+.contact-form__textarea::placeholder,
+.roadmap_filter_form input::placeholder,
+.courses_section .courses_hero input.search_box::placeholder{
+    color:var(--text-muted) !important;
+    opacity:1 !important;
+}
+
+/* Footer readable in both themes. */
+.footer{
+    background:var(--bg-surface-strong) !important;
+    color:var(--text-primary) !important;
+    border-color:var(--border-soft) !important;
+}
+
+.footer .footer_top h4,
+.footer .logo span{
+    color:var(--text-primary) !important;
+}
+
+.footer .footer_top .footer_brand p,
+.footer .submenu a,
+.footer .footer_bottom p{
+    color:var(--text-secondary) !important;
+}
+
+.footer .footer_top .footer_brand .social_networks .social a i{
+    background:var(--bg-card) !important;
+    color:var(--text-primary) !important;
+    border:1px solid var(--border-soft);
+}
+
+@media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{
+        scroll-behavior:auto !important;
+        transition-duration:.01ms !important;
+        animation-duration:.01ms !important;
+        animation-iteration-count:1 !important;
+    }
+}
+
+/* Final targeted cascade fixes: override older !important dark-card rules with semantic tokens. */
+.course-card,
+.courses .course_card,
+.roadmap-card,
+.roadmaps_categories .categories .roadmap-card,
+.feature-card,
+.learning_path .paths a .card_path,
+.learning_process .process .card_process,
+.aboutUs_card .history_cards .card.about-feature-card,
+.contact-card,
+.stats .stat_card,
+.why_us.stats .stat_card,
+.about-stat-card,
+.dashboard_card,
+.testimonial_card,
+.faq_item,
+.faq_info,
+.channel_card,
+.contact-form,
+.courses_cta .courses_box,
+.home_empty_state,
+.course_empty_state,
+.course_description_box,
+.dashboard .panel,
+.dashboard_mockup{
+    background:var(--bg-card) !important;
+    color:var(--text-primary) !important;
+    border-color:var(--border-soft) !important;
+    box-shadow:var(--shadow-card) !important;
+}
+
+.course-card:hover,
+.courses .course_card:hover,
+.roadmap-card:hover,
+.roadmaps_categories .categories .roadmap-card:hover,
+.feature-card:hover,
+.learning_path .paths a .card_path:hover,
+.learning_process .process .card_process:hover,
+.aboutUs_card .history_cards .card.about-feature-card:hover,
+.contact-card:hover,
+.stats .stat_card:hover,
+.why_us.stats .stat_card:hover,
+.channel_card:hover{
+    background:var(--bg-card-hover) !important;
+    border-color:var(--border-strong) !important;
+    box-shadow:var(--shadow-card-hover) !important;
+}
+
+.course-card__title,
+.course-card-title,
+.courses .course_card .card_body h3,
+.courses .course_card .card_body h4,
+.roadmap-card__title,
+.roadmap-card-title,
+.feature-card__title,
+.feature-card-title,
+.feature-title,
+.learning_path .paths a .card_path h4,
+.learning_process .process .card_process h4,
+.aboutUs_card .history_cards .card.about-feature-card h4,
+.contact-card__title,
+.contact-card-title,
+.contact-card :where(h1,h2,h3,h4,.title),
+.stats .stat_card .card_info h4,
+.why_us.stats .stat_card .card_info h4,
+.channel_card h4,
+.faq_question p{
+    color:var(--text-primary) !important;
+}
+
+.course-card__description,
+.course-card-description,
+.courses .course_card .card_body p,
+.roadmap-card__description,
+.roadmap-card-description,
+.feature-card__description,
+.learning_path .paths a .card_path p,
+.learning_process .process .card_process p,
+.aboutUs_card .history_cards .card.about-feature-card p,
+.contact-card__value,
+.contact-card-value,
+.stats .stat_card .card_info p,
+.why_us.stats .stat_card .card_info p,
+.channel_card p,
+.dashboard_card span,
+.faq_item .faq_content,
+.faq_info p{
+    color:var(--text-secondary) !important;
+}
+
+.course-card__meta-item,
+.courses .course_card .card_body .info_course .info_icon,
+.roadmap-card__footer,
+.roadmap-card__footer p,
+.courses_summary,
+.roadmaps_summary{
+    color:var(--text-muted) !important;
+}
+
+.course-card__media,
+.courses .course_card .card_header,
+.roadmap-card__media,
+.roadmaps_categories .categories .card .card_header{
+    background:var(--bg-card-media) !important;
+    color:var(--primary) !important;
+    border-color:color-mix(in srgb,var(--primary) 22%,transparent) !important;
+}
+
+
+/* Compact card density and brand styling refinements */
+:where(.brand-text,.project-name,.brand-highlight){
+    color:var(--accent);
+    font-weight:800;
+    unicode-bidi:isolate;
+    direction:ltr;
+    white-space:nowrap;
+    display:inline-block;
+}
+
+@supports (-webkit-background-clip:text){
+    :where(.brand-text,.project-name,.brand-highlight){
+        background:linear-gradient(135deg,var(--accent),var(--brand-accent-2,var(--secondary)));
+        -webkit-background-clip:text;
+        background-clip:text;
+        color:transparent;
+    }
+}
+
+.brand-text--glow{
+    text-shadow:0 8px 28px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.navbar .logo .project-name,
+.footer .logo .project-name{
+    max-width:none !important;
+}
+
+.hero-subtitle .brand-text,
+.aboutus_hero .subtitle .brand-text,
+.aboutUs_card .subtitle .brand-text,
+.channels_hero .title .brand-text,
+.contact-page-lead .brand-text{
+    font-weight:800;
+}
+
+/* Balanced card grid widths so 2-card layouts do not become giant. */
+.courses_catalog .courses,
+.featured_courses .courses,
+.courses,
+.roadmaps_categories .categories,
+.learning_path .paths,
+.learning_process .process,
+.aboutUs_card .history_cards,
+.aboutus_hero .about_cards,
+.contact_hero .contact_cards{
+    justify-content:center !important;
+}
+
+.courses_catalog .courses,
+.featured_courses .courses,
+.courses{
+    grid-template-columns:repeat(auto-fit,minmax(min(100%, var(--card-grid-min)), var(--card-grid-max))) !important;
+    gap:var(--card-grid-gap) !important;
+}
+
+.roadmaps_categories .categories{
+    grid-template-columns:repeat(auto-fit,minmax(min(100%, 280px), 380px)) !important;
+    gap:var(--card-grid-gap) !important;
+}
+
+.learning_path .paths,
+.learning_process .process,
+.aboutUs_card .history_cards{
+    grid-template-columns:repeat(auto-fit,minmax(min(100%, 250px), 360px)) !important;
+}
+
+.aboutus_hero .about_cards{
+    display:grid !important;
+    grid-template-columns:repeat(auto-fit,minmax(min(100%, 160px), 220px)) !important;
+    justify-content:center !important;
+    gap:18px !important;
+}
+
+/* Course cards: compact vertical rhythm, still equal-height. */
+.course-card,
+.courses .course_card{
+    min-height:clamp(360px, 31vw, 430px) !important;
+    display:grid !important;
+    grid-template-rows:auto 1fr auto !important;
+    align-content:start !important;
+    padding:var(--card-padding-compact) !important;
+    border-radius:24px !important;
+    gap:0 !important;
+}
+
+.course-card__media,
+.courses .course_card .card_header{
+    height:var(--card-media-compact) !important;
+    min-height:var(--card-media-compact) !important;
+    margin:0 0 20px !important;
+}
+
+.course-card__body,
+.courses .course_card .card_body{
+    display:flex !important;
+    flex-direction:column !important;
+    gap:0 !important;
+}
+
+.course-card__title,
+.course-card-title{
+    min-height:0 !important;
+    margin:0 !important;
+    font-size:clamp(22px,1.8vw,30px) !important;
+    line-height:1.45 !important;
+}
+
+.course-card__description,
+.course-card-description{
+    min-height:0 !important;
+    margin-top:10px !important;
+    font-size:14px !important;
+    line-height:1.8 !important;
+    -webkit-line-clamp:2 !important;
+}
+
+.course-card__meta,
+.courses .course_card .card_body .info_course.course-card__meta{
+    margin-top:14px !important;
+    padding-top:0 !important;
+    gap:10px !important;
+}
+
+.course-card__footer,
+.courses .course_card .card_footer{
+    margin-top:18px !important;
+    padding-top:0 !important;
+    gap:10px !important;
+}
+
+.course-card__price,
+.course-card__button,
+.courses .course_card .card_footer .price,
+.courses .course_card .card_footer .course_btn{
+    height:var(--card-button-height) !important;
+    min-height:var(--card-button-height) !important;
+    max-height:var(--card-button-height) !important;
+}
+
+/* Feature cards / process cards: equal weight without oversized empty space. */
+.feature-card,
+.learning_path .paths a .card_path,
+.learning_process .process .card_process,
+.aboutUs_card .history_cards .card.about-feature-card{
+    min-height:220px !important;
+    padding:24px 22px !important;
+    justify-content:center !important;
+}
+
+.feature-card__icon,
+.learning_path .paths a .card_path svg,
+.learning_process .process .card_process .feature-card__badge,
+.aboutUs_card .history_cards .card.about-feature-card > svg{
+    margin-bottom:14px !important;
+}
+
+.feature-card__title,
+.feature-card-title,
+.feature-title,
+.learning_path .paths a .card_path h4,
+.learning_process .process .card_process h4,
+.aboutUs_card .history_cards .card.about-feature-card h4{
+    min-height:0 !important;
+    margin:0 !important;
+    font-size:clamp(24px, 2vw, 34px) !important;
+    line-height:1.45 !important;
+}
+
+.feature-card__description,
+.learning_path .paths a .card_path p,
+.learning_process .process .card_process p,
+.aboutUs_card .history_cards .card.about-feature-card p{
+    min-height:0 !important;
+    margin-top:10px !important;
+    font-size:15px !important;
+    line-height:1.8 !important;
+    -webkit-line-clamp:2 !important;
+}
+
+.about-stat-card{
+    min-height:132px !important;
+    padding:18px 16px !important;
+}
+
+.about-stat-card__number{
+    margin:0 !important;
+}
+
+/* Contact cards retain readable density. */
+.contact-card{
+    min-height:118px !important;
+    padding:20px 22px !important;
+    gap:14px !important;
+}
+
+.contact-card__title,
+.contact-card-title{
+    margin:0 !important;
+}
+
+.contact-card__value,
+.contact-card-value{
+    margin-top:6px !important;
+}
+
+@media (max-width:900px){
+    .courses_catalog .courses,
+    .featured_courses .courses,
+    .courses{
+        grid-template-columns:repeat(auto-fit,minmax(min(100%, 260px), 360px)) !important;
+    }
+}
+
+@media (max-width:640px){
+    .course-card,
+    .courses .course_card{
+        min-height:360px !important;
+        padding:18px !important;
+    }
+
+    .course-card__media,
+    .courses .course_card .card_header{
+        height:clamp(140px, 40vw, 170px) !important;
+        min-height:clamp(140px, 40vw, 170px) !important;
+        margin-bottom:18px !important;
+    }
+
+    .course-card__description,
+    .course-card-description{
+        -webkit-line-clamp:2 !important;
+    }
+
+    .feature-card,
+    .learning_path .paths a .card_path,
+    .learning_process .process .card_process,
+    .aboutUs_card .history_cards .card.about-feature-card{
+        min-height:184px !important;
+        padding:18px 16px !important;
+    }
+
+    .feature-card__title,
+    .feature-card-title,
+    .feature-title,
+    .learning_path .paths a .card_path h4,
+    .learning_process .process .card_process h4,
+    .aboutUs_card .history_cards .card.about-feature-card h4{
+        font-size:clamp(20px,5.9vw,26px) !important;
+    }
+
+    .aboutus_hero .about_cards{
+        grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
+        gap:12px !important;
+    }
+}
+
+@media (max-width:420px){
+    .aboutus_hero .about_cards{
+        grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
+    }
+
+    .about-stat-card{
+        min-height:110px !important;
+        padding:14px 10px !important;
+    }
+}
+
+@media (max-width:340px){
+    .aboutus_hero .about_cards{
+        grid-template-columns:1fr !important;
+    }
+}
+
+
+/* Final box density reduction for course detail and course cards */
+.related_courses_title{
+    padding-top:40px !important;
+}
+
+/* Compact course grid cards: reduce unnecessary empty space inside boxes. */
+.course-card,
+.courses .course_card{
+    min-height:clamp(300px, 28vw, 380px) !important;
+    max-width:420px !important;
+}
+
+.course-card__body,
+.courses .course_card .card_body{
+    flex:0 1 auto !important;
+}
+
+.course-card__title,
+.course-card-title{
+    margin-bottom:8px !important;
+}
+
+.course-card__description,
+.course-card-description,
+.courses .course_card .card_body p{
+    margin-top:8px !important;
+    min-height:0 !important;
+    -webkit-line-clamp:2 !important;
+}
+
+.course-card__meta,
+.courses .course_card .card_body .info_course.course-card__meta{
+    margin-top:12px !important;
+    padding-top:0 !important;
+}
+
+.course-card__footer,
+.courses .course_card .card_footer{
+    display:grid !important;
+    grid-template-columns:repeat(2, minmax(0,1fr)) !important;
+    margin-top:auto !important;
+    padding-top:16px !important;
+}
+
+.course-card__price,
+.course-card__button,
+.courses .course_card .card_footer .price,
+.courses .course_card .card_footer .course_btn{
+    height:44px !important;
+    min-height:44px !important;
+    max-height:44px !important;
+}
+
+/* Tighten course detail review cards and remove oversized blank areas. */
+.student_reviews{
+    padding:32px 0 48px !important;
+}
+
+.student_reviews .carousel_wrapper{
+    width:min(1180px, 92%) !important;
+    margin-inline:auto !important;
+    overflow:visible !important;
+}
+
+.student_reviews .carousel_wrapper .review_cards{
+    display:grid !important;
+    grid-template-columns:repeat(auto-fit, minmax(min(100%, 280px), 420px)) !important;
+    justify-content:center !important;
+    gap:24px !important;
+    padding:12px 0 0 !important;
+    transform:none !important;
+}
+
+.student_reviews .carousel_wrapper .review_cards .card{
+    width:100% !important;
+    min-height:0 !important;
+    padding:20px 22px !important;
+    display:flex !important;
+    flex-direction:column !important;
+    gap:0 !important;
+    border-radius:22px !important;
+}
+
+.student_reviews .review_cards .card .scores{
+    padding-bottom:10px !important;
+}
+
+.student_reviews .review_cards .card p.openion{
+    min-height:0 !important;
+    margin-top:12px !important;
+    padding-bottom:12px !important;
+    font-size:15px !important;
+    line-height:1.85 !important;
+    display:-webkit-box !important;
+    -webkit-line-clamp:3;
+    -webkit-box-orient:vertical;
+    overflow:hidden !important;
+    text-align:right !important;
+}
+
+.student_reviews .review_cards .card .student{
+    margin-top:12px !important;
+    padding-top:0 !important;
+    color:var(--text-secondary) !important;
+    gap:12px !important;
+    flex-wrap:wrap !important;
+}
+
+/* Slightly denser detail boxes. */
+.course_description_box,
+.course_empty_state{
+    padding:22px 24px !important;
+}
+
+@media (max-width:640px){
+    .course-card,
+    .courses .course_card{
+        min-height:292px !important;
+        max-width:100% !important;
+    }
+
+    .course-card__footer,
+    .courses .course_card .card_footer{
+        grid-template-columns:1fr !important;
+        padding-top:14px !important;
+    }
+
+    .student_reviews .carousel_wrapper .review_cards{
+        grid-template-columns:1fr !important;
+    }
+
+    .student_reviews .carousel_wrapper .review_cards .card{
+        padding:18px !important;
+    }
+}
