@@ -8,66 +8,74 @@
 
 {% block content %}
 <section class="contact_hero">
-    <h4 class="title reveal text-center">تماس با ما</h4>
-    <p class="subtitle text-center mt-3" style="width: 100%;">برای سوالات، پیشنهادات و همکاری خوشحال می‌شویم با شما در ارتباط باشیم.</p>
-    <div class="contact_cards flex-center mt-4">
-        <div class="card flex-around">
-            <div class="info text-center">
-                <h4 class="title">ایمیل</h4>
-                <p class="subtitle mt-1" style="width: 100%;">{{ project.contact_email }}</p>
+    <h1 class="section-title reveal text-center">تماس با ما</h1>
+    <p class="body-text contact-page-lead text-center mt-3">برای سوالات، پیشنهادات و همکاری خوشحال می‌شویم با شما در ارتباط باشیم.</p>
+
+    <div class="contact_cards mt-4">
+        <article class="contact-card">
+            <div class="contact-card__content">
+                <h3 class="contact-card__title contact-card-title">ایمیل</h3>
+                <p class="contact-card__value contact-card-value">{{ project.contact_email }}</p>
             </div>
-            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
-        </div>
-        <div class="card flex-around">
-            <div class="info text-center">
-                <h4 class="title">پشتیبانی</h4>
-                <p class="subtitle mt-1" style="width: 100%;">{{ project.support_email }}</p>
+            <svg class="contact-card__icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
+        </article>
+
+        <article class="contact-card">
+            <div class="contact-card__content">
+                <h3 class="contact-card__title contact-card-title">پشتیبانی</h3>
+                <p class="contact-card__value contact-card-value">{{ project.support_email }}</p>
             </div>
-            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/><path d="M8 12h.01"/><path d="M12 12h.01"/><path d="M16 12h.01"/></svg>
-        </div>
-        <div class="card flex-around">
-            <div class="info text-center">
-                <h4 class="title">همکاری</h4>
-                <p class="subtitle mt-1" style="width: 100%;">{{ project.partnership_email }}</p>
+            <svg class="contact-card__icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/><path d="M8 12h.01"/><path d="M12 12h.01"/><path d="M16 12h.01"/></svg>
+        </article>
+
+        <article class="contact-card">
+            <div class="contact-card__content">
+                <h3 class="contact-card__title contact-card-title">همکاری</h3>
+                <p class="contact-card__value contact-card-value">{{ project.partnership_email }}</p>
             </div>
-            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/></svg>
-        </div>
+            <svg class="contact-card__icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/></svg>
+        </article>
     </div>
 </section>
 
 <section class="main_contact">
-    <div class="info_contact text-center reveal_right">
-        <h4 class="title">با ما در ارتباط باشید</h4>
-        <p class="subtitle mt-2" style="width:100%">پیام خود را برای ما ارسال کنید. در اسرع وقت با شما در ارتباط خواهیم بود.</p>
-        <div class="card flex-between">
-            <div class="info text-center">
-                <h4 class="title">ایمیل</h4>
-                <p class="subtitle mt-1" style="width: 100%;">{{ project.contact_email }}</p>
+    <div class="info_contact reveal_right">
+        <h2 class="section-title contact-info-title">با ما در ارتباط باشید</h2>
+        <p class="body-text contact-info-lead mt-2">پیام خود را برای ما ارسال کنید. در اسرع وقت با شما در ارتباط خواهیم بود.</p>
+
+        <article class="contact-card">
+            <div class="contact-card__content">
+                <h3 class="contact-card__title contact-card-title">ایمیل</h3>
+                <p class="contact-card__value contact-card-value">{{ project.contact_email }}</p>
             </div>
-            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
-        </div>
-        <div class="card flex-between">
-            <div class="info text-center">
-                <h4 class="title">تلفن</h4>
-                <p class="subtitle mt-1" style="width: 100%;">{{ project.phone }}</p>
+            <svg class="contact-card__icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
+        </article>
+
+        <article class="contact-card">
+            <div class="contact-card__content">
+                <h3 class="contact-card__title contact-card-title">تلفن</h3>
+                <p class="contact-card__value contact-card-value">{{ project.phone }}</p>
             </div>
-            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"/></svg>
-        </div>
-        <div class="card flex-between">
-            <div class="info text-center">
-                <h4 class="title">آدرس</h4>
-                <p class="subtitle mt-1" style="width: 100%;">{{ project.address }}</p>
+            <svg class="contact-card__icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"/></svg>
+        </article>
+
+        <article class="contact-card">
+            <div class="contact-card__content">
+                <h3 class="contact-card__title contact-card-title">آدرس</h3>
+                <p class="contact-card__value contact-card-value">{{ project.address }}</p>
             </div>
-            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
-        </div>
-        <div class="card flex-between">
-            <div class="info text-center">
-                <h4 class="title" style="font-size: 20px;">ساعات پاسخگویی</h4>
-                <p class="subtitle mt-1" style="width: 100%;">{{ project.working_hours }}</p>
+            <svg class="contact-card__icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
+        </article>
+
+        <article class="contact-card">
+            <div class="contact-card__content">
+                <h3 class="contact-card__title contact-card-title">ساعات پاسخگویی</h3>
+                <p class="contact-card__value contact-card-value">{{ project.working_hours }}</p>
             </div>
-            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6h4"/></svg>
-        </div>
+            <svg class="contact-card__icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6h4"/></svg>
+        </article>
     </div>
+
     <div class="form_contact reveal_left">
         <form class="contact-form" action="{% url 'pages_web:contact_us' %}" method="post" novalidate>
             {% csrf_token %}

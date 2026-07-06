@@ -1,17 +1,14 @@
 (() => {
     'use strict';
 
-    const heroTitle = document.querySelector('#hero_title');
-    const text = ' مسیر حرفه‌ای یادگیری برنامه‌نویسی؛ از اولین خط کد تا استخدام';
-    let index = 0;
-
-    function typeText() {
+    function initHeroTitle() {
+        const heroTitle = document.querySelector('#hero_title');
         if (!heroTitle) return;
-        if (index < text.length) {
-            heroTitle.textContent += text.charAt(index);
-            index += 1;
-            window.setTimeout(typeText, 52);
-        }
+
+        // Keep the hero heading stable. The old typewriter appended a long
+        // second sentence to the title, which made Persian text break into
+        // too many oversized lines on laptop screens.
+        heroTitle.classList.add('is-ready');
     }
 
     function initReveals() {
@@ -37,7 +34,7 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-        typeText();
+        initHeroTitle();
         initReveals();
     });
 })();

@@ -5,18 +5,10 @@
 {% block page_styles %}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css">
     <link rel="stylesheet" href="{% project_static 'Styles/courses.css' %}">
-    <style>
-        .courses_filter_group{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:22px;position:relative;z-index:2;}
-        .courses_filter_group .chip{padding:0;}
-        .courses_filter_group .chip a{width:100%;height:100%;border-radius:var(--radius-lg);padding:12px 18px;}
-        .course_filter_submit{width:110px;height:54px;border:0;border-radius:var(--radius-md);background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;font-weight:800;cursor:pointer;}
-        .courses_summary{color:var(--text-muted);text-align:center;margin-top:18px;}
-        .course_empty_state{width:min(720px,92%);margin:40px auto;padding:28px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);text-align:center;color:var(--text-muted);}
-    </style>
 {% endblock %}
 
 {% block content %}
-<section class="courses_section">
+<section class="courses_section" dir="rtl">
     <section class="courses_hero">
         <h4 class="badge flex-center">
             <span><svg class="lucide lucide-sparkles" fill="var(--primary)" height="32" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="32" xmlns="http://www.w3.org/2000/svg"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg></span>
@@ -50,7 +42,7 @@
         <form method="get" action="{% url 'courses_web:course_list' %}" class="search flex-center">
             <input type="hidden" name="category" value="{{ catalog.selected_category }}">
             <input type="hidden" name="level" value="{{ catalog.selected_level }}">
-            <input class="search_box" type="search" name="search" value="{{ catalog.search }}" placeholder="جستجو در دوره‌ها...">
+            <input class="search_box" type="search" name="search" value="{{ catalog.search }}" placeholder="جستجو در دوره‌ها..." autocomplete="off">
             <button class="course_filter_submit" type="submit">جستجو</button>
         </form>
         <p class="courses_summary">{{ catalog.total_count }} دوره آماده نمایش است.</p>

@@ -2,18 +2,84 @@
     'use strict';
 
     const navMenu = document.getElementById('navmenu');
+    const menuButton = document.querySelector('.navbar .bars');
+    const desktopQuery = window.matchMedia('(min-width: 981px)');
+    const accountMenus = [...document.querySelectorAll('.auth-menu')];
+
+    function setMenuState(isOpen) {
+        if (!navMenu) return;
+        navMenu.classList.toggle('responsive', isOpen);
+        if (menuButton) menuButton.setAttribute('aria-expanded', String(isOpen));
+        document.body.classList.toggle('mobile-menu-open', isOpen);
+    }
+
+    function closeAccountMenus(exceptMenu = null) {
+        accountMenus.forEach((menu) => {
+            if (menu !== exceptMenu) {
+                menu.classList.remove('is-open');
+                const trigger = menu.querySelector('.auth-menu__trigger');
+                if (trigger) trigger.setAttribute('aria-expanded', 'false');
+            }
+        });
+    }
 
     window.respo = function respo() {
         if (!navMenu) return;
-        navMenu.classList.toggle('responsive');
+        closeAccountMenus();
+        setMenuState(!navMenu.classList.contains('responsive'));
     };
 
-    document.addEventListener('click', (event) => {
-        if (!navMenu || !navMenu.classList.contains('responsive')) return;
-        const isMenuClick = event.target.closest('#navmenu');
-        const isBarsClick = event.target.closest('.bars');
-        if (!isMenuClick && !isBarsClick) navMenu.classList.remove('responsive');
+    if (menuButton) {
+        menuButton.setAttribute('aria-expanded', 'false');
+    }
+
+    if (navMenu) {
+        navMenu.addEventListener('click', (event) => {
+            if (event.target.closest('a')) setMenuState(false);
+        });
+    }
+
+    accountMenus.forEach((menu) => {
+        const trigger = menu.querySelector('.auth-menu__trigger');
+        if (!trigger) return;
+
+        trigger.setAttribute('aria-expanded', 'false');
+        trigger.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const isOpen = menu.classList.contains('is-open');
+            closeAccountMenus(menu);
+            menu.classList.toggle('is-open', !isOpen);
+            trigger.setAttribute('aria-expanded', String(!isOpen));
+            setMenuState(false);
+        });
     });
+
+    document.addEventListener('click', (event) => {
+        if (navMenu && navMenu.classList.contains('responsive')) {
+            const isMenuClick = event.target.closest('#navmenu');
+            const isBarsClick = event.target.closest('.bars');
+            if (!isMenuClick && !isBarsClick) setMenuState(false);
+        }
+
+        if (!event.target.closest('.auth-menu')) closeAccountMenus();
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            setMenuState(false);
+            closeAccountMenus();
+        }
+    });
+
+    desktopQuery.addEventListener('change', (event) => {
+        if (event.matches) setMenuState(false);
+    });
+
+    window.addEventListener('resize', () => {
+        if (desktopQuery.matches) setMenuState(false);
+        closeAccountMenus();
+    }, { passive: true });
 
     const track = document.querySelector('.testimonial_track');
     const cards = track ? [...track.querySelectorAll('.testimonial_card')] : [];
@@ -29,18 +95,22 @@
             return 1;
         }
 
+        function getGap() {
+            return parseFloat(getComputedStyle(track).gap || '24') || 24;
+        }
+
         function updateCardWidths() {
             const visibleCount = getVisibleCount();
-            const gap = 24;
+            const gap = getGap();
             const totalGaps = (visibleCount - 1) * gap;
-            const cardWidth = (track.parentElement.offsetWidth - totalGaps) / visibleCount;
+            const cardWidth = Math.max(0, (track.parentElement.offsetWidth - totalGaps) / visibleCount);
             cards.forEach((card) => {
                 card.style.width = `${cardWidth}px`;
             });
         }
 
         function getCardWidth() {
-            return (cards[0]?.offsetWidth || 0) + 24;
+            return (cards[0]?.offsetWidth || 0) + getGap();
         }
 
         function updateSlider() {
@@ -71,14 +141,12 @@
             currentIndex = 0;
             updateCardWidths();
             updateSlider();
-        });
+        }, { passive: true });
 
         updateCardWidths();
         updateSlider();
     }
 
-    const firstChip = document.querySelector('.course_section .course_hero .category_chips .chips a');
-    if (firstChip) {
-        firstChip.addEventListener('click', (event) => event.preventDefault());
-    }
+    const firstChip = document.querySelector('.courses_section .courses_hero .category_chips .chip a');
+    if (firstChip) firstChip.addEventListener('click', (event) => event.preventDefault());
 })();

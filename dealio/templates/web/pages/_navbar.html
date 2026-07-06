@@ -8,16 +8,16 @@
         </a>
     </section>
     <nav id="navmenu" class="menu flex-around">
-       <a href="{% url 'pages_web:home' %}">خانه</a>
-       <a href="{% url 'courses_web:course_list' %}">دوره‌ها</a>
-       <a href="{% url 'courses_web:roadmap_list' %}">نقشه راه دوره‌ها</a>
-       <a href="{% url 'pages_web:channels' %}">کانال‌ها</a>
-       <a href="{% url 'pages_web:contact_us' %}">تماس</a>
-       <a href="{% url 'pages_web:about_us' %}">درباره‌ما</a>
+       <a class="nav-link" href="{% url 'pages_web:home' %}">خانه</a>
+       <a class="nav-link" href="{% url 'courses_web:course_list' %}">دوره‌ها</a>
+       <a class="nav-link" href="{% url 'courses_web:roadmap_list' %}">نقشه راه دوره‌ها</a>
+       <a class="nav-link" href="{% url 'pages_web:channels' %}">کانال‌ها</a>
+       <a class="nav-link" href="{% url 'pages_web:contact_us' %}">تماس</a>
+       <a class="nav-link" href="{% url 'pages_web:about_us' %}">درباره‌ما</a>
     </nav>
-    <a onclick="respo();" class="bars" href="#" aria-label="باز کردن منو">
+    <button type="button" onclick="respo();" class="bars" aria-label="باز کردن منو" aria-controls="navmenu" aria-expanded="false">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-menu-icon lucide-menu"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/></svg>
-    </a>
+    </button>
     <section class="nav_cta flex">
         <a href="{% url 'courses_web:course_list' %}" class="starting">شروع یادگیری</a>
         {% if request.user.is_authenticated %}

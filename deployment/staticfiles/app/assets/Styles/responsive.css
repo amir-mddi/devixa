@@ -1,0 +1,3213 @@
+/* ==========================================================
+   Production responsive layer
+   Covers shared layout, navbar, footer, catalog pages, details,
+   auth screens and small-device edge cases without duplicating
+   page-specific design tokens.
+   ========================================================== */
+
+*,
+*::before,
+*::after{
+    box-sizing: border-box;
+}
+
+html{
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+    direction: rtl;
+    scroll-padding-top: clamp(76px, 9vw, 110px);
+    -webkit-text-size-adjust: 100%;
+}
+
+body{
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: clip;
+    direction: rtl;
+    text-align: right;
+}
+
+main,
+section,
+article,
+header,
+footer,
+nav,
+form,
+div,
+ul,
+ol,
+li{
+    min-width: 0;
+}
+
+img,
+svg,
+video,
+canvas,
+iframe{
+    max-width: 100%;
+}
+
+input,
+select,
+textarea,
+button{
+    max-width: 100%;
+    font: inherit;
+}
+
+input,
+textarea{
+    min-width: 0;
+}
+
+a,
+button,
+input[type="submit"],
+input[type="button"]{
+    touch-action: manipulation;
+}
+
+.container,
+.container-sm{
+    width: min(var(--container-size, 1200px), calc(100% - clamp(24px, 5vw, 80px)));
+    margin-inline: auto;
+}
+
+.container-sm{
+    --container-size: 900px;
+}
+
+.title,
+.hero-title,
+.section-title,
+.card-title,
+.feature-title{
+    overflow-wrap: anywhere;
+}
+
+.title{
+    font-size: clamp(24px, 3.2vw, 38px);
+}
+
+.subtitle{
+    width: min(100%, 760px);
+    max-width: 100%;
+    margin-inline: auto;
+    font-size: clamp(14px, 2vw, 18px);
+    line-height: 2;
+}
+
+.badge{
+    width: fit-content;
+    max-width: min(100%, 520px);
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    line-height: 1.8;
+}
+
+.buttons,
+.extra_info{
+    width: min(100%, 720px);
+    max-width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+}
+
+.buttons a,
+.btn_primary,
+.btn_start,
+.navbar a,
+.course_filter_submit,
+.contact-form__submit,
+.courses .course_card .card_footer .course_btn{
+    min-height: 44px;
+}
+
+/* ------------------------- Navbar ------------------------- */
+.navbar{
+    position: sticky !important;
+    top: 0;
+    width: 100% !important;
+    max-width: 100vw;
+    min-height: clamp(70px, 8vw, 82px);
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: clamp(8px, 1.8vw, 28px) !important;
+    padding: clamp(8px, 1.4vw, 14px) clamp(12px, 4vw, 64px) !important;
+    direction: rtl;
+    z-index: 3000;
+    overflow: visible;
+}
+
+.navbar .logo{
+    order: 0;
+    flex: 0 1 auto;
+    width: auto !important;
+    max-width: clamp(112px, 22vw, 230px);
+    height: auto;
+    min-width: 0;
+    margin: 0 !important;
+    justify-content: flex-start;
+    direction: ltr;
+}
+
+.navbar .logo a{
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 4px;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.navbar .logo .x{
+    flex: 0 0 auto;
+    width: clamp(24px, 3vw, 30px);
+    height: clamp(24px, 3vw, 30px);
+}
+
+.navbar .logo span{
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.2;
+    font-size: clamp(20px, 2.2vw, 30px);
+    padding-top: 0;
+}
+
+.navbar .menu{
+    order: 1;
+    flex: 1 1 auto;
+    width: auto !important;
+    max-width: 720px;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(14px, 2.5vw, 42px);
+    min-width: 0;
+    margin: 0;
+    direction: rtl;
+}
+
+.navbar .menu a{
+    min-width: max-content;
+    line-height: 1.7;
+}
+
+.navbar .bars{
+    order: 2;
+    flex: 0 0 auto;
+    display: none !important;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    color: var(--text);
+    background: rgba(255,255,255,.05);
+    cursor: pointer;
+}
+
+.navbar .nav_cta{
+    order: 3;
+    flex: 0 0 auto;
+    width: auto !important;
+    min-width: 0 !important;
+    height: auto;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin: 0 !important;
+    direction: ltr;
+}
+
+.navbar .nav_cta .starting,
+.navbar .nav_cta .login,
+.navbar .nav_cta .auth-menu__trigger,
+.navbar .nav_cta .theme{
+    margin: 0 !important;
+    flex: 0 0 auto;
+}
+
+.navbar .nav_cta .theme{
+    position: static !important;
+    right: auto !important;
+    width: 48px !important;
+    height: 48px !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+.navbar .nav_cta .theme label{
+    width: 100%;
+    height: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+}
+
+.navbar .nav_cta .login,
+.navbar .nav_cta .auth-menu__trigger{
+    width: 48px;
+    height: 48px;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border-radius: 16px;
+}
+
+.navbar .nav_cta .login{
+    font-size: 13px;
+}
+
+.navbar .nav_cta .starting{
+    width: auto;
+    min-width: 124px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 18px;
+}
+
+.navbar .nav_cta .auth-menu{
+    position: relative;
+    display: inline-flex !important;
+    margin: 0 !important;
+    z-index: 3050;
+}
+
+.navbar .nav_cta .auth-menu__dropdown{
+    left: 0;
+    right: auto;
+    width: min(270px, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
+    direction: rtl;
+}
+
+.navbar .nav_cta .auth-menu__info strong,
+.navbar .nav_cta .auth-menu__info span{
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 1180px) and (min-width: 981px){
+    .navbar{
+        padding-inline: 24px !important;
+        gap: 16px !important;
+    }
+
+    .navbar .menu{
+        gap: 18px;
+        font-size: 14px;
+    }
+
+    .navbar .nav_cta .starting{
+        min-width: 108px;
+        padding-inline: 14px;
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 980px){
+    .navbar{
+        min-height: 72px;
+        padding: 8px 12px !important;
+        gap: 8px !important;
+        justify-content: flex-start !important;
+    }
+
+    .navbar .logo{
+        max-width: 44vw;
+        margin-inline-start: auto !important;
+    }
+
+    .navbar .menu{
+        position: fixed !important;
+        top: calc(72px + env(safe-area-inset-top, 0px)) !important;
+        right: 12px !important;
+        left: 12px !important;
+        width: auto !important;
+        max-width: none !important;
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        background: rgba(9, 14, 26, .96);
+        box-shadow: 0 24px 70px rgba(0,0,0,.34);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transform: translateY(-8px) scale(.98);
+        transform-origin: top center;
+        transition: opacity 180ms ease, transform 180ms ease, visibility 180ms ease;
+        direction: rtl;
+        z-index: 3040;
+    }
+
+    .navbar .menu.responsive{
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        transform: translateY(0) scale(1);
+    }
+
+    .navbar .menu a,
+    .navbar .menu.responsive a{
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        width: 100% !important;
+        min-width: 0;
+        min-height: 46px;
+        margin: 0 !important;
+        padding: 10px 8px;
+        border: 1px solid rgba(255,255,255,.08);
+        border-radius: 14px;
+        background: rgba(255,255,255,.035);
+        text-align: center;
+        line-height: 1.7;
+        overflow-wrap: anywhere;
+    }
+
+    .navbar .menu a::before,
+    .navbar .menu a::after{
+        display: none;
+    }
+
+    .navbar .bars{
+        display: inline-flex !important;
+        width: 48px;
+        height: 48px;
+        position: static !important;
+        right: auto !important;
+        z-index: 3050;
+    }
+
+    .navbar .nav_cta{
+        gap: 6px;
+    }
+
+    .navbar .nav_cta .starting{
+        display: none !important;
+    }
+
+    .navbar .nav_cta .auth-menu__dropdown{
+        position: fixed !important;
+        top: calc(72px + env(safe-area-inset-top, 0px)) !important;
+        right: 12px !important;
+        left: 12px !important;
+        width: auto !important;
+        max-width: calc(100vw - 24px) !important;
+        z-index: 3060;
+    }
+
+    .navbar .nav_cta .auth-menu__dropdown::before{
+        display: none;
+    }
+}
+
+@media (max-width: 420px){
+    .navbar{
+        min-height: 66px;
+        padding-inline: 8px !important;
+        gap: 6px !important;
+    }
+
+    .navbar .logo{
+        max-width: 38vw;
+    }
+
+    .navbar .logo .x{
+        width: 24px;
+        height: 24px;
+    }
+
+    .navbar .logo span{
+        font-size: clamp(19px, 6.2vw, 24px);
+    }
+
+    .navbar .bars,
+    .navbar .nav_cta .login,
+    .navbar .nav_cta .auth-menu__trigger,
+    .navbar .nav_cta .theme{
+        width: 42px !important;
+        height: 42px !important;
+        flex-basis: 42px;
+        border-radius: 14px;
+    }
+
+    .navbar .menu,
+    .navbar .nav_cta .auth-menu__dropdown{
+        top: calc(66px + env(safe-area-inset-top, 0px)) !important;
+    }
+}
+
+@media (max-width: 340px){
+    .navbar .logo{
+        max-width: 35vw;
+    }
+
+    .navbar .bars,
+    .navbar .nav_cta .login,
+    .navbar .nav_cta .auth-menu__trigger,
+    .navbar .nav_cta .theme{
+        width: 38px !important;
+        height: 38px !important;
+        flex-basis: 38px;
+        border-radius: 13px;
+    }
+
+    .navbar .menu{
+        right: 8px !important;
+        left: 8px !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        padding: 10px;
+    }
+
+    .navbar .menu a{
+        min-height: 44px;
+        font-size: 13px;
+        padding-inline: 6px;
+    }
+}
+
+/* ------------------------- Footer ------------------------- */
+.footer{
+    overflow-x: clip;
+    padding-top: clamp(44px, 6vw, 72px);
+}
+
+.footer .footer_top{
+    width: min(1240px, calc(100% - clamp(24px, 5vw, 80px))) !important;
+    margin-inline: auto;
+    padding: 0 !important;
+    display: grid !important;
+    grid-template-columns: minmax(260px, 1.4fr) repeat(3, minmax(180px, .8fr));
+    gap: clamp(24px, 4vw, 52px);
+    direction: rtl;
+}
+
+.footer .footer_top .footer_brand,
+.footer .footer_section{
+    padding: 0 !important;
+    min-width: 0;
+}
+
+.footer .footer_top .footer_brand .logo{
+    width: auto !important;
+    margin: 0 0 12px !important;
+    justify-content: flex-start;
+}
+
+.footer .footer_top .footer_brand p{
+    max-width: 440px;
+    line-height: 2;
+}
+
+.footer .footer_top .footer_brand .social_networks{
+    width: fit-content;
+    max-width: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(4, 44px);
+    justify-content: start;
+    align-items: center;
+    gap: 10px;
+    padding: 0 !important;
+    margin: 24px 0 0 !important;
+}
+
+.footer .footer_top .footer_brand .social_networks .social{
+    margin: 0 !important;
+}
+
+.footer .footer_top .footer_brand .social_networks .social a,
+.footer .footer_top .footer_brand .social_networks .social a i{
+    display: grid;
+    place-items: center;
+}
+
+.footer .footer_top .footer_section ul.submenu{
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 0 !important;
+}
+
+.footer .footer_top .footer_section ul.submenu li{
+    min-width: 0;
+    margin: 0 !important;
+}
+
+.footer .footer_top .footer_section ul.submenu li a{
+    width: 100%;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    text-align: right;
+    direction: rtl;
+    overflow-wrap: anywhere;
+}
+
+.footer .footer_top .contact ul.submenu li a p{
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.footer .footer_bottom{
+    width: min(1240px, calc(100% - clamp(24px, 5vw, 80px)));
+    margin: clamp(28px, 5vw, 44px) auto 0;
+    padding: 16px 0 !important;
+    gap: 12px;
+    direction: rtl;
+}
+
+.footer .footer_bottom p{
+    margin: 0 !important;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 1100px){
+    .footer .footer_top{
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 768px){
+    .footer .footer_top,
+    .footer .footer_bottom{
+        width: min(100% - 28px, 620px) !important;
+    }
+
+    .footer .footer_top{
+        grid-template-columns: 1fr !important;
+        gap: 30px;
+        text-align: center;
+    }
+
+    .footer .footer_top .footer_brand .logo,
+    .footer .footer_top .footer_brand .social_networks{
+        margin-inline: auto !important;
+        justify-content: center;
+    }
+
+    .footer .footer_top .footer_brand p{
+        margin-inline: auto;
+    }
+
+    .footer .footer_top .footer_section ul.submenu{
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .footer .footer_top .footer_section ul.submenu li a{
+        min-height: 44px;
+        justify-content: flex-start !important;
+        padding: 9px 10px;
+        border: 1px solid rgba(255,255,255,.07);
+        border-radius: 14px;
+        background: rgba(255,255,255,.03);
+    }
+
+    .footer .footer_top .contact ul.submenu li:first-child{
+        grid-column: 1 / -1;
+    }
+
+    .footer .footer_bottom{
+        display: grid !important;
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+}
+
+@media (max-width: 340px){
+    .footer .footer_top,
+    .footer .footer_bottom{
+        width: calc(100% - 20px) !important;
+    }
+
+    .footer .footer_top .footer_section ul.submenu{
+        gap: 8px;
+    }
+
+    .footer .footer_top .footer_section ul.submenu li a{
+        padding-inline: 8px;
+        font-size: 13px;
+    }
+
+    .footer .footer_top .footer_brand .social_networks{
+        grid-template-columns: repeat(2, 44px);
+    }
+}
+
+/* ------------------------- Home ------------------------- */
+.hero_section{
+    width: 100%;
+    min-height: clamp(560px, 78vh, 780px);
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: center;
+    gap: clamp(24px, 4vw, 64px);
+    padding: clamp(36px, 7vw, 96px) clamp(16px, 5vw, 80px);
+    margin-bottom: clamp(24px, 5vw, 52px);
+    overflow: clip;
+    direction: rtl;
+}
+
+.hero_section::before{
+    filter: blur(clamp(34px, 5vw, 50px));
+}
+
+.hero_section .right_hero,
+.hero_section .left_hero{
+    width: 100% !important;
+    height: auto !important;
+    padding: 0 !important;
+}
+
+.hero_section .right_hero h1{
+    max-width: 780px;
+    margin: 0 !important;
+    font-size: clamp(34px, 4.4vw, 64px);
+    line-height: 1.55;
+}
+
+.hero_section .right_hero h4{
+    max-width: 680px;
+    margin: clamp(18px, 2vw, 24px) 0 0 !important;
+    font-size: clamp(15px, 1.6vw, 20px);
+    line-height: 2;
+}
+
+.hero_section .right_hero .hero_cta{
+    width: min(100%, 460px) !important;
+    margin: clamp(24px, 3vw, 36px) 0 0 !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.hero_section .right_hero a.courses_link,
+.hero_section .right_hero a.starting{
+    width: 100% !important;
+    min-height: 54px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 !important;
+    padding: 0 16px !important;
+}
+
+.hero_section .right_hero .student_started{
+    width: min(100%, 540px) !important;
+    margin: clamp(18px, 3vw, 32px) 0 0 !important;
+    justify-content: flex-start;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.hero_section .left_hero .mockup{
+    width: 100%;
+    min-height: auto;
+    overflow: hidden;
+}
+
+.hero_section .left_hero .mockup .top_bar,
+.hero_section .left_hero .mockup .mockup_body,
+.hero_section .left_hero .mockup .course_info{
+    gap: 12px;
+}
+
+.hero_section .left_hero .mockup .mockup_body{
+    display: grid !important;
+    grid-template-columns: minmax(120px, .45fr) minmax(0, 1fr);
+}
+
+.hero_section .left_hero .mockup .circle_progress,
+.hero_section .left_hero .mockup .mockup_body .current_course{
+    width: 100% !important;
+    margin: 0 !important;
+}
+
+.hero_section .left_hero .mockup .mockup_body .current_course .course_info .extra_info{
+    width: 100% !important;
+}
+
+.stats{
+    width: min(1240px, calc(100% - clamp(24px, 5vw, 80px)));
+    margin-inline: auto;
+    padding: clamp(20px, 4vw, 40px) 0 !important;
+    gap: clamp(12px, 3vw, 28px);
+    flex-wrap: wrap;
+}
+
+.stats .section_right,
+.stats .section_left{
+    width: auto !important;
+    flex: 1 1 460px;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(12px, 2vw, 20px);
+}
+
+.stats .stat_card{
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 104px;
+    height: auto !important;
+    margin: 0 !important;
+    align-items: center;
+}
+
+.learning_path,
+.featured_courses,
+.dashboard,
+.learning_levels,
+.student_comments,
+.faq,
+.cta_section{
+    width: min(1240px, calc(100% - clamp(24px, 5vw, 80px)));
+    margin-inline: auto;
+}
+
+.learning_path{
+    padding: clamp(44px, 7vw, 72px) 0 !important;
+}
+
+.learning_path .paths{
+    padding: clamp(18px, 3vw, 40px) 0 !important;
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: clamp(14px, 2.4vw, 24px);
+    direction: rtl;
+}
+
+.learning_path .paths a,
+.learning_path .paths a .card_path{
+    width: 100%;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+}
+
+.featured_courses .courses,
+.courses{
+    width: min(1240px, 100%);
+    margin-inline: auto;
+}
+
+.dashboard{
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: center;
+    gap: clamp(22px, 4vw, 52px);
+}
+
+.dashboard .right,
+.dashboard .left,
+.dashboard .panel,
+.dashboard .dashboard_mockup{
+    width: 100% !important;
+    min-width: 0;
+}
+
+.faq{
+    display: grid !important;
+    grid-template-columns: minmax(260px, .9fr) minmax(0, 1.1fr);
+    gap: clamp(24px, 4vw, 48px);
+    align-items: start;
+}
+
+.left_faq{
+    width: 100% !important;
+    max-width: 900px;
+    margin-inline: auto;
+}
+
+.left_faq .faq_item{
+    width: 100%;
+    max-width: 100%;
+}
+
+@media (max-width: 900px){
+    .hero_section{
+        min-height: auto;
+        grid-template-columns: 1fr;
+        padding: clamp(42px, 8vw, 72px) clamp(14px, 4vw, 28px);
+        text-align: center;
+    }
+
+    .hero_section .right_hero h1,
+    .hero_section .right_hero h4{
+        margin-inline: auto !important;
+        text-align: center;
+    }
+
+    .hero_section .right_hero h1{
+        font-size: clamp(30px, 7vw, 46px);
+        line-height: 1.75;
+    }
+
+    .hero_section .right_hero .hero_cta,
+    .hero_section .right_hero .student_started{
+        margin-inline: auto !important;
+        justify-content: center;
+    }
+
+    .dashboard,
+    .faq{
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px){
+    .hero_section{
+        padding-inline: 12px;
+    }
+
+    .hero_section .left_hero .mockup{
+        display: none;
+    }
+
+    .hero_section .right_hero .hero_cta{
+        grid-template-columns: 1fr;
+    }
+
+    .stats{
+        width: min(100% - 24px, 520px);
+    }
+
+    .stats .section_right,
+    .stats .section_left{
+        flex-basis: 100%;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .stats .stat_card{
+        padding: 18px 10px;
+        flex-direction: column;
+        justify-content: center;
+        gap: 8px;
+        text-align: center;
+    }
+
+    .learning_path,
+    .featured_courses,
+    .dashboard,
+    .learning_levels,
+    .student_comments,
+    .faq,
+    .cta_section{
+        width: min(100% - 24px, 520px);
+    }
+
+    .learning_path .paths{
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .learning_path .paths a .card_path{
+        min-height: 210px;
+        padding: 14px 8px;
+    }
+
+    .learning_path .paths .path_icon i{
+        font-size: clamp(44px, 14vw, 64px) !important;
+    }
+
+    .left_faq .faq_item .row_1{
+        padding: 14px 10px;
+        gap: 10px;
+    }
+
+    .left_faq .faq_item .row_1 p{
+        font-size: 15px;
+        line-height: 1.9;
+    }
+}
+
+@media (max-width: 340px){
+    .stats .section_right,
+    .stats .section_left,
+    .learning_path .paths{
+        gap: 8px;
+    }
+
+    .stats .stat_card,
+    .learning_path .paths a .card_path{
+        padding-inline: 7px;
+    }
+}
+
+/* ------------------------- Courses and roadmaps catalogs ------------------------- */
+.courses_section,
+.courses_catalog,
+.roadmaps_hero,
+.roadmaps_categories,
+.learning_process{
+    overflow-x: clip;
+    direction: rtl;
+}
+
+.courses_section .courses_hero,
+.roadmaps_hero{
+    padding: clamp(48px, 7vw, 92px) clamp(14px, 4vw, 32px) clamp(20px, 4vw, 40px) !important;
+    text-align: center;
+}
+
+.courses_section .courses_hero .title,
+.roadmaps_hero .title{
+    font-size: clamp(28px, 5vw, 50px);
+    line-height: 1.45;
+}
+
+.courses_section .courses_hero .subtitle,
+.roadmaps_hero .subtitle{
+    width: min(100%, 760px) !important;
+}
+
+.courses_section .courses_hero .search,
+.courses_filter_group{
+    width: min(720px, 100%) !important;
+    margin-inline: auto;
+}
+
+.courses_section .courses_hero input.search_box{
+    min-width: 0;
+    text-align: right;
+}
+
+.courses_section .courses_hero .category_chips,
+.roadmaps_hero .category_chips{
+    width: min(100%, 960px);
+    margin-inline: auto;
+    display: flex !important;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    direction: rtl;
+}
+
+.category_chips .chip,
+.courses_filter_group .chip{
+    width: auto !important;
+    min-width: 128px;
+    max-width: 100%;
+    height: auto !important;
+    min-height: 44px;
+    margin: 0 !important;
+    flex: 0 1 auto;
+}
+
+.category_chips .chip a,
+.courses_filter_group .chip a{
+    min-height: 44px;
+    padding: 8px 16px;
+    white-space: nowrap;
+}
+
+.courses_catalog,
+.roadmaps_categories,
+.learning_process{
+    padding: clamp(34px, 6vw, 72px) clamp(14px, 4vw, 48px) !important;
+}
+
+.courses_catalog .courses,
+.courses{
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 320px));
+    justify-content: start;
+    align-items: stretch;
+    gap: clamp(16px, 2.4vw, 28px);
+    padding: clamp(28px, 5vw, 70px) 0 20px !important;
+    direction: rtl;
+}
+
+.courses .course_card{
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 0;
+    height: auto;
+    margin: 0 !important;
+    display: flex;
+    flex-direction: column;
+}
+
+.courses .course_card .card_header{
+    height: auto !important;
+    min-height: clamp(145px, 14vw, 180px);
+}
+
+.courses .course_card .card_body{
+    flex: 1 1 auto;
+}
+
+.courses .course_card .card_body h4,
+.courses .course_card .card_body p{
+    text-align: right;
+}
+
+.courses .course_card .card_body h4{
+    font-size: clamp(19px, 2vw, 25px);
+}
+
+.courses .course_card .card_body .info_course,
+.courses .course_card .card_footer{
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    direction: rtl;
+}
+
+.courses .course_card .card_body .info_course .info_icon,
+.courses .course_card .card_footer .price,
+.courses .course_card .card_footer .course_btn{
+    min-width: 0;
+}
+
+.courses .course_card .card_footer .price,
+.courses .course_card .card_footer .course_btn{
+    flex: 1 1 112px;
+    width: auto !important;
+    height: auto !important;
+    line-height: 1.6 !important;
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 !important;
+    padding: 8px 10px;
+}
+
+.why_us.stats{
+    display: flex !important;
+    width: min(1240px, calc(100% - clamp(24px, 5vw, 80px)));
+    margin: clamp(34px, 6vw, 72px) auto 0;
+    gap: clamp(14px, 3vw, 28px);
+}
+
+.why_us.stats .section_right,
+.why_us.stats .section_left{
+    flex: 1 1 480px;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(12px, 2vw, 22px);
+}
+
+.why_us.stats .stat_card{
+    width: 100% !important;
+    min-width: 0;
+    max-width: none !important;
+    min-height: clamp(200px, 20vw, 300px);
+    height: auto !important;
+    padding: clamp(16px, 2vw, 28px) clamp(10px, 2vw, 18px);
+}
+
+.courses_cta .courses_box{
+    width: min(1100px, 100%);
+    margin-inline: auto;
+}
+
+.roadmaps_categories .categories,
+.learning_process .process{
+    width: min(1240px, 100%);
+    margin-inline: auto;
+    padding: clamp(18px, 4vw, 40px) 0 !important;
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+    gap: clamp(16px, 2.4vw, 28px);
+    direction: rtl !important;
+}
+
+.roadmaps_categories .categories .card,
+.learning_process .process .card_process{
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+}
+
+@media (max-width: 640px){
+    .courses_section .courses_hero .search{
+        display: grid !important;
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .course_filter_submit{
+        width: 100%;
+    }
+
+    .courses_section .courses_hero .category_chips,
+    .roadmaps_hero .category_chips,
+    .courses_filter_group{
+        justify-content: flex-start;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        max-width: 100%;
+        padding: 2px 2px 10px;
+        scroll-snap-type: x proximity;
+        scrollbar-width: thin;
+    }
+
+    .category_chips .chip,
+    .courses_filter_group .chip{
+        flex: 0 0 auto;
+        scroll-snap-align: start;
+    }
+
+    .courses_catalog .courses,
+    .courses{
+        grid-template-columns: 1fr;
+        justify-content: stretch;
+        padding-top: 26px !important;
+    }
+
+    .why_us.stats{
+        width: min(100% - 24px, 520px);
+    }
+
+    .why_us.stats .section_right,
+    .why_us.stats .section_left{
+        flex-basis: 100%;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .why_us.stats .stat_card{
+        min-height: 210px;
+        padding: 16px 8px;
+    }
+
+    .why_us.stats .stat_card .card_icon .icon svg{
+        width: clamp(42px, 12vw, 64px);
+        height: clamp(42px, 12vw, 64px);
+    }
+
+    .why_us.stats .stat_card .card_info h4{
+        font-size: clamp(16px, 4.8vw, 21px);
+    }
+
+    .why_us.stats .stat_card .card_info p{
+        font-size: clamp(12px, 3.6vw, 15px);
+        line-height: 1.9;
+    }
+
+    .courses_cta .courses_box{
+        padding: clamp(30px, 8vw, 52px) 14px !important;
+    }
+
+    .courses_cta .courses_box .buttons,
+    .courses_cta .courses_box .buttons a{
+        width: 100%;
+    }
+}
+
+@media (min-width: 540px) and (max-width: 700px){
+    .courses_catalog .courses,
+    .featured_courses .courses,
+    .courses{
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* ------------------------- Detail pages ------------------------- */
+.single_course_hero,
+.roadmap_hero,
+.curriculum,
+.will_learn,
+.instructor,
+.student_reviews,
+.course_faq,
+.roadmap_skills,
+.roadmap_projects,
+.related_courses{
+    overflow-x: clip;
+    direction: rtl;
+}
+
+.single_course_hero{
+    width: 100%;
+    grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr);
+    gap: clamp(24px, 4vw, 48px);
+    padding: clamp(64px, 8vw, 120px) clamp(16px, 5vw, 80px) clamp(44px, 6vw, 80px) !important;
+}
+
+.single_course_hero .introduction,
+.single_course_hero .dashboard_mockup{
+    min-width: 0;
+}
+
+.single_course_hero .introduction .extra_info,
+.single_course_hero .introduction .Enroll_btn,
+.single_course_hero .dashboard_mockup .progress{
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.single_course_hero .dashboard_mockup .progress div.bar{
+    width: min(230px, 100%) !important;
+    flex: 1 1 180px;
+}
+
+.curriculum .summery_badges{
+    width: min(100%, 760px);
+    height: auto !important;
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+}
+
+.curriculum .summery_badges .badge{
+    width: 100% !important;
+    margin: 0 !important;
+}
+
+.curriculum .items{
+    width: min(980px, calc(100% - 28px));
+    margin-inline: auto;
+}
+
+.curriculum .items .lesson_item .left_faq .faq_item{
+    max-width: 100% !important;
+}
+
+.curriculum .items .lesson_item .left_faq .faq_item .row_2 .L_item{
+    width: 100%;
+    max-width: 100%;
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+}
+
+.curriculum .items .lesson_item .left_faq .faq_item .row_2 .L_item span.item_name{
+    width: auto !important;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.will_learn .card_learn,
+.instructor .teacher .intro_cards,
+.student_reviews .review_cards,
+.roadmap_skills .skill_cards,
+.roadmap_projects .projects,
+.related_courses .courses_grid{
+    width: min(1180px, calc(100% - clamp(24px, 5vw, 80px))) !important;
+    margin-inline: auto !important;
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+    gap: clamp(16px, 2.4vw, 28px);
+}
+
+.will_learn .card_learn .card,
+.instructor .teacher .intro_cards .card,
+.student_reviews .review_cards .card,
+.roadmap_skills .skill_cards .card,
+.roadmap_projects .projects .card,
+.related_courses .course_card{
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0;
+    margin: 0 !important;
+}
+
+.instructor .teacher .intro_teacher{
+    grid-template-columns: minmax(0, 1.2fr) minmax(240px, .8fr);
+    align-items: center;
+}
+
+.instructor .teacher .intro_teacher .picture svg{
+    width: min(280px, 100%);
+    height: auto;
+}
+
+.roadmap_hero{
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, .9fr);
+    align-items: center;
+    gap: clamp(24px, 4vw, 48px);
+    padding: clamp(60px, 8vw, 100px) clamp(16px, 5vw, 80px) !important;
+}
+
+.roadmap_hero .roadmap_info,
+.roadmap_hero .map{
+    min-width: 0;
+}
+
+.roadmap_hero .labels,
+.roadmap_hero .buttons{
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.roadmap_hero .map_levels{
+    max-width: 100%;
+}
+
+.roadmap_hero .map_levels .level_card{
+    width: 100%;
+    min-width: 0;
+}
+
+@media (max-width: 900px){
+    .single_course_hero,
+    .roadmap_hero{
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+
+    .single_course_hero .introduction,
+    .single_course_hero .introduction p,
+    .roadmap_hero .roadmap_info,
+    .roadmap_hero .roadmap_info p{
+        text-align: center;
+    }
+
+    .single_course_hero .badge,
+    .roadmap_hero .badge,
+    .single_course_hero .introduction .extra_info,
+    .single_course_hero .introduction .Enroll_btn{
+        margin-inline: auto;
+    }
+
+    .instructor .teacher .intro_teacher{
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+}
+
+@media (max-width: 640px){
+    .single_course_hero,
+    .roadmap_hero{
+        padding-inline: 12px !important;
+    }
+
+    .single_course_hero .introduction .Enroll_btn{
+        display: grid !important;
+        grid-template-columns: 1fr;
+    }
+
+    .single_course_hero .introduction .Enroll_btn .price,
+    .single_course_hero .introduction .Enroll_btn .Registration{
+        width: 100%;
+        height: auto;
+        min-height: 54px;
+    }
+
+    .single_course_hero .dashboard_mockup,
+    .roadmap_hero .map{
+        padding: 14px !important;
+    }
+
+    .single_course_hero .dashboard_mockup .card,
+    .single_course_hero .dashboard_mockup .progress{
+        display: grid !important;
+        grid-template-columns: 1fr;
+        text-align: center;
+        justify-items: center;
+    }
+
+    .curriculum .items{
+        width: min(100% - 24px, 520px);
+        margin-top: 32px !important;
+    }
+
+    .curriculum .items .lesson_item .left_faq .faq_item .row_1,
+    .curriculum .items .lesson_item .left_faq .faq_item .row_2 .L_item{
+        grid-template-columns: 1fr;
+        text-align: center;
+        justify-items: center;
+    }
+
+    .will_learn .card_learn,
+    .instructor .teacher .intro_cards,
+    .student_reviews .review_cards,
+    .roadmap_skills .skill_cards,
+    .roadmap_projects .projects,
+    .related_courses .courses_grid{
+        width: min(100% - 24px, 520px) !important;
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ------------------------- About, contact, channels ------------------------- */
+.contact_hero,
+.aboutus_hero,
+.channels_hero,
+.main_contact,
+.aboutUs_card{
+    overflow-x: clip;
+    direction: rtl;
+}
+
+.contact_hero,
+.aboutus_hero,
+.channels_hero{
+    padding: clamp(60px, 8vw, 100px) clamp(14px, 4vw, 32px) clamp(44px, 6vw, 80px) !important;
+    text-align: center;
+}
+
+.contact_hero .contact_cards,
+.aboutus_hero .about_cards{
+    width: min(920px, 100%);
+    margin-inline: auto;
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: 16px;
+}
+
+.contact_hero .contact_cards .card,
+.aboutus_hero .about_cards .card,
+.aboutUs_card .history .history_cards .card{
+    width: 100% !important;
+    max-width: none;
+    margin: 0 !important;
+}
+
+.main_contact{
+    width: min(1180px, calc(100% - clamp(24px, 5vw, 80px))) !important;
+    grid-template-columns: minmax(260px, 380px) minmax(0, 1fr);
+    gap: clamp(24px, 4vw, 56px);
+    padding: clamp(56px, 7vw, 96px) 0 !important;
+}
+
+.main_contact .info_contact,
+.main_contact .form_contact,
+.contact-form{
+    min-width: 0;
+}
+
+.main_contact .info_contact .card{
+    width: 100% !important;
+    max-width: none;
+    overflow-wrap: anywhere;
+}
+
+.contact-form__row{
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.contact-form__label,
+.contact-form__input,
+.contact-form__textarea{
+    text-align: right;
+    direction: rtl;
+}
+
+.aboutUs_card{
+    width: min(1180px, calc(100% - clamp(24px, 5vw, 80px)));
+    margin-inline: auto;
+    padding: clamp(54px, 7vw, 80px) 0 !important;
+}
+
+.aboutUs_card .history .history_cards{
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: 16px;
+}
+
+@media (max-width: 900px){
+    .main_contact{
+        grid-template-columns: 1fr;
+    }
+
+    .contact-form__row{
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+}
+
+@media (max-width: 420px){
+    .contact_hero .contact_cards,
+    .aboutus_hero .about_cards,
+    .aboutUs_card .history .history_cards{
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .contact_hero .contact_cards .card,
+    .aboutus_hero .about_cards .card{
+        min-height: 132px;
+        height: auto;
+        padding: 12px 8px;
+    }
+
+    .contact_hero .contact_cards .card p,
+    .aboutus_hero .about_cards .card p{
+        font-size: 12px;
+        overflow-wrap: anywhere;
+    }
+}
+
+/* ------------------------- Auth screens ------------------------- */
+body > div.container:has(form){
+    width: min(390px, calc(100% - 24px));
+    max-width: 390px;
+}
+
+body > div.container:has(form) form .field input{
+    min-height: 44px;
+}
+
+body > div.container:has(form) form .field i#submit,
+body > div.container:has(form) form .field i#retry{
+    right: auto !important;
+    left: 18px;
+}
+
+@media (max-width: 420px){
+    body > div.container:has(form){
+        padding: 14px;
+        border-radius: 22px;
+    }
+}
+
+/* ------------------------- Device-specific edge cases ------------------------- */
+@media (max-width: 430px){
+    .container,
+    .container-sm{
+        width: calc(100% - 24px);
+    }
+
+    .badge{
+        width: 100%;
+    }
+
+    .buttons a,
+    .buttons a.starting,
+    .buttons a.courses_link{
+        width: 100%;
+        max-width: 100%;
+        margin: 0 !important;
+    }
+
+    .extra_info .info{
+        padding-inline: 8px;
+        margin-inline: 0;
+    }
+}
+
+@media (max-width: 320px){
+    .container,
+    .container-sm,
+    .learning_path,
+    .featured_courses,
+    .dashboard,
+    .learning_levels,
+    .student_comments,
+    .faq,
+    .cta_section,
+    .stats,
+    .why_us.stats,
+    .footer .footer_top,
+    .footer .footer_bottom{
+        width: calc(100% - 16px) !important;
+    }
+}
+
+@media (min-width: 1280px){
+    .hero_section,
+    .single_course_hero,
+    .roadmap_hero{
+        padding-inline: max(80px, calc((100vw - 1320px) / 2)) !important;
+    }
+}
+
+@media (min-width: 1536px){
+    .container{
+        --container-size: 1320px;
+    }
+
+    .courses_catalog .courses,
+    .featured_courses .courses,
+    .roadmaps_categories .categories,
+    .learning_process .process,
+    .footer .footer_top,
+    .footer .footer_bottom{
+        max-width: 1320px;
+    }
+}
+
+@supports not (overflow: clip){
+    html,
+    body,
+    .hero_section,
+    .courses_section,
+    .footer{
+        overflow-x: hidden;
+    }
+}
+
+@media (prefers-reduced-motion: reduce){
+    *,
+    *::before,
+    *::after{
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: .001ms !important;
+    }
+}
+
+/* ==========================================================
+   Production Design-System Hardening Layer (v4)
+   Final layer intentionally loads last to neutralize legacy
+   fixed-width rules and keep all pages responsive in RTL.
+   ========================================================== */
+:root{
+    --ds-page-pad:clamp(14px,4vw,48px);
+    --ds-container:min(var(--container), calc(100vw - (var(--ds-page-pad) * 2)));
+    --ds-container-lg:min(var(--container-lg), calc(100vw - (var(--ds-page-pad) * 2)));
+    --ds-section-y:clamp(48px,7vw,96px);
+    --ds-section-y-lg:clamp(64px,8vw,120px);
+    --ds-card-pad:clamp(16px,2.2vw,28px);
+    --ds-card-radius:clamp(18px,2vw,24px);
+    --ds-header-h:var(--header-desktop);
+    --ds-focus:0 0 0 4px rgba(79,124,255,.22);
+}
+
+html,
+body{
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    overflow-x:clip;
+    direction:rtl;
+}
+
+html{
+    font-size:16px;
+    scroll-padding-top:calc(var(--ds-header-h) + 24px);
+}
+
+body{
+    font-family:var(--font-ui);
+    font-size:16px;
+    line-height:1.8;
+    text-align:right;
+    text-rendering:optimizeLegibility;
+    -webkit-font-smoothing:antialiased;
+}
+
+*,*::before,*::after{box-sizing:border-box;}
+
+body :where(section,article,div,nav,main,header,footer,form,ul,ol,li){min-width:0;}
+body :where(img,svg,video,canvas,iframe){max-width:100%;}
+body :where(a,button,input,select,textarea,label){font-family:inherit;}
+body :where(button,a,input[type="submit"],input[type="button"]){touch-action:manipulation;}
+body :where(p,li,span,a,strong,small,button,input,textarea,label){overflow-wrap:anywhere;}
+body :where(p,li){line-height:2;}
+body :where(h1,h2,h3,h4,h5,h6){line-height:1.45;letter-spacing:-.02em;overflow-wrap:anywhere;}
+
+:focus-visible{outline:0;box-shadow:var(--ds-focus);}
+
+.container,.container-sm{
+    width:var(--ds-container) !important;
+    max-width:100% !important;
+    margin-inline:auto !important;
+}
+.container-sm{--container:900px;}
+
+.title{
+    font-size:clamp(26px,3.7vw,48px) !important;
+    line-height:1.45 !important;
+    font-weight:800 !important;
+}
+.subtitle{
+    width:min(100%,760px) !important;
+    max-width:100% !important;
+    color:var(--text-muted);
+    font-size:clamp(14px,1.45vw,17px) !important;
+    line-height:2.05 !important;
+}
+.badge{
+    width:max-content !important;
+    max-width:100% !important;
+    min-height:42px !important;
+    padding:8px 16px !important;
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    gap:8px !important;
+    border-radius:var(--radius-md) !important;
+    line-height:1.7 !important;
+}
+.badge h4{font-size:clamp(14px,1.4vw,18px) !important;line-height:1.7 !important;}
+
+/* shared premium card/button primitives */
+.card,
+.course_card,
+.stat_card,
+.card_path,
+.faq_item,
+.faq_info,
+.contact_hero .contact_cards .card,
+.aboutus_hero .about_cards .card,
+.roadmaps_categories .categories .card,
+.learning_process .process .card_process,
+.dashboard .panel,
+.dashboard_mockup,
+.courses_box,
+.review_cards .card,
+.skill_cards .card,
+.projects .card,
+.card_learn .card,
+.intro_cards .card{
+    border-radius:var(--ds-card-radius);
+    border-color:var(--border);
+}
+
+:where(.starting,.courses_link,.login,.course_btn,.btn_start,.Registration,input.submit,input.retry,.course_filter_submit,.contact-form__submit){
+    min-height:44px !important;
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    gap:8px !important;
+    line-height:1.7 !important;
+    text-align:center !important;
+    white-space:normal !important;
+}
+
+:where(.starting,.courses_link,.login,.course_btn,.btn_start,.Registration,input.submit,input.retry,.course_filter_submit,.contact-form__submit):hover{
+    transform:translateY(-2px);
+}
+
+/* ---------------- Header / Navbar ---------------- */
+.navbar{
+    --nav-action:48px;
+    position:sticky !important;
+    inset-block-start:0 !important;
+    z-index:5000 !important;
+    width:100% !important;
+    max-width:100vw !important;
+    min-height:var(--ds-header-h) !important;
+    height:auto !important;
+    display:grid !important;
+    grid-template-columns:auto minmax(0,1fr) auto !important;
+    align-items:center !important;
+    justify-content:normal !important;
+    gap:clamp(16px,2.2vw,36px) !important;
+    padding:10px clamp(20px,4vw,64px) !important;
+    overflow:visible !important;
+    direction:rtl !important;
+}
+
+.navbar .logo{
+    grid-column:1 !important;
+    width:auto !important;
+    max-width:min(250px,26vw) !important;
+    min-width:0 !important;
+    height:auto !important;
+    margin:0 !important;
+    padding:0 !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:flex-start !important;
+    direction:ltr !important;
+}
+.navbar .logo a{
+    width:auto !important;
+    max-width:100% !important;
+    min-height:44px !important;
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:flex-start !important;
+    gap:6px !important;
+}
+.navbar .logo .x{
+    flex:0 0 auto !important;
+    width:30px !important;
+    height:30px !important;
+    margin:0 !important;
+}
+.navbar .logo span{
+    display:block !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    padding:0 !important;
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+    white-space:nowrap !important;
+    font-size:clamp(22px,2.2vw,31px) !important;
+    line-height:1.1 !important;
+}
+
+.navbar .menu{
+    grid-column:2 !important;
+    width:100% !important;
+    max-width:760px !important;
+    margin:0 auto !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    gap:clamp(18px,2.6vw,42px) !important;
+    direction:rtl !important;
+}
+.navbar .menu a{
+    min-width:max-content !important;
+    min-height:44px !important;
+    display:inline-flex !important;
+    align-items:center !important;
+    padding:6px 0 !important;
+    color:var(--text) !important;
+    font-size:clamp(14px,1.2vw,15px) !important;
+    line-height:1.7 !important;
+}
+
+.navbar .bars{
+    grid-column:2 !important;
+    grid-row:1 !important;
+    display:none !important;
+    width:var(--nav-action) !important;
+    height:var(--nav-action) !important;
+    min-height:var(--nav-action) !important;
+    padding:0 !important;
+    margin:0 !important;
+    align-items:center !important;
+    justify-content:center !important;
+    border:1px solid var(--border) !important;
+    border-radius:16px !important;
+    background:rgba(255,255,255,.06) !important;
+    color:var(--text) !important;
+}
+
+.navbar .nav_cta{
+    grid-column:3 !important;
+    width:auto !important;
+    min-width:0 !important;
+    height:auto !important;
+    margin:0 !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:flex-end !important;
+    gap:8px !important;
+    direction:ltr !important;
+}
+.navbar .nav_cta .starting{
+    width:auto !important;
+    min-width:124px !important;
+    height:48px !important;
+    padding:0 18px !important;
+    margin:0 !important;
+    border-radius:16px !important;
+}
+.navbar .nav_cta .login,
+.navbar .nav_cta .auth-menu__trigger,
+.navbar .nav_cta .theme,
+.navbar .nav_cta .theme label{
+    width:var(--nav-action) !important;
+    height:var(--nav-action) !important;
+    min-height:var(--nav-action) !important;
+    flex:0 0 var(--nav-action) !important;
+    margin:0 !important;
+    padding:0 !important;
+    border-radius:16px !important;
+}
+.navbar .nav_cta .theme{
+    position:static !important;
+    right:auto !important;
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+}
+.navbar .nav_cta .theme label{
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+}
+.navbar .nav_cta .auth-menu{position:relative !important;display:inline-flex !important;margin:0 !important;z-index:5100 !important;}
+.navbar .nav_cta .auth-menu__dropdown{
+    position:absolute !important;
+    top:calc(100% + 14px) !important;
+    left:0 !important;
+    right:auto !important;
+    width:min(280px,calc(100vw - 24px)) !important;
+    max-width:calc(100vw - 24px) !important;
+    direction:rtl !important;
+}
+.navbar .nav_cta .auth-menu.is-open .auth-menu__dropdown,
+.navbar .nav_cta .auth-menu:hover .auth-menu__dropdown,
+.navbar .nav_cta .auth-menu:focus-within .auth-menu__dropdown{
+    opacity:1 !important;
+    visibility:visible !important;
+    transform:translateY(0) scale(1) !important;
+    pointer-events:auto !important;
+}
+.navbar .nav_cta .auth-menu__info strong,
+.navbar .nav_cta .auth-menu__info span{
+    max-width:100% !important;
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+    white-space:nowrap !important;
+}
+
+@media (max-width:1180px) and (min-width:981px){
+    .navbar{gap:16px !important;padding-inline:24px !important;}
+    .navbar .menu{gap:18px !important;max-width:650px !important;}
+    .navbar .nav_cta .starting{min-width:108px !important;padding-inline:14px !important;font-size:14px !important;}
+}
+
+@media (max-width:980px){
+    :root{--ds-header-h:var(--header-tablet);}
+    .navbar{
+        --nav-action:46px;
+        min-height:var(--ds-header-h) !important;
+        grid-template-columns:minmax(0,1fr) auto auto !important;
+        gap:8px !important;
+        padding:8px 12px !important;
+    }
+    .navbar .logo{grid-column:1 !important;max-width:100% !important;}
+    .navbar .bars{grid-column:2 !important;display:inline-flex !important;}
+    .navbar .nav_cta{grid-column:3 !important;gap:6px !important;}
+    .navbar .nav_cta .starting{display:none !important;}
+    .navbar .menu{
+        position:fixed !important;
+        top:calc(var(--ds-header-h) + env(safe-area-inset-top,0px)) !important;
+        right:12px !important;
+        left:12px !important;
+        width:auto !important;
+        max-width:none !important;
+        margin:0 !important;
+        display:grid !important;
+        grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+        gap:10px !important;
+        padding:12px !important;
+        border:1px solid var(--border) !important;
+        border-radius:22px !important;
+        background:rgba(9,14,26,.96) !important;
+        box-shadow:0 24px 70px rgba(0,0,0,.36) !important;
+        backdrop-filter:blur(18px) !important;
+        -webkit-backdrop-filter:blur(18px) !important;
+        opacity:0 !important;
+        visibility:hidden !important;
+        pointer-events:none !important;
+        transform:translateY(-8px) scale(.98) !important;
+        transition:opacity .18s ease,transform .18s ease,visibility .18s ease !important;
+        z-index:5050 !important;
+    }
+    .navbar .menu.responsive{
+        opacity:1 !important;
+        visibility:visible !important;
+        pointer-events:auto !important;
+        transform:translateY(0) scale(1) !important;
+    }
+    .navbar .menu a{
+        width:100% !important;
+        min-width:0 !important;
+        min-height:46px !important;
+        justify-content:center !important;
+        padding:10px 8px !important;
+        border:1px solid rgba(255,255,255,.08) !important;
+        border-radius:14px !important;
+        background:rgba(255,255,255,.035) !important;
+        text-align:center !important;
+        white-space:normal !important;
+    }
+    .navbar .menu a::before,.navbar .menu a::after{display:none !important;}
+    .navbar .nav_cta .auth-menu__dropdown{
+        position:fixed !important;
+        top:calc(var(--ds-header-h) + env(safe-area-inset-top,0px) + 8px) !important;
+        right:12px !important;
+        left:12px !important;
+        width:auto !important;
+        max-width:calc(100vw - 24px) !important;
+        z-index:5120 !important;
+    }
+    .navbar .nav_cta .auth-menu__dropdown::before{display:none !important;}
+}
+
+@media (max-width:430px){
+    :root{--ds-header-h:var(--header-mobile);}
+    body{font-size:15px;}
+    .navbar{
+        --nav-action:42px;
+        padding-inline:8px !important;
+        gap:6px !important;
+    }
+    .navbar .logo .x{width:25px !important;height:25px !important;}
+    .navbar .logo span{font-size:clamp(18px,6vw,23px) !important;}
+    .navbar .menu{right:8px !important;left:8px !important;padding:10px !important;gap:8px !important;}
+    .navbar .menu a{font-size:13.5px !important;min-height:44px !important;padding-inline:6px !important;}
+}
+
+@media (max-width:320px){
+    .navbar{--nav-action:38px;}
+    .navbar .logo span{font-size:18px !important;}
+    .navbar .logo .x{width:23px !important;height:23px !important;}
+}
+
+/* ---------------- Home / Hero / Sections ---------------- */
+.hero_section{
+    width:100% !important;
+    min-height:min(740px,calc(100svh - var(--ds-header-h))) !important;
+    margin:0 0 clamp(28px,4vw,56px) !important;
+    padding:clamp(48px,7vw,96px) var(--ds-page-pad) !important;
+    display:grid !important;
+    grid-template-columns:minmax(0,1.05fr) minmax(320px,.95fr) !important;
+    gap:clamp(24px,4.4vw,72px) !important;
+    align-items:center !important;
+    direction:rtl !important;
+}
+.hero_section .right_hero,
+.hero_section .left_hero{
+    width:100% !important;
+    height:auto !important;
+    padding:0 !important;
+    margin:0 !important;
+}
+.hero_section .right_hero h1{
+    max-width:780px !important;
+    margin:0 !important;
+    font-size:clamp(40px,4.8vw,68px) !important;
+    line-height:1.55 !important;
+    font-weight:800 !important;
+}
+.hero_section .right_hero h4{
+    max-width:680px !important;
+    margin:20px 0 0 !important;
+    font-size:clamp(15px,1.45vw,20px) !important;
+    line-height:2 !important;
+    color:var(--text-muted) !important;
+}
+.hero_section .right_hero .hero_cta{
+    width:min(100%,470px) !important;
+    margin:clamp(24px,3vw,36px) 0 0 !important;
+    display:grid !important;
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    gap:12px !important;
+}
+.hero_section .right_hero .hero_cta a{
+    width:100% !important;
+    min-height:52px !important;
+    margin:0 !important;
+    padding:0 16px !important;
+    border-radius:16px !important;
+}
+.hero_section .right_hero .student_started{
+    width:min(100%,540px) !important;
+    margin:clamp(18px,3vw,32px) 0 0 !important;
+    justify-content:flex-start !important;
+    flex-wrap:wrap !important;
+    gap:12px !important;
+}
+.hero_section .left_hero .mockup{
+    width:100% !important;
+    min-height:0 !important;
+    overflow:hidden !important;
+}
+.hero_section .left_hero .mockup .mockup_body{
+    display:grid !important;
+    grid-template-columns:minmax(130px,.45fr) minmax(0,1fr) !important;
+    gap:14px !important;
+    padding:18px !important;
+}
+.hero_section .left_hero .mockup .circle_progress,
+.hero_section .left_hero .mockup .current_course{
+    width:100% !important;
+    margin:0 !important;
+}
+
+.stats,
+.learning_path,
+.featured_courses,
+.dashboard,
+.student_success,
+.faq,
+.courses_cta,
+.bootcamp,
+.cta{
+    width:var(--ds-container-lg) !important;
+    max-width:100% !important;
+    margin-inline:auto !important;
+}
+
+.stats{
+    padding:clamp(24px,4vw,48px) 0 !important;
+    display:grid !important;
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    gap:clamp(16px,2.4vw,28px) !important;
+}
+.stats .section_right,
+.stats .section_left{
+    width:100% !important;
+    display:grid !important;
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    gap:clamp(12px,1.8vw,20px) !important;
+}
+.stats .stat_card{
+    width:100% !important;
+    max-width:none !important;
+    min-height:112px !important;
+    height:auto !important;
+    margin:0 !important;
+    padding:16px !important;
+}
+.stats .stat_card .card_info h4{font-size:clamp(22px,2.2vw,32px) !important;}
+.stats .stat_card .card_info p{font-size:clamp(13px,1.3vw,16px) !important;}
+
+.learning_path,
+.featured_courses,
+.dashboard,
+.student_success,
+.faq,
+.courses_cta{
+    padding-block:var(--ds-section-y) !important;
+}
+.learning_path .paths{
+    width:100% !important;
+    display:grid !important;
+    grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr)) !important;
+    gap:clamp(14px,2.2vw,24px) !important;
+    padding:clamp(22px,4vw,42px) 0 0 !important;
+    direction:rtl !important;
+}
+.learning_path .paths a,
+.learning_path #path_card,
+.learning_path .paths .card_path{
+    width:100% !important;
+    max-width:none !important;
+    min-width:0 !important;
+    margin:0 !important;
+}
+.learning_path .paths .card_path{min-height:220px !important;padding:var(--ds-card-pad) !important;}
+.featured_courses{text-align:center !important;}
+.featured_courses .courses{margin-top:clamp(28px,4vw,48px) !important;}
+
+.dashboard{
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) minmax(320px,.9fr) !important;
+    gap:clamp(24px,4vw,56px) !important;
+    align-items:center !important;
+}
+.dashboard .right,
+.dashboard .left,
+.dashboard .panel,
+.dashboard .dashboard_mockup{width:100% !important;min-width:0 !important;}
+.dashboard .panel{padding:var(--ds-card-pad) !important;}
+.dashboard .advantages{display:grid !important;gap:12px !important;}
+.dashboard .advantage{min-height:44px !important;gap:12px !important;}
+
+.student_success .testimonial_wrapper{
+    width:100% !important;
+    max-width:100% !important;
+    overflow:hidden !important;
+}
+.student_success .testimonial_track{gap:24px !important;}
+.student_success .testimonial_card{
+    flex:0 0 auto !important;
+    max-width:100% !important;
+    min-height:220px !important;
+    padding:var(--ds-card-pad) !important;
+}
+
+/* ---------------- FAQ: no overlap, desktop side aligned ---------------- */
+.faq{
+    display:grid !important;
+    grid-template-columns:minmax(280px,.82fr) minmax(0,1.35fr) !important;
+    gap:clamp(28px,4.6vw,72px) !important;
+    align-items:start !important;
+    background:transparent !important;
+    direction:rtl !important;
+}
+.faq .right_faq,
+.faq .left_faq{
+    width:100% !important;
+    max-width:none !important;
+    min-width:0 !important;
+    margin:0 !important;
+    padding:0 !important;
+}
+.faq .right_faq{
+    display:flex !important;
+    flex-direction:column !important;
+    align-items:flex-start !important;
+    gap:14px !important;
+}
+.faq .right_faq .badge,
+.faq .right_faq .title,
+.faq .right_faq .subtitle,
+.faq .right_faq .faq_info{
+    margin:0 !important;
+    text-align:right !important;
+}
+.faq .right_faq .title{
+    max-width:280px !important;
+    font-size:clamp(28px,3vw,42px) !important;
+    line-height:1.45 !important;
+}
+.faq .right_faq .subtitle{
+    width:min(100%,330px) !important;
+    margin:0 !important;
+    font-size:15px !important;
+    line-height:2.05 !important;
+}
+.faq .right_faq .faq_info{
+    width:100% !important;
+    max-width:360px !important;
+    min-height:92px !important;
+    height:auto !important;
+    display:grid !important;
+    grid-template-columns:58px minmax(0,1fr) !important;
+    align-items:center !important;
+    gap:12px !important;
+    padding:14px !important;
+    border-radius:18px !important;
+    background:linear-gradient(180deg,rgba(255,255,255,.065),rgba(255,255,255,.035)) !important;
+    overflow:hidden !important;
+}
+.faq .right_faq .faq_info .info_icon{
+    width:58px !important;
+    height:58px !important;
+    display:grid !important;
+    place-items:center !important;
+    margin:0 !important;
+    border-radius:16px !important;
+    background:rgba(79,124,255,.09) !important;
+}
+.faq .right_faq .faq_info .info_icon svg{
+    width:32px !important;
+    height:32px !important;
+    margin:0 !important;
+}
+.faq .right_faq .faq_info .info_text{
+    width:100% !important;
+    min-width:0 !important;
+}
+.faq .right_faq .faq_info .info_text p{
+    width:100% !important;
+    margin:0 !important;
+    padding:0 !important;
+    text-align:right !important;
+    font-size:14px !important;
+    line-height:2 !important;
+}
+.left_faq{
+    display:grid !important;
+    gap:12px !important;
+}
+.left_faq input[type="checkbox"]{position:absolute !important;opacity:0 !important;pointer-events:none !important;}
+.left_faq .faq_item{
+    width:100% !important;
+    max-width:100% !important;
+    margin:0 !important;
+    overflow:hidden !important;
+    background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.025)) !important;
+}
+.left_faq .faq_item .row_1{
+    min-height:68px !important;
+    display:grid !important;
+    grid-template-columns:42px minmax(0,1fr) 42px !important;
+    align-items:center !important;
+    gap:14px !important;
+    padding:14px 18px !important;
+    direction:rtl !important;
+}
+.left_faq .faq_item .row_1 .circle{
+    grid-column:1 !important;
+    width:42px !important;
+    height:42px !important;
+    display:grid !important;
+    place-items:center !important;
+    margin:0 !important;
+    font-size:15px !important;
+    line-height:1 !important;
+}
+.left_faq .faq_item .row_1 .faq_question{grid-column:2 !important;min-width:0 !important;}
+.left_faq .faq_item .row_1 .faq_question p,
+.left_faq .faq_item .row_1 p{
+    width:100% !important;
+    margin:0 !important;
+    text-align:right !important;
+    font-size:clamp(14px,1.35vw,16px) !important;
+    line-height:2 !important;
+}
+.left_faq .faq_item .row_1 .btn{
+    grid-column:3 !important;
+    width:42px !important;
+    height:42px !important;
+    display:grid !important;
+    place-items:center !important;
+    margin:0 !important;
+}
+.left_faq .faq_item .row_1 .btn label{
+    width:42px !important;
+    height:42px !important;
+    display:grid !important;
+    place-items:center !important;
+    border-radius:14px !important;
+    cursor:pointer !important;
+}
+.left_faq .faq_item .row_2{
+    width:100% !important;
+    padding:0 18px !important;
+}
+.left_faq .faq_item .row_2 .response{
+    width:100% !important;
+    max-width:100% !important;
+    padding:0 0 16px !important;
+}
+.left_faq .faq_item .row_2 .response p{
+    margin:0 !important;
+    text-align:right !important;
+    font-size:14px !important;
+    line-height:2.05 !important;
+}
+
+/* ---------------- Catalog / Courses / Roadmaps ---------------- */
+.courses_section,
+.courses_catalog,
+.roadmaps_hero,
+.roadmaps_categories,
+.learning_process,
+.courses_cta{
+    width:100% !important;
+    max-width:100% !important;
+    overflow-x:clip !important;
+    direction:rtl !important;
+}
+.courses_section .courses_hero,
+.roadmaps_hero,
+.contact_hero,
+.aboutus_hero,
+.channels_hero{
+    padding:clamp(52px,7vw,92px) var(--ds-page-pad) clamp(32px,5vw,56px) !important;
+    text-align:center !important;
+}
+.courses_section .courses_hero .title,
+.roadmaps_hero .title,
+.contact_hero .title,
+.aboutus_hero .title,
+.channels_hero .title{
+    font-size:clamp(28px,4.6vw,54px) !important;
+    line-height:1.45 !important;
+}
+.courses_section .courses_hero .search{
+    width:min(680px,100%) !important;
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) auto !important;
+    align-items:center !important;
+    gap:10px !important;
+    margin:clamp(22px,3vw,32px) auto !important;
+}
+.courses_section .courses_hero input.search_box{
+    width:100% !important;
+    min-width:0 !important;
+    height:56px !important;
+    padding-inline:22px 54px !important;
+    text-align:right !important;
+    font-size:15px !important;
+}
+.courses_filter_group,
+.courses_section .courses_hero .category_chips,
+.roadmaps_hero .category_chips{
+    width:min(980px,100%) !important;
+    margin-inline:auto !important;
+    display:flex !important;
+    flex-wrap:wrap !important;
+    justify-content:center !important;
+    gap:10px !important;
+    direction:rtl !important;
+}
+.category_chips .chip,
+.courses_filter_group .chip{
+    width:auto !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    height:auto !important;
+    min-height:44px !important;
+    margin:0 !important;
+    padding:0 !important;
+    flex:0 1 auto !important;
+}
+.category_chips .chip a,
+.courses_filter_group .chip a{
+    min-height:44px !important;
+    padding:9px 16px !important;
+    border-radius:999px !important;
+    white-space:nowrap !important;
+}
+.courses_catalog,
+.roadmaps_categories,
+.learning_process{
+    padding:clamp(32px,6vw,72px) var(--ds-page-pad) !important;
+}
+.courses_catalog .courses,
+.featured_courses .courses,
+.courses{
+    width:var(--ds-container-lg) !important;
+    max-width:100% !important;
+    margin-inline:auto !important;
+    padding:clamp(24px,4vw,48px) 0 0 !important;
+    display:grid !important;
+    grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr)) !important;
+    justify-content:start !important;
+    align-items:stretch !important;
+    gap:clamp(16px,2.4vw,28px) !important;
+    direction:rtl !important;
+}
+.course_card{
+    width:100% !important;
+    max-width:none !important;
+    min-width:0 !important;
+    min-height:0 !important;
+    margin:0 !important;
+    display:flex !important;
+    flex-direction:column !important;
+    overflow:hidden !important;
+}
+.course_card .card_header{
+    width:100% !important;
+    min-height:clamp(150px,15vw,190px) !important;
+    height:auto !important;
+    aspect-ratio:16/9 !important;
+}
+.course_card__thumbnail{
+    width:100% !important;
+    height:100% !important;
+    object-fit:cover !important;
+    border-radius:var(--radius-md) !important;
+    position:relative !important;
+    z-index:2 !important;
+}
+.course_card .card_body,
+.course_card .card_footer{width:100% !important;min-width:0 !important;}
+.course_card .card_body{flex:1 1 auto !important;padding:clamp(14px,1.7vw,20px) !important;}
+.course_card .card_body h4{text-align:right !important;font-size:clamp(18px,1.8vw,22px) !important;line-height:1.6 !important;}
+.course_card .card_body p{text-align:right !important;font-size:14px !important;line-height:2 !important;min-height:0 !important;}
+.course_card .info_course,
+.course_card .card_footer{
+    display:flex !important;
+    flex-wrap:wrap !important;
+    align-items:center !important;
+    justify-content:space-between !important;
+    gap:10px !important;
+    direction:rtl !important;
+}
+.course_card .info_course .info_icon{
+    display:inline-flex !important;
+    align-items:center !important;
+    gap:6px !important;
+    min-width:0 !important;
+    font-size:13px !important;
+    line-height:1.8 !important;
+}
+.course_card .card_footer{padding:0 clamp(14px,1.7vw,20px) clamp(14px,1.7vw,20px) !important;}
+.course_card .card_footer .price,
+.course_card .card_footer .course_btn{
+    flex:1 1 116px !important;
+    min-width:0 !important;
+    width:auto !important;
+    height:auto !important;
+    margin:0 !important;
+    padding:8px 12px !important;
+}
+.why_us.stats .stat_card{
+    min-height:clamp(190px,20vw,280px) !important;
+    padding:var(--ds-card-pad) !important;
+}
+.why_us.stats .stat_card .card_info .line{width:min(130px,70%) !important;}
+.courses_cta .courses_box{
+    width:min(1100px,100%) !important;
+    padding:clamp(36px,7vw,80px) clamp(16px,5vw,60px) !important;
+    margin-inline:auto !important;
+    text-align:center !important;
+}
+.courses_cta .courses_box .buttons,
+.courses_cta .courses_box .extra_info{width:min(100%,760px) !important;flex-wrap:wrap !important;gap:12px !important;}
+.roadmaps_categories .categories,
+.learning_process .process{
+    width:var(--ds-container-lg) !important;
+    max-width:100% !important;
+    padding:clamp(20px,4vw,42px) 0 0 !important;
+    display:grid !important;
+    grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)) !important;
+    gap:clamp(16px,2.4vw,28px) !important;
+    direction:rtl !important;
+}
+.roadmaps_categories .categories .card,
+.learning_process .process .card_process{
+    width:100% !important;
+    max-width:none !important;
+    min-width:0 !important;
+    height:auto !important;
+    margin:0 !important;
+    padding:var(--ds-card-pad) !important;
+}
+
+/* ---------------- Detail pages ---------------- */
+.single_course_hero,
+.roadmap_hero{
+    width:100% !important;
+    max-width:100% !important;
+    padding:clamp(56px,8vw,104px) var(--ds-page-pad) !important;
+    display:grid !important;
+    grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr) !important;
+    gap:clamp(24px,4vw,56px) !important;
+    align-items:center !important;
+    direction:rtl !important;
+    overflow-x:clip !important;
+}
+.single_course_hero .introduction,
+.single_course_hero .dashboard_mockup,
+.roadmap_hero .roadmap_info,
+.roadmap_hero .map{width:100% !important;min-width:0 !important;}
+.single_course_hero .introduction .extra_info,
+.single_course_hero .introduction .Enroll_btn,
+.roadmap_hero .labels,
+.roadmap_hero .buttons{display:flex !important;flex-wrap:wrap !important;gap:12px !important;}
+.single_course_hero .dashboard_mockup .progress{display:flex !important;flex-wrap:wrap !important;gap:12px !important;}
+.single_course_hero .dashboard_mockup .progress div.bar{width:min(240px,100%) !important;flex:1 1 180px !important;}
+.curriculum,
+.will_learn,
+.instructor,
+.student_reviews,
+.course_faq,
+.roadmap_skills,
+.roadmap_projects,
+.related_courses{
+    width:100% !important;
+    max-width:100% !important;
+    padding:var(--ds-section-y) var(--ds-page-pad) !important;
+    overflow-x:clip !important;
+    direction:rtl !important;
+}
+.curriculum .items,
+.will_learn .card_learn,
+.instructor .teacher,
+.student_reviews .review_cards,
+.course_faq .left_faq,
+.roadmap_skills .skill_cards,
+.roadmap_projects .projects,
+.related_courses .courses_grid{
+    width:var(--ds-container) !important;
+    max-width:100% !important;
+    margin-inline:auto !important;
+}
+.will_learn .card_learn,
+.instructor .teacher .intro_cards,
+.student_reviews .review_cards,
+.roadmap_skills .skill_cards,
+.roadmap_projects .projects,
+.related_courses .courses_grid{
+    display:grid !important;
+    grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)) !important;
+    gap:clamp(16px,2.4vw,28px) !important;
+}
+.will_learn .card_learn .card,
+.instructor .teacher .intro_cards .card,
+.student_reviews .review_cards .card,
+.roadmap_skills .skill_cards .card,
+.roadmap_projects .projects .card,
+.related_courses .course_card{width:100% !important;max-width:none !important;margin:0 !important;}
+.instructor .teacher .intro_teacher{display:grid !important;grid-template-columns:minmax(0,1.2fr) minmax(240px,.8fr) !important;gap:24px !important;align-items:center !important;}
+
+/* ---------------- Content pages / forms ---------------- */
+.contact_hero,
+.aboutus_hero,
+.channels_hero,
+.main_contact,
+.aboutUs_card{overflow-x:clip !important;direction:rtl !important;}
+.contact_hero .contact_cards,
+.aboutus_hero .about_cards,
+.aboutUs_card .history .history_cards{
+    width:min(980px,100%) !important;
+    margin-inline:auto !important;
+    display:grid !important;
+    grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr)) !important;
+    gap:16px !important;
+}
+.contact_hero .contact_cards .card,
+.aboutus_hero .about_cards .card,
+.aboutUs_card .history .history_cards .card{
+    width:100% !important;
+    max-width:none !important;
+    height:auto !important;
+    min-height:140px !important;
+    margin:0 !important;
+    padding:var(--ds-card-pad) !important;
+}
+.main_contact{
+    width:var(--ds-container) !important;
+    max-width:100% !important;
+    margin-inline:auto !important;
+    padding:var(--ds-section-y) 0 !important;
+    display:grid !important;
+    grid-template-columns:minmax(270px,380px) minmax(0,1fr) !important;
+    gap:clamp(24px,4vw,56px) !important;
+}
+.main_contact .info_contact,
+.main_contact .form_contact,
+.contact-form{width:100% !important;min-width:0 !important;}
+.main_contact .info_contact .card{width:100% !important;max-width:none !important;margin:0 0 14px !important;}
+.contact-form__row{display:grid !important;grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:16px !important;}
+.contact-form__input,
+.contact-form__textarea{width:100% !important;min-width:0 !important;text-align:right !important;direction:rtl !important;}
+.aboutUs_card{width:var(--ds-container) !important;margin-inline:auto !important;padding:var(--ds-section-y) 0 !important;}
+.channels_hero .channel_cards,
+.channels_hero .channels_cards{
+    width:var(--ds-container) !important;
+    max-width:100% !important;
+    margin-inline:auto !important;
+    display:grid !important;
+    grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr)) !important;
+    gap:16px !important;
+}
+
+/* ---------------- Auth screens ---------------- */
+body > div.container:has(form){
+    width:min(430px,calc(100% - 24px)) !important;
+    max-width:430px !important;
+    margin:clamp(24px,6vw,60px) auto !important;
+    padding:clamp(18px,4vw,30px) !important;
+}
+body > div.container:has(form) h4{font-size:clamp(24px,7vw,34px) !important;line-height:1.5 !important;}
+body > div.container:has(form) p{font-size:14px !important;line-height:2 !important;}
+body > div.container:has(form) form{width:100% !important;}
+body > div.container:has(form) form .field{width:100% !important;position:relative !important;}
+body > div.container:has(form) form .field input{
+    width:100% !important;
+    min-height:48px !important;
+    text-align:right !important;
+    direction:rtl !important;
+}
+body > div.container:has(form) form .field svg,
+body > div.container:has(form) form .field i:not(#submit):not(#retry){
+    position:absolute !important;
+    right:16px !important;
+    left:auto !important;
+    top:50% !important;
+    transform:translateY(-50%) !important;
+}
+body > div.container:has(form) form .field input.submit,
+body > div.container:has(form) form .field input.retry{text-align:center !important;}
+body > div.container:has(form) form .field i#submit,
+body > div.container:has(form) form .field i#retry{
+    right:auto !important;
+    left:18px !important;
+}
+
+/* ---------------- Footer ---------------- */
+.footer{
+    width:100% !important;
+    max-width:100% !important;
+    padding:clamp(48px,6vw,76px) 0 0 !important;
+    overflow-x:clip !important;
+    direction:rtl !important;
+}
+.footer .footer_top{
+    width:var(--ds-container-lg) !important;
+    max-width:100% !important;
+    margin-inline:auto !important;
+    padding:0 !important;
+    display:grid !important;
+    grid-template-columns:minmax(260px,1.35fr) repeat(3,minmax(170px,.85fr)) !important;
+    gap:clamp(24px,4vw,56px) !important;
+    align-items:start !important;
+}
+.footer .footer_top .footer_brand,
+.footer .footer_top .footer_section{width:100% !important;min-width:0 !important;padding:0 !important;}
+.footer .footer_top .footer_brand .logo{
+    width:auto !important;
+    height:auto !important;
+    margin:0 0 14px !important;
+    justify-content:flex-start !important;
+}
+.footer .footer_top .footer_brand .logo a{display:inline-flex !important;align-items:center !important;min-height:44px !important;}
+.footer .footer_top .footer_brand p{width:100% !important;max-width:430px !important;margin:0 !important;text-align:right !important;line-height:2 !important;font-size:16px !important;}
+.footer .footer_top .footer_brand .social_networks{
+    width:max-content !important;
+    max-width:100% !important;
+    margin:22px 0 0 !important;
+    padding:0 !important;
+    display:grid !important;
+    grid-template-columns:repeat(4,44px) !important;
+    gap:10px !important;
+    justify-content:start !important;
+}
+.footer .footer_top .footer_brand .social_networks .social,
+.footer .footer_top .footer_brand .social_networks .social a{
+    width:44px !important;
+    height:44px !important;
+    margin:0 !important;
+    display:grid !important;
+    place-items:center !important;
+}
+.footer .footer_top .footer_section .title{
+    margin:0 0 14px !important;
+    font-size:18px !important;
+    line-height:1.8 !important;
+    text-align:right !important;
+}
+.footer .footer_top .footer_section ul.submenu{
+    width:100% !important;
+    display:grid !important;
+    grid-template-columns:1fr !important;
+    gap:8px !important;
+    padding:0 !important;
+    margin:0 !important;
+}
+.footer .footer_top .footer_section ul.submenu li{width:100% !important;margin:0 !important;}
+.footer .footer_top .footer_section ul.submenu li a{
+    width:100% !important;
+    min-height:38px !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:flex-start !important;
+    gap:8px !important;
+    text-align:right !important;
+    direction:rtl !important;
+    color:var(--text-muted) !important;
+}
+.footer .footer_top .footer_section ul.submenu li a p{margin:0 !important;min-width:0 !important;text-align:right !important;line-height:1.8 !important;}
+.footer .footer_top .footer_section ul.submenu li a svg,
+.footer .footer_top .footer_section ul.submenu li a i{flex:0 0 auto !important;}
+.footer .footer_bottom{
+    width:var(--ds-container-lg) !important;
+    max-width:100% !important;
+    margin:clamp(28px,4vw,44px) auto 0 !important;
+    padding:16px 0 !important;
+    gap:12px !important;
+    direction:rtl !important;
+}
+.footer .footer_bottom p{margin:0 !important;width:auto !important;line-height:1.9 !important;text-align:right !important;}
+
+/* ---------------- Tablet / mobile stacks ---------------- */
+@media (max-width:1100px){
+    .footer .footer_top{grid-template-columns:repeat(2,minmax(0,1fr)) !important;}
+    .stats{grid-template-columns:1fr !important;}
+    .faq{grid-template-columns:minmax(260px,.75fr) minmax(0,1.25fr) !important;gap:32px !important;}
+}
+
+@media (max-width:900px){
+    :root{--ds-section-y:clamp(48px,8vw,76px);}
+    .hero_section,
+    .dashboard,
+    .faq,
+    .single_course_hero,
+    .roadmap_hero,
+    .main_contact,
+    .instructor .teacher .intro_teacher{
+        grid-template-columns:1fr !important;
+    }
+    .hero_section{
+        min-height:auto !important;
+        text-align:center !important;
+        padding-block:clamp(42px,8vw,72px) !important;
+    }
+    .hero_section .right_hero h1,
+    .hero_section .right_hero h4,
+    .hero_section .right_hero .hero_cta,
+    .hero_section .right_hero .student_started{
+        margin-inline:auto !important;
+        text-align:center !important;
+        justify-content:center !important;
+    }
+    .hero_section .right_hero h1{font-size:clamp(30px,7vw,48px) !important;line-height:1.75 !important;}
+    .faq .right_faq{align-items:center !important;text-align:center !important;}
+    .faq .right_faq .badge,
+    .faq .right_faq .title,
+    .faq .right_faq .subtitle,
+    .faq .right_faq .faq_info{margin-inline:auto !important;text-align:center !important;}
+    .faq .right_faq .faq_info{max-width:620px !important;}
+    .faq .right_faq .faq_info .info_text p{text-align:right !important;}
+    .single_course_hero,
+    .roadmap_hero{text-align:center !important;}
+    .single_course_hero .introduction,
+    .single_course_hero .introduction p,
+    .roadmap_hero .roadmap_info,
+    .roadmap_hero .roadmap_info p{text-align:center !important;}
+    .single_course_hero .introduction .extra_info,
+    .single_course_hero .introduction .Enroll_btn,
+    .roadmap_hero .labels,
+    .roadmap_hero .buttons{justify-content:center !important;}
+}
+
+@media (max-width:768px){
+    body{font-size:15px;}
+    .footer .footer_top,
+    .footer .footer_bottom{width:min(620px,calc(100% - 28px)) !important;}
+    .footer .footer_top{grid-template-columns:1fr !important;text-align:center !important;gap:30px !important;}
+    .footer .footer_top .footer_brand .logo,
+    .footer .footer_top .footer_brand .social_networks{margin-inline:auto !important;justify-content:center !important;}
+    .footer .footer_top .footer_brand p{margin-inline:auto !important;text-align:center !important;}
+    .footer .footer_top .footer_section .title{text-align:center !important;}
+    .footer .footer_top .footer_section ul.submenu{grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:10px !important;}
+    .footer .footer_top .footer_section ul.submenu li a{
+        min-height:44px !important;
+        padding:9px 10px !important;
+        border:1px solid rgba(255,255,255,.07) !important;
+        border-radius:14px !important;
+        background:rgba(255,255,255,.03) !important;
+    }
+    .footer .footer_top .contact ul.submenu li:first-child{grid-column:1 / -1 !important;}
+    .footer .footer_bottom{display:grid !important;grid-template-columns:1fr !important;text-align:center !important;}
+    .footer .footer_bottom p{text-align:center !important;}
+}
+
+@media (max-width:640px){
+    :root{--ds-page-pad:12px;--ds-section-y:clamp(44px,9vw,64px);}
+    .title{font-size:clamp(25px,7.2vw,34px) !important;}
+    .hero_section .left_hero .mockup{display:none !important;}
+    .hero_section .right_hero .hero_cta{grid-template-columns:1fr !important;width:min(100%,420px) !important;}
+    .stats .section_right,
+    .stats .section_left,
+    .learning_path .paths{
+        grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+        gap:10px !important;
+    }
+    .stats .stat_card{
+        min-height:120px !important;
+        padding:14px 8px !important;
+        flex-direction:column !important;
+        justify-content:center !important;
+        text-align:center !important;
+    }
+    .learning_path .paths .card_path{min-height:190px !important;padding:14px 8px !important;}
+    .learning_path .paths .path_icon i{font-size:clamp(42px,13vw,62px) !important;}
+    .courses_section .courses_hero .search{grid-template-columns:1fr !important;}
+    .course_filter_submit{width:100% !important;min-height:52px !important;}
+    .courses_filter_group,
+    .courses_section .courses_hero .category_chips,
+    .roadmaps_hero .category_chips{
+        justify-content:flex-start !important;
+        flex-wrap:nowrap !important;
+        overflow-x:auto !important;
+        padding:2px 2px 10px !important;
+        scroll-snap-type:x proximity !important;
+        scrollbar-width:thin !important;
+    }
+    .category_chips .chip,
+    .courses_filter_group .chip{flex:0 0 auto !important;scroll-snap-align:start !important;}
+    .courses_catalog .courses,
+    .featured_courses .courses,
+    .courses{grid-template-columns:1fr !important;}
+    .course_card .info_course,
+    .course_card .card_footer{align-items:stretch !important;}
+    .course_card .card_footer .price,
+    .course_card .card_footer .course_btn{flex:1 1 100% !important;width:100% !important;}
+    .why_us.stats .section_right,
+    .why_us.stats .section_left{grid-template-columns:repeat(2,minmax(0,1fr)) !important;}
+    .why_us.stats .stat_card{min-height:210px !important;padding:16px 8px !important;}
+    .left_faq .faq_item .row_1{
+        grid-template-columns:38px minmax(0,1fr) 38px !important;
+        gap:10px !important;
+        min-height:64px !important;
+        padding:12px !important;
+    }
+    .left_faq .faq_item .row_1 .circle,
+    .left_faq .faq_item .row_1 .btn,
+    .left_faq .faq_item .row_1 .btn label{width:38px !important;height:38px !important;}
+    .left_faq .faq_item .row_1 .faq_question p{font-size:14px !important;}
+    .faq .right_faq .faq_info{grid-template-columns:52px minmax(0,1fr) !important;padding:12px !important;}
+    .faq .right_faq .faq_info .info_icon{width:52px !important;height:52px !important;}
+    .single_course_hero .introduction .Enroll_btn,
+    .curriculum .items .lesson_item .left_faq .faq_item .row_2 .L_item{display:grid !important;grid-template-columns:1fr !important;justify-items:center !important;text-align:center !important;}
+    .single_course_hero .introduction .Enroll_btn .price,
+    .single_course_hero .introduction .Enroll_btn .Registration{width:100% !important;min-height:52px !important;}
+    .contact-form__row{grid-template-columns:1fr !important;gap:0 !important;}
+}
+
+@media (min-width:540px) and (max-width:700px){
+    .courses_catalog .courses,
+    .featured_courses .courses,
+    .courses{grid-template-columns:repeat(2,minmax(0,1fr)) !important;}
+}
+
+@media (max-width:430px){
+    .container,.container-sm,
+    .stats,.learning_path,.featured_courses,.dashboard,.student_success,.faq,.courses_cta,.bootcamp,.cta,
+    .footer .footer_top,.footer .footer_bottom{width:calc(100% - 24px) !important;}
+    .buttons,.extra_info{width:100% !important;}
+    .buttons a,.extra_info .info{width:100% !important;}
+    .contact_hero .contact_cards,
+    .aboutus_hero .about_cards,
+    .aboutUs_card .history .history_cards{grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:10px !important;}
+    .contact_hero .contact_cards .card,
+    .aboutus_hero .about_cards .card,
+    .aboutUs_card .history .history_cards .card{min-height:132px !important;padding:12px 8px !important;}
+    .contact_hero .contact_cards .card p,
+    .aboutus_hero .about_cards .card p{font-size:12px !important;line-height:1.9 !important;}
+}
+
+@media (max-width:360px){
+    .footer .footer_top .footer_section ul.submenu li a{font-size:13px !important;padding-inline:8px !important;gap:6px !important;}
+    .footer .footer_top .footer_brand .social_networks{grid-template-columns:repeat(4,40px) !important;gap:8px !important;}
+    .footer .footer_top .footer_brand .social_networks .social,
+    .footer .footer_top .footer_brand .social_networks .social a{width:40px !important;height:40px !important;}
+    .faq .right_faq .faq_info{grid-template-columns:1fr !important;text-align:center !important;justify-items:center !important;}
+    .faq .right_faq .faq_info .info_text p{text-align:center !important;}
+}
+
+@media (max-width:320px){
+    .container,.container-sm,
+    .stats,.learning_path,.featured_courses,.dashboard,.student_success,.faq,.courses_cta,.bootcamp,.cta,
+    .footer .footer_top,.footer .footer_bottom{width:calc(100% - 16px) !important;}
+    .stats .section_right,.stats .section_left,
+    .learning_path .paths{gap:8px !important;}
+    .stats .stat_card,.learning_path .paths .card_path{padding-inline:7px !important;}
+    .footer .footer_top .footer_brand .social_networks{grid-template-columns:repeat(2,42px) !important;}
+}
+
+@media (min-width:1280px){
+    .hero_section,
+    .single_course_hero,
+    .roadmap_hero{padding-inline:max(80px,calc((100vw - 1320px)/2)) !important;}
+}
+@media (min-width:1536px){
+    :root{--container:1240px;--container-lg:1320px;}
+}
+
+@supports not (overflow:clip){
+    html,body{overflow-x:hidden;}
+}
+
+@media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{
+        animation-duration:.001ms !important;
+        animation-iteration-count:1 !important;
+        scroll-behavior:auto !important;
+        transition-duration:.001ms !important;
+    }
+}
+
+
+/* ==========================================================
+   Hero typography stabilization
+   Keeps the landing hero premium on laptop/desktop and compact
+   on small screens. These semantic classes are intentionally
+   separate from global h1/h2 styles so section/card/nav text does
+   not inherit hero sizing.
+   ========================================================== */
+.body-text{
+    font-size:clamp(14px,1vw,16px);
+    line-height:1.9;
+    font-weight:400;
+    color:var(--text-muted);
+}
+
+.nav-link{
+    font-size:clamp(14px,.95vw,15px);
+    line-height:1.6;
+    font-weight:600;
+}
+
+.section-title{
+    font-size:clamp(26px,3vw,46px) !important;
+    line-height:1.45 !important;
+    font-weight:800 !important;
+    letter-spacing:-.02em;
+    text-wrap:balance;
+}
+
+.card-title{
+    font-size:clamp(18px,1.65vw,22px) !important;
+    line-height:1.55 !important;
+    font-weight:700 !important;
+    text-wrap:balance;
+}
+
+.feature-title{
+    font-size:clamp(18px,1.7vw,24px) !important;
+    line-height:1.6 !important;
+    font-weight:750 !important;
+    text-wrap:balance;
+}
+
+.hero_section{
+    min-height:min(690px,calc(100svh - var(--ds-header-h,80px))) !important;
+    padding-block:clamp(56px,6vw,88px) !important;
+    gap:clamp(28px,3.6vw,56px) !important;
+    grid-template-columns:minmax(0,.96fr) minmax(340px,1.04fr) !important;
+}
+
+.hero_section .right_hero{
+    max-width:760px;
+    justify-self:start;
+}
+
+.hero_section .left_hero{
+    justify-self:end;
+}
+
+.hero_section .right_hero .hero-title,
+.hero-title{
+    max-width:740px !important;
+    margin:0 !important;
+    font-family:var(--font-ui) !important;
+    font-size:clamp(32px,4.2vw,60px) !important;
+    line-height:1.52 !important;
+    font-weight:800 !important;
+    letter-spacing:-.028em;
+    color:var(--text) !important;
+    text-align:right !important;
+    text-wrap:balance;
+    overflow-wrap:normal !important;
+    word-break:normal !important;
+}
+
+#hero_title::after,
+.hero-title::after{
+    display:none !important;
+    content:none !important;
+}
+
+.hero_section .right_hero .hero-subtitle,
+.hero-subtitle{
+    max-width:690px !important;
+    margin:clamp(16px,1.8vw,22px) 0 0 !important;
+    font-size:clamp(14px,1.2vw,17px) !important;
+    line-height:1.9 !important;
+    font-weight:500 !important;
+    color:var(--text-muted) !important;
+    text-align:right !important;
+    text-wrap:pretty;
+}
+
+.hero_section .right_hero .hero_cta{
+    width:min(100%,430px) !important;
+    margin:clamp(22px,2.6vw,32px) 0 0 !important;
+}
+
+.hero_section .right_hero .hero_cta a{
+    min-height:52px !important;
+    font-size:clamp(14px,1vw,15px) !important;
+    font-weight:700 !important;
+}
+
+.hero_section .right_hero .student_started{
+    margin-top:clamp(16px,2.2vw,26px) !important;
+    font-size:clamp(13px,.95vw,15px) !important;
+}
+
+/* Real laptop ranges: prevent poster-sized typography on common widths. */
+@media (min-width:1024px) and (max-width:1535px){
+    .hero_section{
+        min-height:min(650px,calc(100svh - var(--ds-header-h,80px))) !important;
+        padding-block:clamp(50px,5vw,76px) !important;
+        gap:clamp(24px,3.2vw,48px) !important;
+        grid-template-columns:minmax(0,.94fr) minmax(320px,1.06fr) !important;
+    }
+
+    .hero_section .right_hero .hero-title,
+    .hero-title{
+        max-width:700px !important;
+        font-size:clamp(32px,3.55vw,52px) !important;
+        line-height:1.5 !important;
+    }
+
+    .hero_section .right_hero .hero-subtitle,
+    .hero-subtitle{
+        max-width:650px !important;
+        font-size:clamp(14px,1.08vw,16px) !important;
+    }
+
+    .hero_section .left_hero .mockup{
+        max-width:620px !important;
+        margin-inline:auto 0 !important;
+    }
+}
+
+@media (min-width:1024px) and (max-width:1280px){
+    .hero_section{
+        grid-template-columns:minmax(0,1fr) minmax(300px,.92fr) !important;
+        gap:28px !important;
+        padding-block:clamp(46px,4.6vw,64px) !important;
+    }
+
+    .hero_section .right_hero .hero-title,
+    .hero-title{
+        max-width:660px !important;
+        font-size:clamp(32px,3.25vw,46px) !important;
+        line-height:1.52 !important;
+    }
+
+    .hero_section .right_hero .hero_cta{
+        width:min(100%,400px) !important;
+    }
+}
+
+@media (min-width:1536px){
+    .hero_section .right_hero .hero-title,
+    .hero-title{
+        max-width:760px !important;
+        font-size:clamp(48px,3.35vw,60px) !important;
+    }
+}
+
+@media (max-width:900px){
+    .hero_section{
+        grid-template-columns:1fr !important;
+        min-height:auto !important;
+        padding-block:clamp(42px,8vw,68px) !important;
+    }
+
+    .hero_section .right_hero{
+        justify-self:center;
+        max-width:720px;
+    }
+
+    .hero_section .right_hero .hero-title,
+    .hero-title{
+        max-width:620px !important;
+        margin-inline:auto !important;
+        font-size:clamp(28px,8vw,38px) !important;
+        line-height:1.55 !important;
+        text-align:center !important;
+    }
+
+    .hero_section .right_hero .hero-subtitle,
+    .hero-subtitle{
+        max-width:620px !important;
+        margin-inline:auto !important;
+        font-size:clamp(14px,3.8vw,16px) !important;
+        line-height:1.9 !important;
+        text-align:center !important;
+    }
+}
+
+@media (max-width:430px){
+    .hero_section{
+        padding-block:clamp(34px,9vw,52px) !important;
+    }
+
+    .hero_section .right_hero .hero-title,
+    .hero-title{
+        max-width:100% !important;
+        font-size:clamp(27px,8.4vw,36px) !important;
+        line-height:1.58 !important;
+    }
+
+    .hero_section .right_hero .hero-subtitle,
+    .hero-subtitle{
+        font-size:14px !important;
+    }
+}

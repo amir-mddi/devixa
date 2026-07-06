@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <link rel="stylesheet" href="{% project_static 'Styles/forget_password.css' %}">
     <link rel="stylesheet" href="{% project_static 'Styles/premium.css' %}">
+    <link rel="stylesheet" href="{% project_static 'Styles/responsive.css' %}">
     <title>ایجاد حساب کاربری</title>
     {% include "web/shared/_message_styles.html" %}
     <style>div.container { max-width: 430px; }</style>
@@ -65,7 +66,7 @@
 
         <div class="field">
             <input class="submit" type="submit" value="ایجاد حساب کاربری">
-            <i style="right: 237px;" id="submit" class="fa-solid fa-arrows-rotate"></i>
+            <i id="submit" class="fa-solid fa-arrows-rotate"></i>
         </div>
 
         <a href="{% url 'accounts_web:login' %}" class="back_to_login">

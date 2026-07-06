@@ -30,9 +30,11 @@
 }
 .hero_section .right_hero h1{
     color: var(--text);
-    font-size: 50px;
+    font-size: clamp(32px, 4.2vw, 60px);
+    max-width: 740px;
     margin:10px 45px;
-    line-height: 1.6;
+    line-height: 1.52;
+    text-wrap: balance;
 }
 #hero_title::after{
     content:'|';
@@ -46,9 +48,10 @@
 }
 .hero_section .right_hero h4{
     color: var(--text-muted);
-    font-size: 19px;
+    font-size: clamp(14px, 1.2vw, 17px);
+    max-width: 690px;
     margin:10px 45px;
-    line-height: 1.5;
+    line-height: 1.9;
 }
 .hero_section .right_hero .hero_cta{
     width: 65%;

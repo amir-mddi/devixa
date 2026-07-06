@@ -7,9 +7,12 @@
     <meta name="theme-color" content="#070b14">
     <meta name="description" content="{{ project.description }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet" href="{% project_static 'Styles/variables.css' %}">
     {% block page_styles %}{% endblock %}
     <link rel="stylesheet" href="{% project_static 'Styles/theme.css' %}">
     <link rel="stylesheet" href="{% project_static 'Styles/premium.css' %}">
+    <link rel="stylesheet" href="{% project_static 'Styles/responsive.css' %}">
+    <link rel="stylesheet" href="{% project_static 'Styles/design-system-fixes.css' %}">
     <title>{% block title %}{{ project.display_name }}{% endblock %}</title>
     {% include "web/shared/_message_styles.html" %}
 </head>

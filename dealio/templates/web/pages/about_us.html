@@ -8,25 +8,25 @@
 
 {% block content %}
 <section class="aboutus_hero">
-    <h4 class="title text-center reveal">درباره <span class="gradient_word">{{ project.display_name }}</span></h4>
+    <h4 class="section-title text-center reveal">درباره <span class="gradient_word">{{ project.display_name }}</span></h4>
     <p class="subtitle text-center mt-3" style="width: 100%;">{{ project.display_name }} با هدف آموزش مهارت‌های کاربردی پروژه محور و متناسب با نیاز بازار کار ایجاد شده است.</p>
     <div class="about_cards flex-center mt-4">
-        <div class="card flex-around">
+        <div class="card about-stat-card flex-around">
             <div class="info text-center">
-                <h4 class="title">+100</h4>
-                <p class="subtitle mt-1" style="width: 100%;">دانشجوی فعال</p>
+                <h4 class="about-stat-card__number">+100</h4>
+                <p class="about-stat-card__label subtitle mt-1" style="width: 100%;">دانشجوی فعال</p>
             </div>
         </div>
-        <div class="card flex-around">
+        <div class="card about-stat-card flex-around">
             <div class="info text-center">
-                <h4 class="title">+20</h4>
-                <p class="subtitle mt-1" style="width: 100%;">پروژه عملی</p>
+                <h4 class="about-stat-card__number">+20</h4>
+                <p class="about-stat-card__label subtitle mt-1" style="width: 100%;">پروژه عملی</p>
             </div>
         </div>
-        <div class="card flex-around">
+        <div class="card about-stat-card flex-around">
             <div class="info text-center">
-                <h4 class="title">+10</h4>
-                <p class="subtitle mt-1" style="width: 100%;">دوره آموزشی</p>
+                <h4 class="about-stat-card__number">+10</h4>
+                <p class="about-stat-card__label subtitle mt-1" style="width: 100%;">دوره آموزشی</p>
             </div>
         </div>
     </div>
@@ -34,23 +34,23 @@
 
 <section class="aboutUs_card">
     <div class="history text-center">
-        <h4 class="title mt-1 reveal">داستان <span class="gradient_word">{{ project.display_name }}</span></h4>
+        <h4 class="section-title mt-1 reveal">داستان <span class="gradient_word">{{ project.display_name }}</span></h4>
         <p class="subtitle mt-3" style="width: 100%;">آکادمی {{ project.display_name }} با هدف ارائه آموزش‌های کاربردی و پروژه محور ساخته شده تا مسیر یادگیری شما را کوتاه‌تر و موثرتر کند. ما باور داریم مهارت واقعی زمانی شکل می‌گیرد که یادگیری با عمل و تجربه همراه باشد.</p>
         <div class="history_cards mt-5 flex-center">
-            <div class="card">
-                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-                <h4 class="title">یادگیری کاربردی</h4>
-                <p class="subtitle" style="width: 100%;">تمرکز بر مهارت‌های واقعی و قابل اجرا</p>
+            <div class="card feature-card about-feature-card">
+                <svg class="feature-card__icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                <h4 class="feature-card__title feature-card-title">یادگیری کاربردی</h4>
+                <p class="feature-card__description subtitle" style="width: 100%;">تمرکز بر مهارت‌های واقعی و قابل اجرا</p>
             </div>
-            <div class="card">
-                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>
-                <h4 class="title">پروژه محور</h4>
-                <p class="subtitle" style="width: 100%;">یادگیری از طریق ساخت پروژه‌های واقعی</p>
+            <div class="card feature-card about-feature-card">
+                <svg class="feature-card__icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>
+                <h4 class="feature-card__title feature-card-title">پروژه محور</h4>
+                <p class="feature-card__description subtitle" style="width: 100%;">یادگیری از طریق ساخت پروژه‌های واقعی</p>
             </div>
-            <div class="card">
-                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.586 5.414-5.172 5.172"/><path d="m18.586 13.414-5.172 5.172"/><path d="M6 12h12"/><circle cx="12" cy="20" r="2"/><circle cx="12" cy="4" r="2"/><circle cx="20" cy="12" r="2"/><circle cx="4" cy="12" r="2"/></svg>
-                <h4 class="title">رشد شغلی</h4>
-                <p class="subtitle" style="width: 100%;">مهارت‌هایی متناسب با نیاز بازار کار و آینده شغلی</p>
+            <div class="card feature-card about-feature-card">
+                <svg class="feature-card__icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.586 5.414-5.172 5.172"/><path d="m18.586 13.414-5.172 5.172"/><path d="M6 12h12"/><circle cx="12" cy="20" r="2"/><circle cx="12" cy="4" r="2"/><circle cx="20" cy="12" r="2"/><circle cx="4" cy="12" r="2"/></svg>
+                <h4 class="feature-card__title feature-card-title">رشد شغلی</h4>
+                <p class="feature-card__description subtitle" style="width: 100%;">مهارت‌هایی متناسب با نیاز بازار کار و آینده شغلی</p>
             </div>
         </div>
     </div>

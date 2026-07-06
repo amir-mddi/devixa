@@ -4,13 +4,37 @@
     --accent:#00e7a5;
     --bg:#070b14;
     --surface:#101827;
+    --surface-soft:#121d2f;
+    --surface-muted:#0c1322;
     --text:#eaeaea;
     --text-muted:#94a3b8;
-    --border:rgba(255, 255, 255, 0.285);
+    --border:rgba(255,255,255,.18);
+    --border-strong:rgba(255,255,255,.30);
 
     --radius-sm:8px;
     --radius-md:16px;
     --radius-lg:24px;
+    --radius-xl:32px;
 
-    --shadow:0 10px 30px rgba(143, 143, 143, 0.358);
+    --shadow:0 18px 55px rgba(0,0,0,.26);
+    --shadow-soft:0 12px 34px rgba(0,0,0,.18);
+    --shadow-glow:0 24px 80px rgba(79,124,255,.22);
+
+    --space-1:8px;
+    --space-2:12px;
+    --space-3:16px;
+    --space-4:24px;
+    --space-5:32px;
+    --space-6:48px;
+    --space-7:64px;
+    --space-8:80px;
+    --space-9:96px;
+    --space-10:120px;
+
+    --font-ui:"Vazirmatn","IRANSansX","Dana",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --container:1180px;
+    --container-lg:1280px;
+    --header-desktop:80px;
+    --header-tablet:72px;
+    --header-mobile:64px;
 }

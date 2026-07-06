@@ -1,0 +1,1102 @@
+/* ==========================================================
+   Design-system audit fixes
+   Loaded after responsive.css to correct component-level bugs
+   without touching backend/template behavior.
+   ========================================================== */
+:root{
+    --ds-space-1:8px;
+    --ds-space-2:12px;
+    --ds-space-3:16px;
+    --ds-space-4:24px;
+    --ds-space-5:32px;
+    --ds-card-radius:24px;
+    --ds-card-radius-sm:18px;
+    --ds-card-border:1px solid var(--border);
+    --ds-card-bg:linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, white 4%), var(--surface));
+    --ds-card-pad-mobile:18px;
+    --ds-card-pad:24px;
+    --ds-card-pad-lg:28px;
+}
+
+html[dir="rtl"] body,
+body{
+    margin:0;
+    font-family:var(--font-ui);
+    font-size:16px;
+    line-height:1.8;
+    text-rendering:optimizeLegibility;
+    -webkit-font-smoothing:antialiased;
+}
+
+.body-text{
+    font-size:clamp(14px,1vw,16px);
+    line-height:1.9;
+    font-weight:400;
+    color:var(--text-muted);
+}
+
+.hero-title{
+    font-size:clamp(32px,4.2vw,60px) !important;
+    line-height:1.45 !important;
+    font-weight:800 !important;
+    max-width:740px !important;
+    text-wrap:balance;
+}
+
+.section-title{
+    font-size:clamp(28px,3vw,46px) !important;
+    line-height:1.5 !important;
+    font-weight:800 !important;
+    text-wrap:balance;
+}
+
+.card-title{
+    font-size:clamp(18px,1.4vw,22px) !important;
+    line-height:1.55 !important;
+    font-weight:700 !important;
+}
+
+.feature-card-title,
+.feature-title{
+    font-size:clamp(24px,2.4vw,36px) !important;
+    line-height:1.5 !important;
+    font-weight:800 !important;
+    color:var(--text);
+    text-wrap:balance;
+}
+
+.nav-link{
+    font-size:clamp(14px,1vw,15px) !important;
+    line-height:1.7 !important;
+    font-weight:600 !important;
+}
+
+/* ------------------------- Contact page ------------------------- */
+.contact_hero,
+.main_contact{
+    direction:rtl;
+    overflow-x:clip;
+}
+
+.contact-page-lead,
+.contact-info-lead{
+    width:min(100%,680px) !important;
+    max-width:100%;
+    margin-inline:auto;
+}
+
+.contact_hero .contact_cards{
+    width:min(1040px, calc(100% - clamp(24px,5vw,80px))) !important;
+    margin-inline:auto !important;
+    display:grid !important;
+    grid-template-columns:repeat(auto-fit, minmax(min(100%,260px),1fr)) !important;
+    gap:clamp(14px,2vw,20px) !important;
+    align-items:stretch !important;
+}
+
+.main_contact{
+    width:min(1180px, calc(100% - clamp(24px,5vw,80px))) !important;
+    margin-inline:auto !important;
+    padding-block:clamp(56px,7vw,96px) !important;
+    display:grid !important;
+    grid-template-columns:minmax(300px,420px) minmax(0,1fr) !important;
+    gap:clamp(28px,4vw,56px) !important;
+    align-items:start !important;
+}
+
+.main_contact .info_contact{
+    display:grid;
+    gap:14px;
+    align-content:start;
+    text-align:right;
+    padding:0 !important;
+}
+
+.contact-info-title{
+    margin:0 0 2px;
+    text-align:right !important;
+}
+
+.contact-info-lead{
+    margin:0 0 10px !important;
+    text-align:right;
+}
+
+.contact-card{
+    width:100%;
+    min-width:0;
+    min-height:clamp(112px,9vw,136px);
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:center;
+    gap:var(--ds-space-3);
+    padding:clamp(18px,2vw,24px);
+    border:var(--ds-card-border);
+    border-radius:var(--ds-card-radius-sm);
+    background:var(--ds-card-bg);
+    box-shadow:0 18px 45px rgba(0,0,0,.13);
+    transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;
+}
+
+.contact-card:hover{
+    transform:translateY(-4px);
+    border-color:rgba(79,124,255,.42);
+    box-shadow:0 24px 60px rgba(0,0,0,.2);
+}
+
+.contact-card__content{
+    min-width:0;
+    text-align:right;
+}
+
+.contact-card-title{
+    margin:0;
+    color:var(--text);
+    font-size:clamp(20px,1.8vw,26px);
+    line-height:1.5;
+    font-weight:800;
+    letter-spacing:-.01em;
+    text-wrap:balance;
+}
+
+.contact-card-value{
+    width:100%;
+    margin:6px 0 0;
+    color:var(--text-muted);
+    font-size:clamp(14px,1vw,16px);
+    line-height:1.8;
+    font-weight:400;
+    overflow-wrap:anywhere;
+    unicode-bidi:plaintext;
+}
+
+.contact-card__icon{
+    width:clamp(28px,2.6vw,36px);
+    height:clamp(28px,2.6vw,36px);
+    color:var(--text);
+    opacity:.95;
+    flex:0 0 auto;
+}
+
+.contact-form{
+    max-width:100%;
+    padding:clamp(18px,2.2vw,28px);
+    border:var(--ds-card-border);
+    border-radius:var(--ds-card-radius);
+    background:var(--ds-card-bg);
+}
+
+.contact-form__label{
+    text-align:right !important;
+    font-size:14px !important;
+    line-height:1.8 !important;
+}
+
+.contact-form__input,
+.contact-form__textarea{
+    min-height:46px;
+    font-size:15px;
+    line-height:1.8;
+}
+
+.contact-form__submit{
+    min-height:48px !important;
+    font-size:15px !important;
+    font-weight:800 !important;
+}
+
+/* ------------------------- Equal-height course cards ------------------------- */
+.courses_catalog .courses,
+.featured_courses .courses,
+.courses{
+    display:grid !important;
+    grid-template-columns:repeat(auto-fit, minmax(min(100%,260px),1fr)) !important;
+    grid-auto-rows:1fr !important;
+    align-items:stretch !important;
+    justify-content:start !important;
+    gap:clamp(18px,2.2vw,28px) !important;
+    direction:rtl !important;
+}
+
+.courses .course_card,
+.course-card{
+    height:100% !important;
+    min-height:0 !important;
+    display:flex !important;
+    flex-direction:column !important;
+    padding:clamp(var(--ds-card-pad-mobile),1.8vw,var(--ds-card-pad-lg)) !important;
+    border-radius:clamp(22px,2vw,28px) !important;
+    background:var(--ds-card-bg) !important;
+    border:var(--ds-card-border) !important;
+    overflow:hidden !important;
+}
+
+.courses .course_card .card_header,
+.course-card__media{
+    width:100% !important;
+    height:clamp(150px,14vw,200px) !important;
+    min-height:clamp(150px,14vw,200px) !important;
+    aspect-ratio:auto !important;
+    margin:0 0 clamp(18px,1.8vw,24px) !important;
+    display:grid !important;
+    place-items:center !important;
+    border-radius:18px !important;
+    overflow:hidden !important;
+}
+
+.course-card__media::after{
+    margin:0 !important;
+    line-height:1 !important;
+}
+
+.course-card__thumbnail{
+    width:100% !important;
+    height:100% !important;
+    object-fit:cover !important;
+}
+
+.courses .course_card .card_body,
+.course-card__body{
+    flex:1 1 auto !important;
+    min-height:0;
+    display:flex !important;
+    flex-direction:column !important;
+    padding:0 !important;
+    text-align:right;
+}
+
+.courses .course_card .card_body h3.course-card-title,
+.course-card-title{
+    min-height:2.9em;
+    margin:0 0 10px;
+    color:var(--text);
+    font-size:clamp(24px,2vw,32px) !important;
+    line-height:1.45 !important;
+    font-weight:800 !important;
+    letter-spacing:-.018em;
+    text-align:right !important;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+    text-wrap:balance;
+}
+
+.course-card-description{
+    min-height:5.4em;
+    margin:0;
+    color:var(--text-muted);
+    font-size:clamp(14px,1vw,16px) !important;
+    line-height:1.8 !important;
+    font-weight:400;
+    text-align:right !important;
+    display:-webkit-box;
+    -webkit-line-clamp:3;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+}
+
+.course-card__meta,
+.courses .course_card .card_body .info_course.course-card__meta{
+    width:100%;
+    margin-top:auto !important;
+    padding:clamp(14px,1.4vw,18px) 0 0 !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:space-between !important;
+    gap:10px !important;
+    flex-wrap:wrap !important;
+    direction:rtl !important;
+}
+
+.course-card__meta-item{
+    min-width:0;
+    display:inline-flex !important;
+    align-items:center !important;
+    gap:6px !important;
+    color:var(--text-muted);
+    font-size:13px !important;
+    line-height:1.7 !important;
+    white-space:normal;
+}
+
+.course-card__meta-item svg{
+    width:20px;
+    height:20px;
+    flex:0 0 auto;
+}
+
+.courses .course_card .card_footer,
+.course-card__footer{
+    width:100%;
+    margin-top:clamp(14px,1.6vw,20px) !important;
+    padding:0 !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:space-between !important;
+    gap:10px !important;
+    flex-wrap:wrap !important;
+    direction:rtl !important;
+}
+
+.course-card__price,
+.course-card__button{
+    min-height:44px !important;
+    min-width:0 !important;
+    width:auto !important;
+    flex:1 1 120px !important;
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    padding:9px 12px !important;
+    margin:0 !important;
+    font-size:14px !important;
+    line-height:1.6 !important;
+    text-align:center !important;
+}
+
+/* ------------------------- Equal-height roadmap/catalog cards ------------------------- */
+.roadmaps_categories .categories{
+    width:min(1280px, calc(100% - clamp(24px,5vw,80px))) !important;
+    margin-inline:auto !important;
+    padding:clamp(24px,4vw,48px) 0 0 !important;
+    display:grid !important;
+    grid-template-columns:repeat(auto-fit, minmax(min(100%,260px),1fr)) !important;
+    grid-auto-rows:1fr !important;
+    gap:clamp(18px,2.2vw,28px) !important;
+    align-items:stretch !important;
+    justify-content:start !important;
+    direction:rtl !important;
+}
+
+.roadmap-card-link{
+    display:block;
+    height:100%;
+    min-width:0;
+}
+
+.roadmaps_categories .categories .roadmap-card,
+.roadmap-card{
+    width:100% !important;
+    max-width:none !important;
+    height:100% !important;
+    min-height:0 !important;
+    margin:0 !important;
+    display:flex !important;
+    flex-direction:column !important;
+    padding:clamp(var(--ds-card-pad-mobile),1.8vw,var(--ds-card-pad-lg)) !important;
+    border-radius:clamp(22px,2vw,28px) !important;
+    background:var(--ds-card-bg) !important;
+    border:var(--ds-card-border) !important;
+    overflow:hidden !important;
+    text-align:right !important;
+}
+
+.roadmap-card__media,
+.roadmaps_categories .categories .roadmap-card .card_header{
+    width:100% !important;
+    height:clamp(150px,14vw,200px) !important;
+    min-height:clamp(150px,14vw,200px) !important;
+    aspect-ratio:auto !important;
+    margin:0 0 clamp(18px,1.8vw,24px) !important;
+    display:grid !important;
+    place-items:center !important;
+    border-radius:18px !important;
+    overflow:hidden !important;
+}
+
+.roadmap-card__media .roadmap_icon,
+.roadmaps_categories .categories .roadmap-card .card_header i{
+    margin:0 !important;
+    font-size:clamp(58px,6vw,86px) !important;
+    line-height:1 !important;
+    color:var(--primary);
+}
+
+.roadmap-card__body{
+    flex:1 1 auto;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+    padding:0 !important;
+    text-align:right;
+}
+
+.roadmap-card-title{
+    min-height:2.9em;
+    margin:0 0 10px;
+    color:var(--text);
+    font-size:clamp(24px,2vw,32px);
+    line-height:1.45;
+    font-weight:800;
+    letter-spacing:-.018em;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+    text-wrap:balance;
+}
+
+.roadmap-card-description{
+    min-height:5.4em;
+    margin:0;
+    color:var(--text-muted);
+    font-size:clamp(14px,1vw,16px);
+    line-height:1.8;
+    display:-webkit-box;
+    -webkit-line-clamp:3;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+}
+
+.roadmap-card__footer{
+    width:100%;
+    margin-top:auto !important;
+    padding:clamp(14px,1.4vw,18px) 0 0 !important;
+    min-height:48px;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:space-between !important;
+    gap:12px !important;
+    flex-wrap:wrap !important;
+    color:var(--text);
+    font-size:14px;
+    line-height:1.7;
+    direction:rtl;
+}
+
+.roadmap-card__footer .subtitle,
+.roadmap-card__footer p{
+    width:auto !important;
+    margin:0 !important;
+    font-size:14px !important;
+    line-height:1.7 !important;
+}
+
+.learning_process .process{
+    grid-auto-rows:1fr;
+    direction:rtl !important;
+}
+
+.learning_process .process .card_process{
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    gap:8px;
+}
+
+.learning_process .process .card_process .subtitle{
+    width:100% !important;
+    font-size:clamp(14px,1vw,16px) !important;
+    line-height:1.9 !important;
+}
+
+/* ------------------------- Responsive refinements ------------------------- */
+@media (min-width:1024px) and (max-width:1280px){
+    .hero-title{
+        font-size:clamp(32px,3.25vw,46px) !important;
+        line-height:1.52 !important;
+    }
+
+    .course-card-title,
+    .roadmap-card-title{
+        font-size:clamp(23px,1.85vw,28px) !important;
+    }
+}
+
+@media (max-width:980px){
+    .main_contact{
+        grid-template-columns:1fr !important;
+        width:min(760px, calc(100% - 28px)) !important;
+    }
+
+    .contact-info-title,
+    .contact-info-lead{
+        text-align:center !important;
+        margin-inline:auto !important;
+    }
+}
+
+@media (max-width:640px){
+    body{font-size:15px;}
+
+    .contact_hero .contact_cards,
+    .main_contact,
+    .roadmaps_categories .categories{
+        width:min(100% - 24px, 560px) !important;
+    }
+
+    .contact-card{
+        min-height:112px;
+        padding:18px;
+        gap:14px;
+        border-radius:18px;
+    }
+
+    .contact-card-title{
+        font-size:clamp(20px,6vw,24px);
+    }
+
+    .contact-card-value{
+        font-size:14px;
+    }
+
+    .contact-card__icon{
+        width:30px;
+        height:30px;
+    }
+
+    .courses .course_card .card_header,
+    .course-card__media,
+    .roadmap-card__media,
+    .roadmaps_categories .categories .roadmap-card .card_header{
+        height:clamp(140px,42vw,170px) !important;
+        min-height:clamp(140px,42vw,170px) !important;
+    }
+
+    .course-card-title,
+    .roadmap-card-title{
+        font-size:clamp(22px,6vw,26px) !important;
+        line-height:1.5 !important;
+    }
+
+    .feature-card-title,
+    .feature-title{
+        font-size:clamp(22px,7vw,28px) !important;
+    }
+
+    .course-card-description,
+    .roadmap-card-description{
+        font-size:14px !important;
+        line-height:1.85 !important;
+    }
+}
+
+@media (max-width:340px){
+    .contact-card{
+        grid-template-columns:1fr;
+        justify-items:center;
+        text-align:center;
+    }
+
+    .contact-card__content,
+    .contact-card-title,
+    .contact-card-value{
+        text-align:center;
+    }
+
+    .course-card__footer,
+    .roadmap-card__footer{
+        flex-direction:column;
+        align-items:stretch !important;
+    }
+
+    .course-card__price,
+    .course-card__button{
+        flex-basis:auto !important;
+        width:100% !important;
+    }
+}
+
+@media (prefers-reduced-motion:reduce){
+    .contact-card,
+    .course-card,
+    .roadmap-card{
+        transition:none !important;
+    }
+
+    .contact-card:hover,
+    .course-card:hover,
+    .roadmap-card:hover{
+        transform:none !important;
+    }
+}
+
+/* ==========================================================
+   Card-first component sizing system
+   Root-cause fix: prevent global .title / h* typography from
+   leaking into cards. Card text now follows container size.
+   ========================================================== */
+:root{
+    --component-card-border:1px solid var(--border);
+    --component-card-bg:linear-gradient(180deg, color-mix(in srgb, var(--surface) 94%, white 3%), color-mix(in srgb, var(--surface) 88%, var(--bg)));
+    --component-card-shadow:0 18px 45px rgba(0,0,0,.16);
+    --component-card-shadow-hover:0 26px 72px rgba(0,0,0,.24);
+}
+
+/* Component cards must not inherit page/hero/section title sizing. */
+:where(.feature-card,.course-card,.roadmap-card,.contact-card,.about-stat-card,.will_learn .card)
+:where(.title,.section-title,.hero-title){
+    font-size:inherit !important;
+    line-height:inherit !important;
+    font-weight:inherit !important;
+    margin:0;
+}
+
+/* Reusable card grids */
+.card-grid,
+.feature-card-grid,
+.learning_path .paths,
+.learning_process .process,
+.aboutUs_card .history_cards,
+.aboutus_hero .about_cards,
+.courses_catalog .courses,
+.featured_courses .courses,
+.courses,
+.roadmaps_categories .categories{
+    display:grid !important;
+    grid-auto-rows:1fr !important;
+    align-items:stretch !important;
+    direction:rtl !important;
+}
+
+.card-grid,
+.feature-card-grid,
+.learning_path .paths,
+.learning_process .process,
+.aboutUs_card .history_cards{
+    width:min(100% - clamp(24px,5vw,80px), 1120px) !important;
+    margin-inline:auto !important;
+    gap:clamp(16px,2vw,24px) !important;
+    grid-template-columns:repeat(auto-fit, minmax(min(100%,260px),1fr)) !important;
+    padding-inline:0 !important;
+}
+
+/* Small stat cards in about hero */
+.aboutus_hero .about_cards{
+    width:min(100% - clamp(24px,5vw,80px), 760px) !important;
+    margin-inline:auto !important;
+    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+    gap:16px !important;
+}
+
+.about-stat-card{
+    width:100% !important;
+    height:100% !important;
+    min-height:var(--card-min-small) !important;
+    margin:0 !important;
+    padding:18px !important;
+    border-radius:18px !important;
+    border:var(--component-card-border) !important;
+    background:var(--component-card-bg) !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    text-align:center !important;
+}
+
+.about-stat-card__number{
+    margin:0;
+    font-size:clamp(24px,2vw,32px) !important;
+    line-height:1.25 !important;
+    font-weight:800 !important;
+    color:var(--text);
+}
+
+.about-stat-card__label{
+    margin:6px 0 0 !important;
+    font-size:var(--text-sm) !important;
+    line-height:1.7 !important;
+    color:var(--text-muted);
+}
+
+/* Feature cards: component-owned title scale, fixed visual weight, clamped text. */
+.feature-card,
+.learning_path .paths a .card_path,
+.learning_process .process .card_process,
+.aboutUs_card .history_cards .card.about-feature-card{
+    width:100% !important;
+    max-width:none !important;
+    height:100% !important;
+    min-height:var(--card-min-normal) !important;
+    margin:0 !important;
+    padding:clamp(24px,2.4vw,32px) !important;
+    display:flex !important;
+    flex-direction:column !important;
+    align-items:center !important;
+    justify-content:center !important;
+    gap:0 !important;
+    text-align:center !important;
+    border-radius:var(--card-radius-normal) !important;
+    border:var(--component-card-border) !important;
+    background:var(--component-card-bg) !important;
+    box-shadow:var(--component-card-shadow);
+    overflow:hidden !important;
+    transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease;
+}
+
+.feature-card:hover,
+.learning_path .paths a .card_path:hover,
+.learning_process .process .card_process:hover,
+.aboutUs_card .history_cards .card.about-feature-card:hover{
+    transform:translateY(-4px) !important;
+    border-color:rgba(79,124,255,.48) !important;
+    box-shadow:var(--component-card-shadow-hover);
+}
+
+.feature-card__icon,
+.learning_path .paths a .card_path .path_icon,
+.aboutUs_card .history_cards .card.about-feature-card > svg,
+.learning_process .process .card_process svg{
+    width:36px !important;
+    height:36px !important;
+    min-width:36px !important;
+    min-height:36px !important;
+    margin:0 0 16px !important;
+    color:var(--text);
+    line-height:1 !important;
+    flex:0 0 auto !important;
+}
+
+.learning_path .paths .path_icon i{
+    font-size:36px !important;
+    line-height:1 !important;
+}
+
+.feature-card__badge,
+.learning_process .process .card_process .circle_level{
+    width:44px !important;
+    height:44px !important;
+    min-width:44px !important;
+    min-height:44px !important;
+    margin:0 0 16px !important;
+    font-size:16px !important;
+    line-height:1 !important;
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    flex:0 0 auto !important;
+}
+
+.feature-card__title,
+.feature-card-title,
+.feature-title,
+.learning_path .paths a .card_path h4,
+.learning_process .process .card_process h4,
+.aboutUs_card .history_cards .card.about-feature-card h4{
+    width:100% !important;
+    max-width:100% !important;
+    min-height:2.9em;
+    margin:0 !important;
+    color:var(--text) !important;
+    font-size:var(--feature-card-title-size) !important;
+    line-height:1.45 !important;
+    font-weight:800 !important;
+    letter-spacing:-.016em;
+    text-align:center !important;
+    text-wrap:balance;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+}
+
+.feature-card__description,
+.learning_path .paths a .card_path p,
+.learning_process .process .card_process p,
+.aboutUs_card .history_cards .card.about-feature-card p{
+    width:100% !important;
+    min-height:3.6em;
+    margin:10px 0 0 !important;
+    padding:0 !important;
+    color:var(--text-muted) !important;
+    font-size:var(--text-md) !important;
+    line-height:1.8 !important;
+    font-weight:400 !important;
+    text-align:center !important;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+}
+
+/* Contact cards: never inherit section title sizing. */
+.contact-card{
+    min-height:120px !important;
+    grid-template-columns:minmax(0,1fr) auto !important;
+    align-items:center !important;
+    gap:16px !important;
+    padding:20px 24px !important;
+}
+
+.contact-card__icon,
+.contact-card .contact-card__icon{
+    width:34px !important;
+    height:34px !important;
+    min-width:34px !important;
+    min-height:34px !important;
+}
+
+.contact-card__title,
+.contact-card-title,
+.contact-card :where(h2,h3,h4,.title){
+    margin:0 !important;
+    font-size:var(--contact-card-title-size) !important;
+    line-height:1.45 !important;
+    font-weight:700 !important;
+    color:var(--text) !important;
+    text-align:right !important;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+    text-wrap:balance;
+}
+
+.contact-card__value,
+.contact-card-value{
+    margin:6px 0 0 !important;
+    color:var(--text-muted) !important;
+    font-size:clamp(14px,1vw,16px) !important;
+    line-height:1.7 !important;
+    font-weight:400 !important;
+    text-align:right !important;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+    overflow-wrap:anywhere;
+    unicode-bidi:plaintext;
+}
+
+/* Course card equal-height component */
+.courses_catalog .courses,
+.featured_courses .courses,
+.courses{
+    grid-template-columns:repeat(auto-fit, minmax(min(100%,260px),1fr)) !important;
+    grid-auto-rows:1fr !important;
+    gap:clamp(18px,2.2vw,28px) !important;
+}
+
+.course-card{
+    height:100% !important;
+    min-height:var(--card-min-course) !important;
+    display:flex !important;
+    flex-direction:column !important;
+    padding:var(--card-padding-normal) !important;
+    border-radius:var(--card-radius-large) !important;
+}
+
+.course-card__media,
+.courses .course_card .card_header{
+    height:var(--card-media-course) !important;
+    min-height:var(--card-media-course) !important;
+    flex-shrink:0 !important;
+}
+
+.course-card__body{
+    flex:1 1 auto !important;
+    display:flex !important;
+    flex-direction:column !important;
+    min-height:0 !important;
+}
+
+.course-card__title,
+.course-card-title{
+    min-height:2.9em !important;
+    font-size:var(--course-card-title-size) !important;
+    line-height:1.45 !important;
+    font-weight:800 !important;
+    display:-webkit-box !important;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+    text-wrap:balance;
+}
+
+.course-card__description,
+.course-card-description{
+    min-height:5.55em !important;
+    font-size:var(--text-md) !important;
+    line-height:1.85 !important;
+    display:-webkit-box !important;
+    -webkit-line-clamp:3;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+}
+
+.course-card__meta{
+    margin-top:auto !important;
+}
+
+.course-card__footer{
+    margin-top:16px !important;
+    flex-shrink:0 !important;
+}
+
+/* Roadmap cards follow the same equal-height card system. */
+.roadmap-card{
+    height:100% !important;
+    min-height:var(--card-min-course) !important;
+    display:flex !important;
+    flex-direction:column !important;
+}
+
+.roadmap-card__body{
+    flex:1 1 auto !important;
+    display:flex !important;
+    flex-direction:column !important;
+}
+
+.roadmap-card__title,
+.roadmap-card-title{
+    min-height:2.9em !important;
+    font-size:var(--card-title-md) !important;
+    line-height:1.45 !important;
+    font-weight:800 !important;
+    display:-webkit-box !important;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+    text-wrap:balance;
+}
+
+.roadmap-card__description,
+.roadmap-card-description{
+    min-height:5.55em !important;
+    font-size:var(--text-md) !important;
+    line-height:1.85 !important;
+    display:-webkit-box !important;
+    -webkit-line-clamp:3;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+}
+
+.roadmap-card__footer{
+    margin-top:auto !important;
+    flex-shrink:0 !important;
+}
+
+/* Course detail mini cards must not use page .title scale. */
+.will_learn .card,
+.will_learn .card_learn .card{
+    height:100% !important;
+    min-height:120px !important;
+    padding:18px !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+}
+
+.will_learn .card p.title,
+.will_learn .card_learn .card p.title{
+    font-size:var(--card-title-sm) !important;
+    line-height:1.5 !important;
+    font-weight:700 !important;
+    text-align:center !important;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+}
+
+@media (min-width:1280px){
+    .featured_courses .courses,
+    .courses_catalog .courses,
+    .roadmaps_categories .categories{
+        grid-template-columns:repeat(auto-fit, minmax(280px,1fr)) !important;
+    }
+}
+
+@media (max-width:900px){
+    .aboutus_hero .about_cards{
+        grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+    }
+
+    .feature-card,
+    .learning_path .paths a .card_path,
+    .learning_process .process .card_process,
+    .aboutUs_card .history_cards .card.about-feature-card{
+        min-height:200px !important;
+        padding:22px !important;
+    }
+}
+
+@media (max-width:640px){
+    :root{
+        --feature-card-title-size:clamp(22px,6vw,26px);
+        --course-card-title-size:clamp(22px,6.2vw,27px);
+        --contact-card-title-size:clamp(20px,5.6vw,24px);
+        --card-min-course:460px;
+    }
+
+    .aboutus_hero .about_cards{
+        grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+        gap:10px !important;
+    }
+
+    .about-stat-card{
+        min-height:104px !important;
+        padding:14px 10px !important;
+    }
+
+    .about-stat-card__number{font-size:clamp(22px,7vw,28px) !important;}
+    .about-stat-card__label{font-size:13px !important;}
+
+    .feature-card-grid,
+    .learning_path .paths,
+    .learning_process .process,
+    .aboutUs_card .history_cards{
+        grid-template-columns:1fr !important;
+        width:min(100% - 24px, 520px) !important;
+    }
+
+    .feature-card,
+    .learning_path .paths a .card_path,
+    .learning_process .process .card_process,
+    .aboutUs_card .history_cards .card.about-feature-card{
+        min-height:188px !important;
+        padding:20px !important;
+    }
+
+    .feature-card__icon,
+    .learning_path .paths a .card_path .path_icon,
+    .aboutUs_card .history_cards .card.about-feature-card > svg,
+    .learning_process .process .card_process svg{
+        width:32px !important;
+        height:32px !important;
+        min-width:32px !important;
+        min-height:32px !important;
+        margin-bottom:14px !important;
+    }
+
+    .course-card{
+        min-height:460px !important;
+        padding:var(--card-padding-mobile) !important;
+    }
+
+    .course-card__media,
+    .courses .course_card .card_header{
+        height:var(--card-media-course-mobile) !important;
+        min-height:var(--card-media-course-mobile) !important;
+    }
+
+    .contact-card{
+        min-height:112px !important;
+        padding:18px !important;
+    }
+}
+
+@media (max-width:340px){
+    .aboutus_hero .about_cards{
+        grid-template-columns:1fr !important;
+    }
+
+    .contact-card__title,
+    .contact-card-title,
+    .contact-card__value,
+    .contact-card-value{
+        text-align:center !important;
+    }
+}
+
+@media (prefers-reduced-motion:reduce){
+    .feature-card,
+    .learning_path .paths a .card_path,
+    .learning_process .process .card_process,
+    .aboutUs_card .history_cards .card.about-feature-card{
+        transition:none !important;
+    }
+}
