@@ -1,0 +1,183 @@
+@import url(reset.css);
+@import url(variables.css);
+@import url(framework.css);
+@import url(components.css);
+/* courses ///////////////////////////*/
+.courses_section{
+    background: var(--bg);
+    padding: 80px 0 0 0;
+}
+.courses_section .courses_hero{
+    position: relative;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+.courses_section .courses_hero::before{
+    content: '';
+    position: absolute;
+    width: 280px;
+    height: 280px;
+    background: rgb(79 123 255 / 50%);
+    filter: blur(120px);
+    top: 50%;left: 50%;
+    transform: translate(-50%,-50%);
+    pointer-events: none;
+}
+.courses_section .courses_hero .badge{
+    background: rgba(79,124,255,.1);
+    color: var(--primary);
+    border: 1px solid rgba(79,124,255,.2);
+}
+.courses_section .courses_hero .badge h4{
+font-size: 20px;
+}
+.courses_section .courses_hero .badge svg{
+    vertical-align: -7px;
+    width: 25px;
+    height: 25px;
+}
+.courses_section .courses_hero .subtitle{
+    width: 100%;
+    margin-top: 30px;
+}
+.courses_section .courses_hero .search{
+    position: relative;
+    width: 450px;
+    margin: 30px auto;
+}
+.courses_section .courses_hero .search svg{
+    width: 50px;
+    height: 50%;
+    display: block;
+    position: absolute;
+    top:50%;
+    transform:translateY(-50%);
+    left:5px;
+    height:20px;
+    color:var(--text-muted);
+    pointer-events:none;
+}
+.courses_section .courses_hero input.search_box{
+    z-index: 10;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    width: 450px;
+    height: 60px;
+    display: block;
+    outline: none;
+    padding-right: 30px;
+    color: var(--text-muted);
+    font-size: 18px;
+}
+.courses_section .courses_hero input.search_box:hover{
+    border-color: rgba(79,124,255,.3);
+    cursor: pointer;
+}
+.courses_section .courses_hero input.search_box:focus{
+    border-color: var(--primary);
+    box-shadow:
+    0 0 0 4px rgba(79,124,255,.15);
+}
+@media(max-width:500px){
+    .courses_section .courses_hero input.search_box{
+        width: auto;
+    }
+    .courses_section .courses_hero .search{
+        width: auto;
+    }
+}
+/* courses_hero////////*/
+.courses_section .courses_hero .category_chips .chip{
+    padding: 0;
+}
+.courses_section .courses_hero .category_chips .chip a{
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius-lg);
+    flex-direction: row-reverse;
+}
+.active{
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: #fff;
+}
+.d-none{display:none;}
+.d-block{display:block;}
+/* courses_hero////////*/
+/* courses_catalog ///////////////////////////*/
+.courses_catalog{
+    background: var(--bg);
+    padding: 40px 40px 0;
+}
+#not_found{
+    direction: rtl;
+    text-align: center;
+}
+/* courses_catalog ///////////////////////////*/
+/* courses_why_us ///////////*/
+.why_us.stats .stat_card{
+    height:300px;
+}
+.why_us.stats .stat_card .card_info{
+    padding: 10px;
+}
+.why_us.stats .stat_card .card_info .line{
+    width: 130px;
+    height: 2px;
+    background: var(--primary);
+    margin: 20px auto;
+}
+.why_us.stats .stat_card .card_icon .icon svg{
+    width: 75px;
+    height: 75px;
+}
+/* courses_why_us ///////////////*/
+/* courses_cta ///////////////////*/
+.courses_cta{
+    padding: 100px 0;
+    background: var(--bg);
+}
+.courses_cta .courses_box{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 80px 60px;
+    position: relative;
+    overflow: hidden;
+    flex-direction: column;
+}
+.courses_cta .courses_box::before{
+    content: '';
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    background: rgba(79, 123, 255, 0.345);
+    filter: blur(120px);
+    right: -100px;
+    top: -100px;
+}
+.courses_cta .courses_box .extra_info .info{
+    padding: 0 10px;
+}
+.courses_cta .courses_box .extra_info .info svg{
+    margin: 0 2px;
+}
+@media(max-width:768px){
+    .courses_cta .courses_box .buttons{
+        width: 100%;
+    }
+    .courses_cta .courses_box .extra_info{
+        width: 100%;
+    }
+}
+/* courses_cta ///////////////////*/
+.learning_path #path_card{
+    min-height: auto;
+    padding: 25px;
+    width: 100%;
+    min-width: 250px;
+    max-width: 250px;
+}

@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import time
 from datetime import datetime, timedelta
@@ -8,15 +9,101 @@ from django.core.cache import cache
 from django.http import JsonResponse
 
 from dealio.apps.core_models.vo.common_vo import EnvVO, CommonVO
-from dealio.apps.shared.repositories.logic import SharedApplicationLogic
-
 ACTIVITY_THRESHOLD = 2
 from typing import Any
 
-shared_app_logic = SharedApplicationLogic()
-
 
 class CommonUtils:
+    @classmethod
+    def get_project_logger_name(cls) -> str:
+        try:
+            from django.conf import settings
+
+            configured_logger_name = getattr(settings, "PROJECT_LOGGER_NAME", None)
+        except Exception:
+            configured_logger_name = None
+
+        logger_name = (
+            configured_logger_name
+            or os.environ.get("PROJECT_LOGGER_NAME")
+            or os.environ.get("PROJECT_SLUG")
+            or os.environ.get("PROJECT_NAME")
+            or "project"
+        )
+
+        return str(logger_name).strip().lower().replace(" ", "-")
+
+    @classmethod
+    def get_project_logger(cls, module_name: str | None = None) -> logging.Logger:
+        logger_name = cls.get_project_logger_name()
+        normalized_module_name = str(module_name or "").strip(".")
+
+        if not normalized_module_name:
+            return logging.getLogger(logger_name)
+
+        return logging.getLogger(f"{logger_name}.{normalized_module_name}")
+
+
+    @classmethod
+    def normalize_path_part(cls, value: str | None) -> str:
+        cleaned_value = str(value or "").strip().replace("\\", "/")
+        cleaned_value = cleaned_value.strip("/")
+
+        if cleaned_value.startswith("static/"):
+            cleaned_value = cleaned_value.removeprefix("static/").strip("/")
+
+        return cleaned_value
+
+    @classmethod
+    def get_static_asset_root(cls) -> str:
+        try:
+            from django.conf import settings
+
+            configured_asset_root = getattr(settings, "PROJECT_STATIC_ASSET_ROOT", None)
+        except Exception:
+            configured_asset_root = None
+
+        return cls.normalize_path_part(
+            configured_asset_root
+            or os.environ.get("PROJECT_STATIC_ASSET_ROOT")
+            or "app/assets"
+        )
+
+    @classmethod
+    def build_project_static_path(cls, path: str | None) -> str:
+        asset_root = cls.get_static_asset_root()
+        cleaned_path = cls.normalize_path_part(path)
+
+        if not cleaned_path:
+            return asset_root
+
+        if cleaned_path == asset_root or cleaned_path.startswith(f"{asset_root}/"):
+            return cleaned_path
+
+        return f"{asset_root}/{cleaned_path}" if asset_root else cleaned_path
+
+    @classmethod
+    def should_serve_static_files(cls) -> bool:
+        try:
+            from django.conf import settings
+
+            return bool(
+                getattr(settings, "DEBUG", False)
+                or getattr(settings, "PROJECT_SERVE_STATIC_FILES", False)
+            )
+        except Exception:
+            return bool(os.environ.get("PROJECT_SERVE_STATIC_FILES", "").lower() in {"1", "true", "yes", "on"})
+
+    @classmethod
+    def get_first_staticfiles_dir(cls):
+        from django.conf import settings
+
+        static_dirs = list(getattr(settings, "STATICFILES_DIRS", []) or [])
+        if static_dirs:
+            return static_dirs[0]
+
+        return getattr(settings, "STATIC_ROOT", None)
+
     @classmethod
     def get_serializer_without_fields(cls, serializer_class, fields_to_remove):
         if not serializer_class:
@@ -168,11 +255,15 @@ class CommonUtils:
 
     @classmethod
     def expire_an_api_key(cls, expired_key):
-        shared_app_logic.expire_an_api_key(expired_key)
+        from dealio.apps.shared.repositories.logic import SharedApplicationLogic
+
+        SharedApplicationLogic().expire_an_api_key(expired_key)
 
     @classmethod
     def fetch_newest_api_key(cls):
-        key = shared_app_logic.fetch_newest_api_key()
+        from dealio.apps.shared.repositories.logic import SharedApplicationLogic
+
+        key = SharedApplicationLogic().fetch_newest_api_key()
         return key
 
 

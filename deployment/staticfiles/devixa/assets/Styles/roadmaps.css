@@ -1,0 +1,188 @@
+@import url(reset.css);
+@import url(variables.css);
+@import url(framework.css);
+@import url(components.css);
+/* roadmaps_hero/////////*/
+.roadmaps_hero{
+    background: var(--bg);
+    padding: 80px 0 0;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.roadmaps_hero::before{
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at top right,rgba(79, 123, 255, 0.696),transparent 40%) , radial-gradient(circle at bottom left,rgba(124, 58, 237, 0.701),transparent 40%);
+    filter: blur(50px);
+    pointer-events: none;
+    inset: 0;
+}
+.roadmaps_hero .badge{
+    color: var(--text);
+    font-size: 25px;
+    width: 100%;
+    max-width: 444px;
+    margin: auto;
+}
+.roadmaps_hero .badge svg{
+    margin: 0 6px;
+    vertical-align: -6px;
+    color: var(--primary);
+}
+.active{
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: #fff;
+}
+.d-none{display:none;}
+.d-block{display:block;}
+.roadmaps_hero .category_chips .chip a{
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius-lg);
+    flex-direction: row-reverse;
+}
+.category_chips .chip{
+    padding: 0;
+}
+#not_found{
+    text-align: center;
+    direction: rtl;
+}
+/* roadmaps_hero/////////*/
+/* roadmaps_categories/////*/
+.roadmaps_categories{
+    background: var(--bg);
+    padding: 80px 0 80px;
+}
+@media(max-width:500px){
+.roadmaps_categories{
+    background: var(--bg);
+    padding: 80px 15px 80px;
+}
+}
+.roadmaps_categories .categories{
+    display: grid;
+    grid-template-columns: repeat(auto-fill,minmax(min(320px,100%),1fr));
+    gap: 20px;
+    padding: 40px;
+    direction: ltr;
+}
+.roadmaps_categories .categories .card{
+    width: 100%;
+    max-width: 300px;
+    min-height: 400px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    margin: 15px auto;
+    padding: 10px;
+    transition: 300ms;
+}
+.roadmaps_categories .categories .card:hover{
+    transform:translateY(-6px);
+    border-color: rgba(79,124,255,.15);
+}
+.roadmaps_categories .categories .card .card_header{
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg,rgba(79,124,255,.15),rgba(124,58,237,.15));
+    border-radius: var(--radius-md);
+    padding: 10px;
+}
+.roadmaps_categories .categories .card .card_header svg{
+    font-size: 60px;
+    text-align: center;
+    margin: 50px auto;
+    display: block;
+    font-weight: 700;
+}
+.roadmaps_categories .categories .card .card_header i{
+    font-size: 90px;
+    margin: 40px;
+    display: block;
+}
+.roadmaps_categories .categories .card .card_header .icon{
+    font-size: 60px;
+    text-align: center;
+    margin: 34px auto;
+    font-weight: 700;
+}
+.roadmaps_categories .categories .card .card_body , .card_footer{
+    padding: 10px;
+}
+/* roadmaps_categories/////*/
+/* learning_process////////*/
+.learning_process{
+    background: var(--bg);
+    padding: 80px 0;
+}
+@media(max-width:500px){
+    .learning_process{
+    background: var(--bg);
+    padding: 80px 15px;
+    }
+}
+.learning_process .process{
+    display: grid;
+    grid-template-columns: repeat(auto-fill,minmax(min(320px,100%),1fr));
+    gap: 20px;
+    padding: 40px;
+    direction: ltr;
+}
+@media(max-width:768px){
+    .learning_process .process{
+        padding: 0;
+    }
+}
+.learning_process .process .card_process{
+    width: 100%;
+    max-width: 300px;
+    min-height: 315px;
+    background: var(--surface);
+   padding: 10px;
+   border-radius: var(--radius-md);
+   position: relative;
+   margin: auto;
+}
+/* .learning_process .process .card_process .line{
+    position: absolute;
+    height: 3px;
+    width: 318px;
+    background: var(--border);
+    top: 56px;
+    right: -210px;
+    z-index: 9;
+} */
+.learning_process .process .card_process .circle_level{
+    width: 70px;
+    height: 70px;
+    border-radius: 100%;
+    background: var(--bg);
+    border: 2px solid var(--primary);
+    color: var(--primary);
+    font-weight: bold;
+    font-size: 25px;
+    margin: 10px auto;
+    transition: 200ms;
+}
+.learning_process .process .card_process .circle_level:hover{
+    transform: translateY(-5px);
+    border-color: var(--secondary);
+    color: var(--secondary);
+}
+.learning_process .process .card_process svg{
+    color: va(--text);
+    margin: 20px auto;
+    color: var(--primary);
+}
+@media(max-width:768px){
+    .roadmaps_categories .categories{
+        padding: 0;
+    }
+}
+/* learning_process////////*/

@@ -1,0 +1,60 @@
+<nav id="menubar" class="navbar flex-around">
+    <section class="logo">
+        <a href="{% url 'pages_web:home' %}" class="flex-center" aria-label="{{ project.display_name }}">
+            <div class="x flex-center">
+                <div class="hole"></div>
+            </div>
+            <span>{{ project.display_name }}</span>
+        </a>
+    </section>
+    <nav id="navmenu" class="menu flex-around">
+       <a href="{% url 'pages_web:home' %}">خانه</a>
+       <a href="{% url 'courses_web:course_list' %}">دوره‌ها</a>
+       <a href="{% url 'courses_web:roadmap_list' %}">نقشه راه دوره‌ها</a>
+       <a href="{% url 'pages_web:channels' %}">کانال‌ها</a>
+       <a href="{% url 'pages_web:contact_us' %}">تماس</a>
+       <a href="{% url 'pages_web:about_us' %}">درباره‌ما</a>
+    </nav>
+    <a onclick="respo();" class="bars" href="#" aria-label="باز کردن منو">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-menu-icon lucide-menu"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/></svg>
+    </a>
+    <section class="nav_cta flex">
+        <a href="{% url 'courses_web:course_list' %}" class="starting">شروع یادگیری</a>
+        {% if request.user.is_authenticated %}
+            <div class="auth-menu" tabindex="0">
+                <button type="button" class="auth-menu__trigger" aria-label="منوی حساب کاربری">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21a8 8 0 0 0-16 0"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                </button>
+                <div class="auth-menu__dropdown">
+                    <div class="auth-menu__info">
+                        <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+                        {% if request.user.email %}<span>{{ request.user.email }}</span>{% endif %}
+                    </div>
+                    <form method="post" action="{% url 'accounts_web:logout' %}" class="auth-menu__logout-form">
+                        {% csrf_token %}
+                        <button type="submit" class="auth-menu__logout-button">
+                            <span>خروج از حساب</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                                <polyline points="16 17 21 12 16 7"/>
+                                <line x1="21" x2="9" y1="12" y2="12"/>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        {% else %}
+            <a href="{% url 'accounts_web:login' %}" class="login">ورود</a>
+        {% endif %}
+        <div class="theme">
+            <input type="checkbox" id="theme_toggle">
+            <label for="theme_toggle">
+                <svg class="light" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 3v1"/><path d="M12 20v1"/><path d="M3 12h1"/><path d="M20 12h1"/><path d="m18.364 5.636-.707.707"/><path d="m6.343 17.657-.707.707"/><path d="m5.636 5.636.707.707"/><path d="m17.657 17.657.707.707"/></svg>
+                <svg class="dark" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
+            </label>
+        </div>
+    </section>
+</nav>

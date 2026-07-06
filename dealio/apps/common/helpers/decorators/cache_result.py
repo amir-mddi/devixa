@@ -1,11 +1,11 @@
 import hashlib
 import json
-import logging
+from dealio.apps.common.utils.common_utils import CommonUtils
 from functools import wraps
 
 from django.core.cache import cache
 
-logger = logging.getLogger("dealio")
+logger = CommonUtils.get_project_logger(__name__)
 
 
 CACHE_MISS = object()

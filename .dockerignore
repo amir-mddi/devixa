@@ -28,6 +28,7 @@ dealio/docs
 oauth-test
 postgresql_backup
 dealio.zip
+dealio/deployment/env
 dealio.rar
 media/coinlibrary
 dealio/settings/local.py

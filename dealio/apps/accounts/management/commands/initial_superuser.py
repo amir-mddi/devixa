@@ -1,4 +1,4 @@
-import logging
+from dealio.apps.common.utils.common_utils import CommonUtils
 
 from django.contrib.auth import get_user_model
 
@@ -6,7 +6,7 @@ from dealio.apps.accounts.models import Role
 from dealio.apps.core_models.dtos.setup_config import general_config
 from dealio.apps.core_models.vo.common_vo import UserRoleVO
 
-logger = logging.getLogger("dealio")
+logger = CommonUtils.get_project_logger(__name__)
 
 from django.core.management import BaseCommand
 

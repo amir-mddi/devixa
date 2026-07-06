@@ -1,11 +1,11 @@
 import json
-import logging
+from dealio.apps.common.utils.common_utils import CommonUtils
 
 from confluent_kafka import Producer
 
 from dealio.apps.common.helpers.metaclasses.singleton import Singleton
 
-logger = logging.getLogger("root")
+logger = CommonUtils.get_project_logger(__name__)
 
 
 class KafkaProducerAdapter(metaclass=Singleton):

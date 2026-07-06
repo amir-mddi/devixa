@@ -1,7 +1,9 @@
+import re
 from django.core.validators import RegexValidator
 from rest_framework import serializers
 
-from dealio.apps.shared.models import ApiKeyManagerModel
+from dealio.apps.shared.models import ApiKeyManagerModel, ProjectConfigModel
+from dealio.apps.shared.vo.project_config_vo import ProjectConfigSerializerMessageVO
 
 
 class CommonSerializerField:
@@ -120,3 +122,35 @@ class ApiKeyMngSerializer(BaseSerializerModel):
             "api_key",
             "status"
         ]
+
+
+class ProjectConfigSerializer(BaseSerializerModel):
+    class Meta(BaseSerializerModel.Meta):
+        model = ProjectConfigModel
+        fields = [
+            "name",
+            "display_name",
+            "slug",
+            "description",
+            "tagline",
+            "email_domain",
+            "contact_email",
+            "support_email",
+            "sales_email",
+            "partnership_email",
+            "github_url",
+            "linkedin_url",
+            "telegram_url",
+            "instagram_url",
+            "telegram_bot_url",
+            "bale_bot_url",
+            "phone",
+            "address",
+            "working_hours",
+        ]
+        read_only_fields = BaseSerializerModel.Meta.base_read_only_fields
+
+    def validate_slug(self, value: str) -> str:
+        if not re.fullmatch(r"[a-zA-Z0-9_-]+", value or ""):
+            raise serializers.ValidationError(ProjectConfigSerializerMessageVO.SLUG_INVALID.value)
+        return value.lower()

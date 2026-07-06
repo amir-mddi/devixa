@@ -19,6 +19,7 @@ dealio.zip
 dealio/docs
 dealio.rar
 oauth-test
+dealio/deployment/env
 test_social_oauth.py
 telegram_scraper.session
 tracing/management

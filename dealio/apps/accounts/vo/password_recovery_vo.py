@@ -1,0 +1,45 @@
+from __future__ import annotations
+
+from enum import IntEnum, StrEnum
+
+
+class AccountPasswordRecoveryErrorCodeVO(StrEnum):
+    INVALID_OR_EXPIRED_CODE = "invalid_or_expired_code"
+    USER_NOT_FOUND = "user_not_found"
+    INACTIVE_ACCOUNT = "inactive_account"
+
+
+class AccountPasswordRecoveryCacheVO(StrEnum):
+    KEY_TEMPLATE = "password_recovery:{user_id}"
+
+
+class AccountPasswordRecoveryEmailVO(StrEnum):
+    SUBJECT = "اعتبارسنجی رمز عبور"
+    TEMPLATE_NAME = "emails/fa_forgot_password.html"
+    CONTEXT_SUBJECT = "کد اعتبارسنجی فراموشی رمز عبور"
+    FALLBACK_USER_NAME = "کاربر"
+
+
+class AccountPasswordRecoveryEmailContextKeyVO(StrEnum):
+    SUBJECT = "subject"
+    APP_NAME = "app_name"
+    USER_NAME = "user_name"
+    CODE = "code"
+    EXPIRATION_MINUTES = "expiration_minutes"
+    CURRENT_YEAR = "current_year"
+
+
+class AccountPasswordRecoveryCodeVO(IntEnum):
+    MIN_VALUE = 100000
+    MAX_RANDOM_VALUE = 900000
+    EXPIRATION_MINUTES = 5
+
+
+class AccountPasswordRecoveryApiMessageVO(StrEnum):
+    CODE_SENT = "اگر این ایمیل وجود داشته باشد، کد بازیابی رمز عبور ارسال شد."
+    INVALID_OR_EXPIRED_CODE = "کد بازیابی نامعتبر است یا منقضی شده است."
+    PASSWORD_RESET_SUCCESS = "رمز عبور با موفقیت تغییر کرد."
+
+
+class AccountPasswordRecoveryResponseKeyVO(StrEnum):
+    DETAIL = "detail"

@@ -14,7 +14,7 @@ class ChannelMemberSyncRepository:
     Bots cannot list every member in Telegram/Bale channels. Therefore this
     repository works with known users only: users who have interacted with the
     bot and have a TelegramProfile row. Cross-provider matching is based on the
-    linked Dealio user id.
+    linked application user id.
     """
 
     def known_candidates(self) -> Iterable[ChannelMemberCandidateDTO]:

@@ -7,14 +7,18 @@ from drf_spectacular.utils import extend_schema, OpenApiResponse, extend_schema_
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
-from django.db import transaction
 
+from dealio.apps.accounts.dtos.password_recovery_dto import ResetPasswordDTO, SendPasswordRecoveryCodeDTO
 from dealio.apps.accounts.serializers import ChangePasswordSerializer, UserSerializer, VerifyCodeSerializer, \
     ForgotPasswordSendCodeSerializer, ForgotPasswordVerifyCodeSerializer, SocialOAuthLoginSerializer
 from dealio.apps.common.response_utils import ResponseUtil
 from dealio.apps.shared.views import BaseViewSet, BaseAPIView
 from .models import Role
 from ..common.helpers.decorators.rate_limit import rate_limit
+from dealio.apps.accounts.vo.password_recovery_vo import (
+    AccountPasswordRecoveryApiMessageVO,
+    AccountPasswordRecoveryResponseKeyVO,
+)
 from ..core_models.constants.common_vo import ResponseVO
 from ..shared.repositories.logic import SharedApplicationLogic
 from ..shared.serializers import ListResponseSerializer, BaseResponseSerializer
@@ -25,9 +29,9 @@ from dealio.apps.accounts.repositories.oauth_service import OAuthProviderError, 
 
 shared_logic = SharedApplicationLogic()
 account_logic = AccountLogicRepository()
-import logging
+from dealio.apps.common.utils.common_utils import CommonUtils
 
-logger = logging.getLogger("dealio")
+logger = CommonUtils.get_project_logger(__name__)
 
 
 class ChangePasswordView(BaseViewSet):
@@ -146,15 +150,17 @@ class SendForgotPasswordCodeAPIView(BaseAPIView):
         serializer = ForgotPasswordSendCodeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        email = serializer.validated_data["email"]
-        user = User.objects.filter(email__iexact=email).first()
-
-        if user:
-            AccountLogicRepository().send_verification_forget_password_code(user)
+        AccountLogicRepository().send_forget_password_code_by_email(
+            dto=SendPasswordRecoveryCodeDTO(
+                email=serializer.validated_data["email"],
+            ),
+        )
 
         return ResponseUtil(
-            data={"detail": "If this email exists, a password recovery code has been sent."},
-            status_code=ResponseVO.http_400,
+            data={
+                AccountPasswordRecoveryResponseKeyVO.DETAIL.value: AccountPasswordRecoveryApiMessageVO.CODE_SENT.value,
+            },
+            status_code=ResponseVO.http_200,
         )
 
 
@@ -169,34 +175,26 @@ class VerifyForgotPasswordCodeAPIView(BaseAPIView):
         serializer = ForgotPasswordVerifyCodeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        email = serializer.validated_data["email"]
-        code = serializer.validated_data["code"]
-        new_password = serializer.validated_data["newPassword"]
-        user = User.objects.filter(email__iexact=email).first()
-
-        if not user:
-            return ResponseUtil(
-                data={"detail": "Invalid or expired verification code."},
-                status_code=ResponseVO.http_400,
-            )
-
-        is_valid = AccountLogicRepository().check_forget_password_code(
-            user=user,
-            code=code,
+        result = AccountLogicRepository().reset_forget_password_by_email(
+            dto=ResetPasswordDTO(
+                email=serializer.validated_data["email"],
+                code=serializer.validated_data["code"],
+                new_password=serializer.validated_data["new_password"],
+            ),
         )
 
-        if not is_valid:
+        if not result.is_success:
             return ResponseUtil(
-                data={"detail": "Invalid or expired verification code."},
+                data={
+                    AccountPasswordRecoveryResponseKeyVO.DETAIL.value: AccountPasswordRecoveryApiMessageVO.INVALID_OR_EXPIRED_CODE.value,
+                },
                 status_code=ResponseVO.http_400,
             )
 
-        with transaction.atomic():
-            user.set_password(new_password)
-            user.save(update_fields=["password"])
-
         return ResponseUtil(
-            data={"detail": "Password has been reset successfully."},
+            data={
+                AccountPasswordRecoveryResponseKeyVO.DETAIL.value: AccountPasswordRecoveryApiMessageVO.PASSWORD_RESET_SUCCESS.value,
+            },
             status_code=ResponseVO.http_200,
         )
 

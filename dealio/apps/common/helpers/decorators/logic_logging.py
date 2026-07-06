@@ -1,9 +1,9 @@
-import logging
+from dealio.apps.common.utils.common_utils import CommonUtils
 from functools import wraps
 
 import sentry_sdk
 
-logger = logging.getLogger("dealio")
+logger = CommonUtils.get_project_logger(__name__)
 
 
 def logic_logging(*, raise_error=True, default_return=None, send_to_sentry=True):

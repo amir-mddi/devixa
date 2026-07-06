@@ -1,0 +1,24 @@
+{% load course_web_tags %}
+<section class="course_card" data-catalog-item data-category="{{ course.category.slug|default:'general' }}" data-title="{{ course.title }}">
+    <section class="card_header">
+        {% if course.thumbnail %}
+            <img src="{{ course.thumbnail.url }}" alt="{{ course.title }}" style="width:100%;height:100%;object-fit:cover;border-radius:var(--radius-md);position:relative;z-index:2;">
+        {% endif %}
+    </section>
+    <section class="card_body">
+        <h4>{{ course.title }}</h4>
+        <p>{{ course.short_description|default:course.description|truncatechars:90 }}</p>
+        <section class="info_course flex-between">
+            <div class="info_icon">{{ course.level|course_level_label }}
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            </div>
+            <div class="info_icon">{{ course.duration_minutes|course_duration_label }}
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l-4-2"/></svg>
+            </div>
+        </section>
+    </section>
+    <section class="card_footer flex-between">
+        <div class="price">{{ course|course_price_label }}</div>
+        <a class="course_btn" href="{% url 'courses_web:course_detail' slug=course.slug %}">مشاهده دوره</a>
+    </section>
+</section>

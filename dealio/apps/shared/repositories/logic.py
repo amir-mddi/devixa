@@ -1,8 +1,8 @@
-import logging
-from pydoc_data.topics import topics
-
+from dealio.apps.common.utils.common_utils import CommonUtils
 from dealio.apps.common.helpers.metaclasses.singleton import Singleton
 from dealio.apps.shared.dtos.metric_data import MetricDataDto
+from dealio.apps.shared.dtos.project_config_dto import ProjectConfigDTO
+from dealio.apps.shared.initial_data.initial_data.project_config_initial import initialize_project_config
 # from dealio.apps.shared.repositories.adapters.kafka_adapter import KafkaProducerAdapter
 from dealio.apps.shared.repositories.adapters.metric_provider_adapter import MetricProviderAdapter
 from dealio.apps.shared.repositories.adapters.postgres_adapter import PostgresAdapter
@@ -10,7 +10,7 @@ import json
 
 # from dealio.apps.shared.repositories.adapters.rabbitmq_adapter import RabbitMQProducerAdapter
 
-logger = logging.getLogger("dealio")
+logger = CommonUtils.get_project_logger(__name__)
 log_identifier = "Shared Repository log"
 
 
@@ -41,3 +41,18 @@ class SharedApplicationLogic(metaclass=Singleton):
 
     def add_new_metric(self, metric_data: MetricDataDto):
         return self.metric_provider_adapter.add_new_metric(metric_data)
+
+    def get_project_config(self) -> ProjectConfigDTO | None:
+        project_config = self.postgres_adapter.fetch_project_config()
+
+        if not project_config:
+            project_config, _ = initialize_project_config()
+
+        if not project_config:
+            return None
+
+        return ProjectConfigDTO.from_model(project_config)
+
+    def change_project_config(self, data: dict, user=None) -> ProjectConfigDTO:
+        project_config = self.postgres_adapter.change_project_config(data=data, user=user)
+        return ProjectConfigDTO.from_model(project_config)

@@ -7,7 +7,7 @@ from celery import Celery
 from kombu import Queue
 
 
-app = Celery("dealio")
+app = Celery(os.environ.get("PROJECT_CELERY_APP_NAME", os.environ.get("PROJECT_SLUG", "project")))
 app.config_from_object("django.conf:settings", namespace="CELERY")
 
 app.autodiscover_tasks([

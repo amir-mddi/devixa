@@ -1,14 +1,17 @@
 # apps/common/email_service.py
 
-import logging
+from dealio.apps.common.utils.common_utils import CommonUtils
 from threading import Thread
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
+from django.utils import timezone
 from django.utils.html import strip_tags
 
-logger = logging.getLogger(__name__)
+from dealio.apps.common.project_config import get_project_name
+
+logger = CommonUtils.get_project_logger(__name__)
 
 
 def send_html_email(
@@ -19,7 +22,12 @@ def send_html_email(
     recipient_list: list[str],
     from_email: str | None = None,
 ) -> None:
-    html_content = render_to_string(template_name, context)
+    safe_context = {
+        "app_name": get_project_name(),
+        "current_year": timezone.now().year,
+        **(context or {}),
+    }
+    html_content = render_to_string(template_name, safe_context)
     text_content = strip_tags(html_content)
 
     sender_email = from_email or settings.DEFAULT_FROM_EMAIL or settings.EMAIL_HOST_USER

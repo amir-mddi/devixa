@@ -10,6 +10,7 @@ from dealio.apps.common.helpers.metaclasses.singleton import Singleton
 from dealio.apps.courses.enums import CourseStatusEnum, EnrollmentStatusEnum, ReviewStatusEnum
 from dealio.apps.courses.models import Course, CourseCategory, CourseEnrollment, CourseLesson, CourseReview
 from dealio.apps.courses.vo import CourseMessagesVO
+from dealio.apps.courses.vo.roadmap_vo import CourseQueryParamVO, CourseWebCategoryFilterVO, CourseWebLevelFilterVO
 
 
 class CoursePostgresAdapter(metaclass=Singleton):
@@ -208,10 +209,10 @@ class CoursePostgresAdapter(metaclass=Singleton):
 
     def list_published_courses(self, filters: dict):
         queryset = self.published_courses_queryset()
-        search = filters.get("search")
-        category = filters.get("category")
-        level = filters.get("level")
-        featured = filters.get("featured")
+        search = filters.get(CourseQueryParamVO.SEARCH.value)
+        category = filters.get(CourseQueryParamVO.CATEGORY.value)
+        level = filters.get(CourseQueryParamVO.LEVEL.value)
+        featured = filters.get(CourseQueryParamVO.FEATURED.value)
 
         if search:
             queryset = queryset.filter(
@@ -219,18 +220,42 @@ class CoursePostgresAdapter(metaclass=Singleton):
                 | Q(short_description__icontains=search)
                 | Q(description__icontains=search)
             )
-        if category:
+        if category and category != CourseWebCategoryFilterVO.ALL_VALUE.value:
             try:
                 UUID(str(category))
                 queryset = queryset.filter(Q(category__slug=category) | Q(category_id=category))
             except (TypeError, ValueError):
                 queryset = queryset.filter(category__slug=category)
-        if level:
+        if level and level != CourseWebLevelFilterVO.ALL_VALUE.value:
             queryset = queryset.filter(level=level)
         if featured in {"1", "true", "True", True}:
             queryset = queryset.filter(is_featured=True)
 
         return queryset.order_by("-is_featured", "-published_at", "-created_at")
+
+
+    @staticmethod
+    def list_published_course_categories():
+        return (
+            CourseCategory.objects.filter(
+                is_active=True,
+                is_deleted=False,
+                courses__status=CourseStatusEnum.PUBLISHED.value,
+                courses__is_active=True,
+                courses__is_deleted=False,
+            )
+            .distinct()
+            .order_by("position", "title")
+        )
+
+    def list_featured_courses(self, limit: int):
+        return self.list_published_courses({CourseQueryParamVO.FEATURED.value: True})[:limit]
+
+    def list_related_courses(self, course, limit: int):
+        queryset = self.published_courses_queryset().exclude(id=course.id)
+        if getattr(course, "category_id", None):
+            queryset = queryset.filter(category_id=course.category_id)
+        return queryset.order_by("-is_featured", "-published_at", "-created_at")[:limit]
 
     def get_published_course(self, course_id_or_slug):
         queryset = self.published_courses_queryset().prefetch_related("lessons")

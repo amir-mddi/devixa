@@ -1,0 +1,30 @@
+{% if messages %}
+    <div class="project-global-flash project-global-flash--{{ placement|default:'page' }}" data-project-global-flash aria-live="polite" aria-atomic="true">
+        {% for message in messages %}
+            <div class="project-global-flash__item project-global-flash__item--{{ message.tags|default:'info' }}" role="status">
+                <span class="project-global-flash__text">{{ message }}</span>
+            </div>
+        {% endfor %}
+    </div>
+    <script>
+        (function () {
+            const removeFlashMessages = function () {
+                document.querySelectorAll('[data-project-global-flash]').forEach(function (stack) {
+                    stack.classList.add('project-global-flash--is-hiding');
+                    window.setTimeout(function () {
+                        stack.remove();
+                    }, 450);
+                });
+            };
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function () {
+                    window.setTimeout(removeFlashMessages, 3000);
+                });
+                return;
+            }
+
+            window.setTimeout(removeFlashMessages, 3000);
+        })();
+    </script>
+{% endif %}

@@ -1,4 +1,3 @@
-import logging
 
 from django.urls import resolve
 from django.urls.exceptions import Resolver404
@@ -8,7 +7,7 @@ from dealio.apps.common.utils.common_utils import CommonUtils
 from dealio.apps.core_models.constants.common_vo import ResponseVO, ExcludeViewResponseVO
 from dealio.project.settings import DEBUG
 
-logger = logging.getLogger("dealio")
+logger = CommonUtils.get_project_logger(__name__)
 
 
 class GeneralResponseMiddleware:

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import logging
+from dealio.apps.common.utils.common_utils import CommonUtils
 
 from django.db import OperationalError, ProgrammingError, transaction
 
 from dealio.apps.telegram_bot.models import BotRuntimeSetting
 
-logger = logging.getLogger("dealio")
+logger = CommonUtils.get_project_logger(__name__)
 
 
 class BotSettingPostgresAdapter:

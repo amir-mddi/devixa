@@ -1,5 +1,5 @@
 import json
-import logging
+from dealio.apps.common.utils.common_utils import CommonUtils
 import uuid
 from datetime import datetime
 from typing import Dict, Any
@@ -8,7 +8,7 @@ from django.conf import settings
 from django.db import models
 from django.utils.timezone import now
 
-logger = logging.getLogger("dealio")
+logger = CommonUtils.get_project_logger(__name__)
 
 
 class BaseModel(models.Model):

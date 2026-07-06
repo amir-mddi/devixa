@@ -1,0 +1,82 @@
+/* .light-theme{
+    --primary:#4f7cff;
+    --secondary:#7c3aed;
+    --accent:#00e7a5;
+    --bg:#ffffff;
+    --surface:#f7f7f7;
+    --text:#0f172a;
+    --text-muted:#64748b;
+    --border:#e2e8f0;
+    --shadow:rgba(15,23,42,.08);
+} */
+.light-theme{
+    --primary:#5B4DF7;
+    --secondary:#7C3AED;
+    --accent:#06B6D4;
+
+    --bg:#F5F3FF;
+    --surface:#FFFFFF;
+
+    --text:#1E293B;
+    --text-muted:#64748B;
+
+    --border:#E6E8F5;
+    --shadow:rgba(91,77,247,.12);
+}
+.light-theme #course_price{
+    /* background:linear-gradient(
+    135deg,
+    #93c5fd,
+    #c4b5fd
+    ); */
+    background:linear-gradient(135deg,#F5F3FF 0%,#EEF2FF 45%,#E0F2FE 100%);
+}
+.light-theme .bootcamp .left_section .time_line{
+    background:linear-gradient(135deg,#F5F3FF 0%,#EEF2FF 45%,#E0F2FE 100%);
+}
+.light-theme .bootcamp .left_section .time_line .timeline .path .circle.active{
+    background: var(--primary);
+    color:#fff;
+}
+.light-theme .bootcamp .left_section .time_line .timeline .path:nth-child(3) .circle::after{
+    color:#1E293B;
+}
+.light-theme #prevBtn , .light-theme #nextBtn{
+    color: #eaeaea;
+}
+.theme{
+    position: absolute;
+    right: 75%;
+}
+input#theme_toggle{
+    display: none;
+}
+label[for="theme_toggle"]{
+    cursor: pointer;
+}
+label[for="theme_toggle"] svg{
+    vertical-align: -5px;
+}
+label[for="theme_toggle"] svg.dark{
+    display: none;
+}
+input#theme_toggle:checked ~ label[for="theme_toggle"] svg.dark{
+    display: block;
+}
+input#theme_toggle:checked ~ label[for="theme_toggle"] svg.light{
+    display: none;
+}
+.text_dark{
+    --text:#eaeaea;
+    --text-muted:#94a3b8;
+}
+.background{
+    /* background: linear-gradient(189deg, rgba(179, 201, 253, 0.525), #d0b5ffb2); */
+    /* background: linear-gradient(189deg, rgb(128 166 255 / 50%), #d0b5ffb2); */
+    background:linear-gradient(135deg,#F5F3FF 0%,#EEF2FF 45%,#E0F2FE 100%);
+}
+/* @media only screen and (max-width: 980px) {
+    #navmenu{
+        background: linear-gradient(189deg, rgba(179, 201, 253, 0.525), #d0b5ffb2);
+    }
+} */

@@ -1,8 +1,8 @@
-import logging
+from dealio.apps.common.utils.common_utils import CommonUtils
 
 from django.db.utils import OperationalError, ProgrammingError
 
-logger = logging.getLogger("dealio")
+logger = CommonUtils.get_project_logger(__name__)
 
 
 class InitialAccessCache:

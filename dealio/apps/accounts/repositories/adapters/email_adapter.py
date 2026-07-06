@@ -3,6 +3,7 @@ import secrets
 from datetime import datetime, timedelta
 
 from dealio.apps.common.email_service import send_html_email, send_html_email_async
+from dealio.apps.common.project_config import get_project_name
 from dealio.apps.common.helpers.metaclasses.singleton import Singleton
 from django.core.cache import cache
 
@@ -41,7 +42,7 @@ class AccountEmailAdapter(metaclass=Singleton):
             template_name="emails/fa_verification_code.html",
             context={
                 "subject": "کد اعتبار سنجی ایمیل شما",
-                "app_name": "Devixa",
+                "app_name": get_project_name(),
                 "user_name": user.first_name or user.username or "there",
                 "code": code,
                 "expiration_minutes": self.VERIFICATION_CODE_EXPIRATION_MINUTES,
@@ -63,7 +64,7 @@ class AccountEmailAdapter(metaclass=Singleton):
             template_name="emails/fa_forgot_password.html",
             context={
                 "subject": "کد اعتبار سنجی فراموشی رمز عبور",
-                "app_name": "Devixa",
+                "app_name": get_project_name(),
                 "user_name": user.first_name or user.username or "there",
                 "code": code,
                 "expiration_minutes": self.VERIFICATION_CODE_EXPIRATION_MINUTES,
@@ -72,7 +73,7 @@ class AccountEmailAdapter(metaclass=Singleton):
             recipient_list=[user.email],
         )
 
-    def check_code(self, user, cache_key, code):
+    def check_code(self, user, cache_key, code, *, mark_email_verified: bool = False):
         saved_code_hash = cache.get(cache_key)
 
         if not saved_code_hash:
@@ -83,14 +84,15 @@ class AccountEmailAdapter(metaclass=Singleton):
 
         cache.delete(cache_key)
 
-        user.email_verified = True
-        user.save(update_fields=["email_verified"])
+        if mark_email_verified:
+            user.email_verified = True
+            user.save(update_fields=["email_verified"])
 
         return True
 
     def verify_email_code(self, user, code: str) -> bool:
         cache_key = self.get_email_verification_cache_key(str(user.id))
-        return self.check_code(user, cache_key, code)
+        return self.check_code(user, cache_key, code, mark_email_verified=True)
 
     def verify_forget_password_code(self, user, code: str) -> bool:
         cache_key = self.get_forget_password_verification_cache_key(str(user.id))

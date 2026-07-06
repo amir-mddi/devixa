@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dealio.apps.common.project_config import get_project_name
+
 
 class TelegramBotLanguageVO:
     EN = "en"
@@ -339,7 +341,7 @@ class TelegramBotMessageTextVO:
             "rubika_channel": "Rubika channel",
             "private_only": "Please message me privately to manage your account.",
             "menu_linked": "Welcome back, <b>{name}</b>!\n\nChoose an action:",
-            "menu_guest": "Welcome to Devixa bot.\n\nChoose an action:",
+            "menu_guest": "Welcome to {project_name} bot.\n\nChoose an action:",
             "not_linked": "Your account is not linked yet. Tap <b>Link account</b> below.",
             "already_linked": "Your Telegram account is already linked.",
             "link_prompt": "Send your app account email address here.\n\nExample: <code>you@example.com</code>",
@@ -626,7 +628,7 @@ class TelegramBotMessageTextVO:
             "unknown": "گزینه نامعتبر است. از دکمه‌های پایین استفاده کنید.",
             "private_only": "لطفاً برای مدیریت حساب، به صورت خصوصی به من پیام بدهید.",
             "menu_linked": "خوش برگشتی، <b>{name}</b>!\n\nیک گزینه را انتخاب کنید:",
-            "menu_guest": "به ربات Devixa خوش آمدید.\n\nیک گزینه را انتخاب کنید:",
+            "menu_guest": "به ربات {project_name} خوش آمدید.\n\nیک گزینه را انتخاب کنید:",
             "not_linked": "حساب شما هنوز متصل نشده است. دکمه <b>اتصال حساب</b> را بزنید.",
             "already_linked": "حساب تلگرام شما قبلاً متصل شده است.",
             "link_prompt": "ایمیل حساب کاربری خود را ارسال کنید.\n\nمثال: <code>you@example.com</code>",
@@ -926,14 +928,14 @@ class TelegramCommerceMessagesVO:
 class TelegramBotProfileVO:
     DESCRIPTION = {
         TelegramBotLanguageVO.FA: (
-            "سلام! به ربات Devixa خوش آمدید. 👋\n\n"
+            "سلام! به ربات {project_name} خوش آمدید. 👋\n\n"
             "با این ربات می‌توانید دوره‌ها را ببینید، خرید و ثبت‌نام انجام دهید، "
             "سفارش‌ها و دوره‌های خود را پیگیری کنید، دیدگاه ثبت کنید، حساب را متصل کنید "
             "و اگر مدیر باشید کاربران و دیدگاه‌ها را مدیریت کنید.\n\n"
             "برای شروع، دکمه Start را بزنید."
         ),
         TelegramBotLanguageVO.EN: (
-            "Welcome to Devixa bot. 👋\n\n"
+            "Welcome to {project_name} bot. 👋\n\n"
             "Use this bot to browse and buy courses, track orders and enrollments, "
             "submit reviews, link your account, verify email, recover password, "
             "and manage users/reviews if you are an admin.\n\n"
@@ -941,9 +943,18 @@ class TelegramBotProfileVO:
         ),
     }
     SHORT_DESCRIPTION = {
-        TelegramBotLanguageVO.FA: "دوره‌ها، خرید، سفارش‌ها، دیدگاه‌ها و مدیریت حساب Devixa",
-        TelegramBotLanguageVO.EN: "Browse courses, buy, review, track orders, and manage your Devixa account.",
+        TelegramBotLanguageVO.FA: "دوره‌ها، خرید، سفارش‌ها، دیدگاه‌ها و مدیریت حساب {project_name}",
+        TelegramBotLanguageVO.EN: "Browse courses, buy, review, track orders, and manage your {project_name} account.",
     }
+
+    @classmethod
+    def description(cls, language: str) -> str:
+        return cls.DESCRIPTION[language].format(project_name=get_project_name())
+
+    @classmethod
+    def short_description(cls, language: str) -> str:
+        return cls.SHORT_DESCRIPTION[language].format(project_name=get_project_name())
+
     COMMANDS = {
         TelegramBotLanguageVO.FA: [
             {"command": "start", "description": "شروع و نمایش منو"},

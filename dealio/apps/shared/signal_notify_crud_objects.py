@@ -11,9 +11,9 @@ object_created = Signal()
 object_deleted = Signal()
 object_modified = Signal()
 object_fetched = Signal()
-import logging
+from dealio.apps.common.utils.common_utils import CommonUtils
 
-logger = logging.getLogger("dealio")
+logger = CommonUtils.get_project_logger(__name__)
 
 shared_logic = SharedApplicationLogic()
 

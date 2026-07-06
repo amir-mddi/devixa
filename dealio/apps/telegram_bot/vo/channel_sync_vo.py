@@ -46,11 +46,11 @@ class ChannelMemberSyncEnvVO:
 
 class ChannelMemberSyncTextVO:
     TELEGRAM_INVITE_MESSAGE = (
-        "برای عضویت در کانال تلگرام Devixa از لینک زیر استفاده کنید:\n"
+        "برای عضویت در کانال تلگرام {project_name} از لینک زیر استفاده کنید:\n"
         "{invite_url}"
     )
     BALE_INVITE_MESSAGE = (
-        "برای عضویت در کانال بله Devixa از لینک زیر استفاده کنید:\n"
+        "برای عضویت در کانال بله {project_name} از لینک زیر استفاده کنید:\n"
         "{invite_url}"
     )
 

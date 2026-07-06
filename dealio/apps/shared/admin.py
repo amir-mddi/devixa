@@ -1,3 +1,70 @@
 from django.contrib import admin
 
-# Register your models here.
+from dealio.apps.shared.models import ApiKeyManagerModel, ProjectConfigModel
+
+
+@admin.register(ApiKeyManagerModel)
+class ApiKeyManagerModelAdmin(admin.ModelAdmin):
+    list_display = ("api_key", "status", "is_active", "created_at")
+    search_fields = ("api_key",)
+    list_filter = ("status", "is_active")
+
+
+@admin.register(ProjectConfigModel)
+class ProjectConfigModelAdmin(admin.ModelAdmin):
+    list_display = ("display_name", "slug", "contact_email", "support_email", "is_active")
+    search_fields = ("name", "display_name", "slug", "contact_email", "support_email")
+    fieldsets = (
+        (
+            "Identity",
+            {
+                "fields": (
+                    "singleton_key",
+                    "name",
+                    "display_name",
+                    "slug",
+                    "description",
+                    "tagline",
+                )
+            },
+        ),
+        (
+            "Contact",
+            {
+                "fields": (
+                    "email_domain",
+                    "contact_email",
+                    "support_email",
+                    "sales_email",
+                    "partnership_email",
+                    "phone",
+                    "address",
+                    "working_hours",
+                )
+            },
+        ),
+        (
+            "Social",
+            {
+                "fields": (
+                    "github_url",
+                    "linkedin_url",
+                    "telegram_url",
+                    "instagram_url",
+                    "telegram_bot_url",
+                    "bale_bot_url",
+                )
+            },
+        ),
+        (
+            "Status",
+            {
+                "fields": (
+                    "is_active",
+                    "is_deleted",
+                    "deleted_at",
+                )
+            },
+        ),
+    )
+    readonly_fields = ("created_at", "updated_at")

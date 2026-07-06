@@ -44,7 +44,14 @@ class BotSupportDjangoAdapter:
             raise NotFound("Support ticket not found.")
         return ticket
 
-    @transaction.atomic
+    @staticmethod
+    def list_frequently_asked_tickets(*, limit: int = 6):
+        return (
+            BotSupportTicket.objects.filter(is_frequently_asked=True)
+            .prefetch_related("messages")
+            .order_by("faq_display_order", "-last_message_at")[:limit]
+        )
+
     def create_ticket(self, dto: BotSupportTicketCreateDTO):
         profile = TelegramProfile.objects.filter(id=dto.profile_id, messenger_provider=dto.provider).first()
         if not profile:

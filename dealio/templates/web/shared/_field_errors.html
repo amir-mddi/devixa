@@ -1,0 +1,7 @@
+{% if field.errors %}
+    <div class="field-hint field-hint--error" role="alert">
+        {% for error in field.errors %}
+            <span>{{ error }}</span>
+        {% endfor %}
+    </div>
+{% endif %}

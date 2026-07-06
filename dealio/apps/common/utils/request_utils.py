@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import logging
+from dealio.apps.common.utils.common_utils import CommonUtils
 from dataclasses import dataclass
 from typing import Any, Optional, Mapping
 from typing import Tuple
@@ -13,7 +13,7 @@ from dealio.apps.core_models.constants.proxy_urls import ProxyUrls
 from dealio.apps.core_models.enum.general_enum import RequestMethod
 from dealio.apps.core_models.vo.common_vo import CommonVO
 
-logger = logging.getLogger("dealio")
+logger = CommonUtils.get_project_logger(__name__)
 
 _METHOD_MAP = {
     RequestMethod.GET: "GET",

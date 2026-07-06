@@ -1,0 +1,42 @@
+{% extends "web/pages/base.html" %}
+{% load static project_tags %}
+
+{% block title %}کانال‌ها و ربات‌های {{ project.display_name }}{% endblock %}
+{% block page_styles %}
+    <link rel="stylesheet" href="{% project_static 'Styles/contact_us.css' %}">
+    <style>
+        .channels_hero{min-height:520px;padding:120px 6% 70px;background:radial-gradient(circle at 50% 0%, rgba(79,124,255,.18), transparent 48%), var(--bg);}
+        .channels_grid{width:min(960px,92%);margin:44px auto 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;}
+        .channel_card{padding:30px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface);box-shadow:var(--shadow);transition:transform .2s ease,border-color .2s ease;}
+        .channel_card:hover{transform:translateY(-5px);border-color:rgba(79,124,255,.45);}
+        .channel_icon{width:68px;height:68px;margin:0 auto 18px;border-radius:24px;display:grid;place-items:center;background:linear-gradient(-195deg,#ffffff87,var(--primary));font-size:32px;color:#fff;}
+        .channel_badge{display:inline-flex;align-items:center;justify-content:center;padding:6px 14px;margin-bottom:14px;border-radius:999px;background:rgba(79,124,255,.14);border:1px solid rgba(79,124,255,.28);color:var(--primary);font-size:13px;}
+        .channel_btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;margin-top:24px;padding:13px 22px;border-radius:var(--radius-md);background:linear-gradient(-195deg,#ffffff87,var(--primary));color:#fff;font-weight:700;}
+        .channel_btn.disabled{opacity:.55;pointer-events:none;background:var(--surface);border:1px solid var(--border);}
+        @media(max-width:760px){.channels_grid{grid-template-columns:1fr}.channels_hero{padding-top:80px}}
+    </style>
+{% endblock %}
+
+{% block content %}
+<section class="channels_hero text-center">
+    <h4 class="badge flex-center" style="margin:auto;width:max-content;">ثبت‌نام و خرید دوره</h4>
+    <h1 class="title mt-3">کانال‌ها و ربات‌های {{ project.display_name }}</h1>
+    <p class="subtitle mt-2" style="width:100%;">برای ثبت‌نام، خرید دوره و پیگیری سفارش می‌توانید از ربات‌های رسمی استفاده کنید.</p>
+
+    <section class="channels_grid">
+        {% for channel in channel_links %}
+            <article class="channel_card">
+                <div class="channel_icon"><i class="{{ channel.icon_class }}"></i></div>
+                <span class="channel_badge">{{ channel.badge }}</span>
+                <h4 class="title">{{ channel.title }}</h4>
+                <p class="subtitle mt-2" style="width:100%;">{{ channel.description }}</p>
+                {% if channel.is_available %}
+                    <a class="channel_btn" href="{{ channel.url }}" target="_blank" rel="noopener noreferrer">ورود به ربات <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+                {% else %}
+                    <span class="channel_btn disabled">لینک هنوز تنظیم نشده است</span>
+                {% endif %}
+            </article>
+        {% endfor %}
+    </section>
+</section>
+{% endblock %}

@@ -1,0 +1,166 @@
+{% extends "web/pages/base.html" %}
+{% load static project_tags %}
+
+{% block title %}{{ roadmap.title }} | نقشه راه{% endblock %}
+{% block page_styles %}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css">
+    <link rel="stylesheet" href="{% project_static 'Styles/single_roadmap.css' %}">
+    <style>
+        .roadmap_hero { position: relative; }
+        .roadmap_icon_large {
+            font-size: 72px;
+            color: var(--primary);
+            margin-left: 10px;
+            vertical-align: -12px;
+        }
+        .topic_tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        .topic_tags span {
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            padding: 4px 10px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+        .related_courses {
+            background: var(--bg);
+            padding: 60px 20px 100px;
+        }
+        .related_courses .courses_grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+            gap: 24px;
+            width: min(1100px, 92%);
+            margin: 30px auto 0;
+        }
+        .related_courses .course_card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            transition: 200ms;
+        }
+        .related_courses .course_card:hover {
+            transform: translateY(-6px);
+            border-color: var(--primary);
+        }
+        .related_courses .course_meta {
+            color: var(--muted);
+            font-size: 13px;
+            margin-top: 12px;
+        }
+        .empty_related_courses {
+            color: var(--muted);
+            text-align: center;
+            margin-top: 24px;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<section class="roadmap_hero">
+    <div class="roadmap_info">
+        <div class="links">
+            <a href="{% url 'courses_web:roadmap_list' %}">نقشه راه‌ها</a>
+            <span>/</span>
+            <a href="#">{{ roadmap.title }}</a>
+        </div>
+        <h4 class="badge">
+            <i class="{{ roadmap.icon_class }} roadmap_icon_large"></i>
+            {{ roadmap.category_label }}
+        </h4>
+        <h1 class="title mt-2">{{ roadmap.title }}</h1>
+        <p class="subtitle mt-3" style="width: 100%;">{{ roadmap.description }}</p>
+
+        <div class="labels flex mt-4">
+            <div class="label flex-center">سطح: {{ roadmap.level }}</div>
+            <div class="label flex-center">زمان: {{ roadmap.duration_label }}</div>
+            <div class="label flex-center">{{ roadmap.steps|length }} مرحله یادگیری</div>
+        </div>
+
+        <div class="buttons flex mt-4">
+            <a class="starting" href="#roadmap_steps">شروع مسیر</a>
+        </div>
+    </div>
+
+    <div class="map" id="roadmap_steps">
+        <div class="map_levels">
+            {% for step in roadmap.steps %}
+                <div class="level_card flex-center">
+                    <span class="level">{{ step.number }}</span>
+                    <span>{{ step.title }}</span>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="roadmap_skills text-center">
+    <h4 class="badge">مهارت‌هایی که در این مسیر یاد می‌گیرید</h4>
+    <h4 class="title">مهارت‌های <span class="gradient_word">اصلی</span></h4>
+    <div class="skill_cards">
+        {% for skill in roadmap.skills %}
+            <div class="card flex-center">
+                <div class="logo_skill"><i class="{{ skill.icon_class }}"></i></div>
+                <h4>{{ skill.title }}</h4>
+                <p class="subtitle" style="width:100%;">{{ skill.description }}</p>
+            </div>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="roadmap_projects text-center">
+    <h4 class="title">مراحل <span class="gradient_word">یادگیری</span></h4>
+    <p class="subtitle mt-1" style="width: 100%;">هر مرحله خروجی مشخص و قابل تمرین دارد.</p>
+    <div class="projects">
+        {% for step in roadmap.steps %}
+            <div class="card flex-center">
+                <h4>{{ step.number }}. {{ step.title }}</h4>
+                <p class="subtitle mt-2" style="width:100%;">{{ step.description }}</p>
+                <div class="info mt-2">
+                    <p>{{ step.duration }}</p>
+                    <div class="topic_tags">
+                        {% for topic in step.topics %}<span>{{ topic }}</span>{% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="roadmap_projects text-center">
+    <h4 class="title">پروژه‌های <span class="gradient_word">پیشنهادی</span></h4>
+    <p class="subtitle mt-1" style="width: 100%;">برای ساخت نمونه‌کار واقعی این پروژه‌ها را انجام دهید.</p>
+    <div class="projects">
+        {% for project in roadmap.projects %}
+            <div class="card flex-center">
+                <h4>{{ project.title }}</h4>
+                <p class="subtitle mt-2" style="width:100%;">{{ project.description }}</p>
+            </div>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="related_courses text-center">
+    <h4 class="title">دوره‌های <span class="gradient_word">مرتبط</span></h4>
+    <p class="subtitle mt-1" style="width: 100%;">اگر دوره‌ای با این مسیر منتشر شده باشد، اینجا نمایش داده می‌شود.</p>
+    {% if detail.related_courses %}
+        <div class="courses_grid">
+            {% for course in detail.related_courses %}
+                <article class="course_card">
+                    <h4 class="title">{{ course.title }}</h4>
+                    <p class="subtitle mt-2" style="width:100%;">{{ course.short_description|default:course.description|truncatechars:150 }}</p>
+                    <p class="course_meta">سطح: {{ course.get_level_display }} | مدت: {{ course.duration_minutes }} دقیقه</p>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="empty_related_courses">{{ related_courses_empty_message }}</p>
+    {% endif %}
+</section>
+{% endblock %}

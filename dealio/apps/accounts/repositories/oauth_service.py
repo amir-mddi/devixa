@@ -1,5 +1,5 @@
 import json
-import logging
+from dealio.apps.common.utils.common_utils import CommonUtils
 import re
 from dataclasses import dataclass
 from typing import Any
@@ -15,7 +15,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from dealio.apps.accounts.models import Role, SocialAccount, SocialAuthProvider
 
-logger = logging.getLogger("dealio")
+logger = CommonUtils.get_project_logger(__name__)
 User = get_user_model()
 
 

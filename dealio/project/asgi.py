@@ -6,9 +6,9 @@ from django.core.asgi import get_asgi_application
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'dealio.project.settings')
 
 from channels.routing import ProtocolTypeRouter, URLRouter
-import logging
+from dealio.apps.common.utils.common_utils import CommonUtils
 
-logger = logging.getLogger("dealio")
+logger = CommonUtils.get_project_logger(__name__)
 
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),

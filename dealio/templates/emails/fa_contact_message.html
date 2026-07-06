@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>پیام جدید تماس با ما</title>
+</head>
+<body style="font-family: Tahoma, Arial, sans-serif; background:#f8fafc; padding:24px; color:#0f172a; direction:rtl;">
+    <div style="max-width:680px; margin:auto; background:#ffffff; border-radius:16px; padding:24px; border:1px solid #e2e8f0;">
+        <h2 style="margin-top:0; color:#2563eb;">پیام جدید از فرم تماس با ما</h2>
+        <p><strong>نام:</strong> {{ full_name }}</p>
+        <p><strong>ایمیل:</strong> {{ email }}</p>
+        <p><strong>موضوع:</strong> {{ topic }}</p>
+        <hr style="border:none; border-top:1px solid #e2e8f0; margin:20px 0;">
+        <p style="white-space:pre-line; line-height:1.9;">{{ message }}</p>
+        <p style="color:#64748b; font-size:13px; margin-top:24px;">ارسال شده از وب‌سایت {{ app_name }}</p>
+    </div>
+</body>
+</html>

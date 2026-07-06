@@ -9,12 +9,12 @@ from dealio.apps.core_models.dtos.base_dto import BaseDTO
 from dealio.apps.core_models.enum.base import BaseEnum
 
 
-class BaseDealioTypeDTO(BaseDTO):
+class BaseProjectTypeDTO(BaseDTO):
     code: StrictStr
     type: StrictStr
 
 
-class BaseNetworkDTO(BaseDealioTypeDTO):
+class BaseNetworkDTO(BaseProjectTypeDTO):
     ...
 
 

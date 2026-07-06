@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-import logging
+from dealio.apps.common.utils.common_utils import CommonUtils
 from enum import StrEnum
 
+from dealio.apps.common.project_config import get_project_name
 from dealio.apps.telegram_bot.dtos.channel_member_sync_dtos import ChannelMemberSyncResultDTO
 from dealio.apps.telegram_bot.enums.channel_sync_enums import MessengerProviderEnum
 from dealio.apps.telegram_bot.repositories.adapters.channel_member_sync_adapter import ChannelMemberSyncMessengerAdapter
@@ -10,7 +11,7 @@ from dealio.apps.telegram_bot.repositories.channel_member_sync_repository import
 from dealio.apps.telegram_bot.repositories.logic.bot_setting_logic import BotRuntimeConfigProvider
 from dealio.apps.telegram_bot.vo.channel_sync_vo import ChannelMemberSyncEnvVO, ChannelMemberSyncTextVO
 
-logger = logging.getLogger("dealio")
+logger = CommonUtils.get_project_logger(__name__)
 
 
 class ChannelMemberSyncDirectionEnum(StrEnum):
@@ -101,7 +102,7 @@ class ChannelMemberSyncLogicRepository:
                     self.adapter.send_invite(
                         provider=MessengerProviderEnum.TELEGRAM.value,
                         chat_id=candidate.telegram_chat_id,
-                        text=ChannelMemberSyncTextVO.BALE_INVITE_MESSAGE.format(invite_url=bale_invite_url),
+                        text=ChannelMemberSyncTextVO.BALE_INVITE_MESSAGE.format(invite_url=bale_invite_url, project_name=get_project_name()),
                     )
                     invited += 1
                 except Exception as exc:
@@ -146,7 +147,7 @@ class ChannelMemberSyncLogicRepository:
                     self.adapter.send_invite(
                         provider=MessengerProviderEnum.BALE.value,
                         chat_id=candidate.bale_chat_id,
-                        text=ChannelMemberSyncTextVO.TELEGRAM_INVITE_MESSAGE.format(invite_url=telegram_invite_url),
+                        text=ChannelMemberSyncTextVO.TELEGRAM_INVITE_MESSAGE.format(invite_url=telegram_invite_url, project_name=get_project_name()),
                     )
                     invited += 1
                 except Exception as exc:

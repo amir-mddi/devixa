@@ -1,8 +1,8 @@
 import time
-import logging
+from dealio.apps.common.utils.common_utils import CommonUtils
 from functools import wraps
 
-logger = logging.getLogger("dealio")
+logger = CommonUtils.get_project_logger(__name__)
 
 
 def measure_time(func):

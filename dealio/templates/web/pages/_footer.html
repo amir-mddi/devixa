@@ -1,0 +1,56 @@
+<section class="footer">
+    <section class="footer_top">
+        <section class="footer_brand">
+            <section class="logo">
+                <a href="{% url 'pages_web:home' %}" class="flex-center" aria-label="{{ project.display_name }}">
+                   <div class="x flex-center">
+                        <div class="hole"></div>
+                    </div>
+                    <span>{{ project.display_name }}</span>
+                </a>
+            </section>
+            <p>{{ project.tagline }}</p>
+            <section class="social_networks flex-around mt-3">
+                <div class="social"><a href="{{ project.github_url }}" aria-label="github"><i class="fa-brands fa-github"></i></a></div>
+                <div class="social"><a href="{{ project.linkedin_url }}" aria-label="linkedin"><i class="fa-brands fa-linkedin"></i></a></div>
+                <div class="social"><a href="{{ project.telegram_url }}" aria-label="telegram"><i class="fa-brands fa-telegram"></i></a></div>
+                <div class="social"><a href="{{ project.instagram_url }}" aria-label="instagram"><i class="fa-brands fa-instagram"></i></a></div>
+            </section>
+        </section>
+        <section class="footer_links footer_section">
+            <h4 class="title">لینک‌های سریع</h4>
+            <ul class="submenu">
+                <li><a class="flex" href="{% url 'pages_web:home' %}"><div class="circle"></div>خانه</a></li>
+                <li><a class="flex" href="{% url 'courses_web:course_list' %}"><div class="circle"></div>دوره‌ها</a></li>
+                <li><a class="flex" href="{% url 'courses_web:roadmap_list' %}"><div class="circle"></div>نقشه راه</a></li>
+                <li><a class="flex" href="{% url 'courses_web:course_list' %}"><div class="circle"></div>بوت کمپ</a></li>
+                <li><a class="flex" href="{% url 'pages_web:about_us' %}"><div class="circle"></div>وبلاگ</a></li>
+                <li><a class="flex" href="{% url 'pages_web:about_us' %}"><div class="circle"></div>درباره‌ما</a></li>
+            </ul>
+        </section>
+        <section class="path_learning footer_section">
+            <h4 class="title">مسیرهای یادگیری</h4>
+            <ul class="submenu">
+                <li><a class="flex" href="{% url 'courses_web:roadmap_detail' slug='frontend' %}"><div class="circle"></div>فرانت‌اند</a></li>
+                <li><a class="flex" href="{% url 'courses_web:roadmap_detail' slug='backend' %}"><div class="circle"></div>بک‌اند</a></li>
+                <li><a class="flex" href="{% url 'courses_web:roadmap_detail' slug='fullstack' %}"><div class="circle"></div>فول استک</a></li>
+                <li><a class="flex" href="{% url 'courses_web:roadmap_detail' slug='ai' %}"><div class="circle"></div>هوش مصنوعی</a></li>
+                <li><a class="flex" href="{% url 'courses_web:roadmap_list' %}"><div class="circle"></div>برنامه نویسی موبایل</a></li>
+                <li><a class="flex" href="{% url 'courses_web:roadmap_detail' slug='freelancer' %}"><div class="circle"></div>فریلنسری</a></li>
+            </ul>
+        </section>
+        <section class="contact footer_section">
+            <h4 class="title">ارتباط با ما</h4>
+            <ul class="submenu">
+                <li><a class="flex" href="mailto:{{ project.support_email }}"><div class="circle"></div><p>{{ project.support_email }}</p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg></a></li>
+                <li><a class="flex" href="{% url 'pages_web:contact_us' %}"><div class="circle"></div><p>پشتیبانی</p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5Zm0 0a9 9 0 1 1 18 0m0 0v5a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3Z"/><path d="M21 16v2a4 4 0 0 1-4 4h-5"/></svg></a></li>
+                <li><a class="flex" href="{{ project.telegram_url }}"><div class="circle"></div><p>تلگرام</p><i class="fa-brands fa-telegram"></i></a></li>
+                <li><a class="flex" href="{{ project.linkedin_url }}"><div class="circle"></div><p>لینکدین</p><i class="fa-brands fa-linkedin"></i></a></li>
+            </ul>
+        </section>
+    </section>
+    <section class="footer_bottom flex-between">
+        <p class="mr-3">ساخته شده با <span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/></svg></span> برای برنامه نویسان</p>
+        <p class="ml-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M14.83 14.83a4 4 0 1 1 0-5.66"/></svg> {{ project.display_name }}. All Rights reserved.</p>
+    </section>
+</section>

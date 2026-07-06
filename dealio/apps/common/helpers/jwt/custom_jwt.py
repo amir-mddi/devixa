@@ -1,4 +1,4 @@
-import logging
+from dealio.apps.common.utils.common_utils import CommonUtils
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
@@ -17,7 +17,7 @@ from dealio.project.settings import ACCESS_TOKEN_LIFE_TIME_HOUR, SIMPLE_JWT
 User = get_user_model()
 import jwt
 
-logger = logging.getLogger("dealio")
+logger = CommonUtils.get_project_logger(__name__)
 
 
 @extend_schema(tags=["Account"])

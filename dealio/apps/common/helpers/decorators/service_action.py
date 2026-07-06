@@ -1,13 +1,13 @@
 import hashlib
 import json
-import logging
+from dealio.apps.common.utils.common_utils import CommonUtils
 import time
 from functools import wraps
 
 import sentry_sdk
 from django.core.cache import cache
 
-logger = logging.getLogger("dealio")
+logger = CommonUtils.get_project_logger(__name__)
 
 CACHE_MISS = object()
 

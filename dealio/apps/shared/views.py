@@ -1,4 +1,3 @@
-import logging
 from urllib.request import Request
 from uuid import UUID
 from django.db import transaction
@@ -7,11 +6,12 @@ from django.utils.decorators import method_decorator
 from drf_spectacular.utils import extend_schema_view, extend_schema, OpenApiResponse
 from prometheus_client import Counter
 from rest_framework.exceptions import NotFound
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAdminUser
 from prometheus_client import CollectorRegistry, CONTENT_TYPE_LATEST, generate_latest, multiprocess
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.views import APIView
+from rest_framework.response import Response
 
 from dealio.apps.accounts.serializers import UserSerializer
 from dealio.apps.common.helpers.decorators.auth import authentication_required
@@ -27,8 +27,9 @@ from dealio.apps.common.utils.swagger_mixin import TaggedSchemaViewSet, TaggedSc
 from dealio.apps.core_models.constants.common_vo import ResponseVO
 from dealio.apps.core_models.dtos.base_api_config_dto import BaseAPIConfig
 from dealio.apps.permissions.access_control import AccessLimitPermission
+from dealio.apps.shared.repositories.logic import SharedApplicationLogic
 from dealio.apps.shared.models import ApiKeyManagerModel
-from dealio.apps.shared.serializers import ApiKeyMngSerializer, BaseResponseSerializer
+from dealio.apps.shared.serializers import ApiKeyMngSerializer, BaseResponseSerializer, ProjectConfigSerializer
 
 EXCEPTION_COUNT = Counter(
     "django_celery_task_total",
@@ -36,7 +37,7 @@ EXCEPTION_COUNT = Counter(
     ["method"]
 )
 
-logger = logging.getLogger("dealio")
+logger = CommonUtils.get_project_logger(__name__)
 
 
 class BaseViewSet(TaggedSchemaViewSet):
@@ -116,6 +117,34 @@ def prometheus_metrics(request):
     data = generate_latest(registry)
     return HttpResponse(data, content_type=CONTENT_TYPE_LATEST)
 
+
+
+
+class ProjectConfigAPIView(APIView):
+    permission_classes = [IsAdminUser]
+    serializer_class = ProjectConfigSerializer
+
+    def get(self, request):
+        project_config = SharedApplicationLogic().get_project_config()
+        return Response(project_config.as_context() if project_config else {})
+
+    def patch(self, request):
+        serializer = self.serializer_class(data=request.data, partial=True, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        project_config = SharedApplicationLogic().change_project_config(
+            data=serializer.validated_data,
+            user=request.user,
+        )
+        return Response(project_config.as_context())
+
+    def put(self, request):
+        serializer = self.serializer_class(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        project_config = SharedApplicationLogic().change_project_config(
+            data=serializer.validated_data,
+            user=request.user,
+        )
+        return Response(project_config.as_context())
 
 @method_decorator(service_action(), name="dispatch")
 @method_decorator(transaction.atomic, name="dispatch")

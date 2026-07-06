@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import logging
+from dealio.apps.common.utils.common_utils import CommonUtils
 from typing import Any
 from django.utils.timezone import now
 
@@ -12,7 +12,7 @@ from dealio.apps.telegram_bot.interfaces.bot_client_interface import BotClientIn
 from dealio.apps.telegram_bot.repositories.bot_notification_repository import BotNotificationRepository
 from dealio.apps.telegram_bot.models import BotScheduledNotification
 
-logger = logging.getLogger("dealio")
+logger = CommonUtils.get_project_logger(__name__)
 
 
 class BotNotificationLogicRepository:

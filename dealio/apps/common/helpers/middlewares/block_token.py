@@ -1,10 +1,10 @@
-import logging
+from dealio.apps.common.utils.common_utils import CommonUtils
 
 import jwt
 from django.core.cache import cache
 from django.http import JsonResponse
 
-logger = logging.getLogger("dealio")
+logger = CommonUtils.get_project_logger(__name__)
 
 
 class BlockedTokenMiddleware:

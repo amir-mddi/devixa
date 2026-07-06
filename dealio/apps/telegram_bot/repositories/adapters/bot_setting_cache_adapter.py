@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import logging
+from dealio.apps.common.utils.common_utils import CommonUtils
 
 from django.core.cache import cache
 
-logger = logging.getLogger("dealio")
+logger = CommonUtils.get_project_logger(__name__)
 
 
 class BotSettingCacheAdapter:

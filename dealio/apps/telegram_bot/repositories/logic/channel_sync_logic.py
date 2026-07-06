@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import html
 from dataclasses import replace
-import logging
+from dealio.apps.common.utils.common_utils import CommonUtils
 from typing import Any
 
 from dealio.apps.telegram_bot.dtos.channel_sync_dtos import ChannelMediaDTO, ChannelPostDTO, ChannelSyncTargetDTO
@@ -13,7 +13,7 @@ from dealio.apps.telegram_bot.repositories.channel_sync_repository import Channe
 from dealio.apps.telegram_bot.repositories.logic.bot_setting_logic import BotRuntimeConfigProvider
 from dealio.apps.telegram_bot.vo.channel_sync_vo import ChannelSyncEnvVO, ChannelSyncMediaTextVO
 
-logger = logging.getLogger("dealio")
+logger = CommonUtils.get_project_logger(__name__)
 
 
 class ChannelSyncLogicRepository:

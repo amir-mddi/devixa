@@ -1,4 +1,4 @@
-import logging
+from dealio.apps.common.utils.common_utils import CommonUtils
 
 import jwt
 from django.conf import settings
@@ -7,7 +7,7 @@ from rest_framework.permissions import BasePermission
 
 from dealio.apps.shared.initial_data.initial_data.intial_access import InitialAccessCache
 
-logger = logging.getLogger("dealio")
+logger = CommonUtils.get_project_logger(__name__)
 
 
 class AccessLimitPermission(BasePermission):

@@ -134,7 +134,24 @@ class DatabaseConfiguration(BaseDTO):
 
 
 class GeneralConfiguration(BaseDTO):
-    debug: bool = bool(strtobool(os.environ.get("IS_DEBUG", "false")))
+    env: str = os.environ.get("ENV", "local")
+    debug: bool = bool(
+        strtobool(
+            os.environ.get(
+                "IS_DEBUG",
+                "true" if env in {"local", "development", "dev"} else "false",
+            )
+        )
+    )
+    serve_static_files: bool = bool(
+        strtobool(
+            os.environ.get(
+                "PROJECT_SERVE_STATIC_FILES",
+                "true" if env in {"local", "development", "dev"} else "false",
+            )
+        )
+    )
+    static_asset_root: str = os.environ.get("PROJECT_STATIC_ASSET_ROOT", "app/assets")
     allowed_hosts: list = os.environ.get("ALLOWED_HOSTS", "*").strip().split(",")
     secret_key: str = os.environ.get("APP_SECRET_KEY", "")
     cors_origin_allow_all: bool = bool(strtobool(os.environ.get("CORS_ORIGIN_ALLOW_ALL", "true")))
@@ -144,7 +161,6 @@ class GeneralConfiguration(BaseDTO):
     core_allow_methods: list = os.environ.get("CORS_ALLOW_METHODS", "[]").split(",")
     append_slash: bool = True
     encryption_key: str = os.environ.get("ENCRYPTION_KEY", "")
-    env: str = os.environ.get("ENV", "")
     list_of_proxies: str = os.environ.get("LIST_OF_PROXIES", "")
     list_of_white_shaba: str = os.environ.get("WHITE_SHABA_LIST", "")
     admin_username: str = os.environ.get("DJANGO_SUPERUSER_USERNAME", "admin")
@@ -153,6 +169,8 @@ class GeneralConfiguration(BaseDTO):
     admin_email: str = os.environ.get("DJANGO_SUPERUSER_EMAIL", "admin@gmail.com")
     broker_id: str = os.environ.get("BROKER_ID", "")
     metric_service_endpoint: str = os.environ.get("METRIC_SERVICE_ENDPOINT", "http://172.16.16.49:8200/api/metrics/")
+    project_name: str = os.environ.get("PROJECT_NAME", "Project")
+    project_logger_name: str = os.environ.get("PROJECT_LOGGER_NAME", os.environ.get("PROJECT_SLUG", project_name.lower().replace(" ", "-")))
 
     class Config:
         frozen = True
@@ -185,7 +203,7 @@ class LoggingConfiguration(BaseDTO):
 
     loggers: Dict[str, Any] = Field(
         default_factory=lambda: {
-            "dealio": {
+            general_config.project_logger_name: {
                 "handlers": ["console"],
                 "level": "INFO" if general_config.debug else "WARNING",
                 "propagate": False,

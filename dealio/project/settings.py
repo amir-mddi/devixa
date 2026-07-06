@@ -33,7 +33,14 @@ ALLOWED_HOSTS = general_config.allowed_hosts
 SITE_ID = 1
 APPEND_SLASH = general_config.append_slash
 ENCRYPTION_KEY = general_config.encryption_key
-IS_PROD = os.environ.get("ENV", EnvVO.production) == EnvVO.production
+IS_PROD = general_config.env == EnvVO.production
+
+# Public project/brand info is stored in the database after the initial bootstrap.
+# The PROJECT_* env variables are read by shared.initial_data only when ProjectConfigModel does not exist.
+PROJECT_LOGGER_NAME = general_config.project_logger_name
+PROJECT_STATIC_ASSET_ROOT = general_config.static_asset_root
+PROJECT_SERVE_STATIC_FILES = general_config.serve_static_files
+
 INSTALLED_APPS = [
     # pre-required apps
     'django.contrib.admin',
@@ -57,6 +64,8 @@ INSTALLED_APPS = [
     'django_celery_results',
     # apps
     'dealio.apps.accounts',
+    'dealio.apps.common',
+    'dealio.apps.pages',
     'dealio.apps.shared',
     'dealio.apps.courses',
     'dealio.apps.billing',
@@ -110,17 +119,22 @@ REST_FRAMEWORK = {
 }
 
 AUTH_USER_MODEL = 'accounts.CustomUser'
-LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+LANGUAGE_CODE = 'fa-ir'
+TIME_ZONE = 'Asia/Tehran'
 USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "/static/"
+STATICFILES_DIRS = [BASE_DIR / "dealio/static"]
 STATIC_ROOT = os.path.join(BASE_DIR, "deployment/staticfiles")
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "dealio/apps/media/")
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+LOGIN_URL = "/login/"
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/login/"
 
 CACHES = {
     "default": {
@@ -155,6 +169,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'dealio.apps.common.context_processors.project_context',
             ],
         },
     },
@@ -229,21 +244,21 @@ if swagger_config.use_swagger:
 LIST_OF_PROXIES = general_config.list_of_proxies
 LIST_OF_WHITE_SHABA = general_config.list_of_white_shaba
 
-# AUTH_PASSWORD_VALIDATORS = [
-#     {
-#         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-#     },
-#     {
-#         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-#         "OPTIONS": {"min_length": 8},
-#     },
-#     {
-#         "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-#     },
-#     {
-#         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-#     },
-# ]
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 8},
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+    },
+]
 PERMISSIONS: ContextManager = None
 DEFAULT_PERMISSION_CLS = AccessLimitPermission
 
@@ -255,7 +270,6 @@ EMAIL_USE_TLS = (os.getenv("EMAIL_USE_TLS") or "true").lower() == "true"
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "")
-
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_WEBHOOK_SECRET = os.environ.get("TELEGRAM_WEBHOOK_SECRET")
 TELEGRAM_WEBAPP_URL = os.environ.get("TELEGRAM_WEBAPP_URL")

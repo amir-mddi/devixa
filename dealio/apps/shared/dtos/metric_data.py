@@ -1,3 +1,5 @@
+import os
+
 from dealio.apps.core_models.dtos.base_dto import BaseDTO
 
 
@@ -7,4 +9,4 @@ class MetricDataDto(BaseDTO):
     label_values: dict = {}
     value: float
     labels: list[str] = []
-    tag: str = "dealio"
+    tag: str = os.environ.get("PROJECT_METRIC_TAG", os.environ.get("PROJECT_SLUG", "project"))

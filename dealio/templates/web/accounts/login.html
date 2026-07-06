@@ -1,0 +1,59 @@
+{% load static project_tags %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#070b14">
+    <meta name="description" content="{{ project.description }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet" href="{% project_static 'Styles/forget_password.css' %}">
+    <link rel="stylesheet" href="{% project_static 'Styles/premium.css' %}">
+    <title>ورود به حساب کاربری</title>
+    {% include "web/shared/_message_styles.html" %}
+</head>
+<body data-project-name="{{ project.display_name }}" data-project-initial="{{ project.logo_initial }}">
+{% include "web/shared/_flash_messages.html" with placement="auth" %}
+<div class="container">
+    <div class="logo">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square-code-icon lucide-message-square-code"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/><path d="m10 8-3 3 3 3"/><path d="m14 14 3-3-3-3"/></svg>
+    </div>
+    <h4>ورود به <span class="gradient_word">حساب کاربری</span></h4>
+    <p>با ورود به حساب کاربری خود، به دوره‌های خود و پنل مدیریتی دسترسی خواهید داشت.</p>
+
+    {% include "web/shared/_form_non_field_errors.html" %}
+
+    <form action="{% url 'accounts_web:login' %}" method="post" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.GET.next }}">
+
+        <div class="field">
+            {{ form.identifier }}
+            <i class="fa-solid fa-envelope"></i>
+        </div>
+        {% include "web/shared/_field_errors.html" with field=form.identifier %}
+
+        <div class="field">
+            {{ form.password }}
+            <i class="fa fa-lock"></i>
+        </div>
+        {% include "web/shared/_field_errors.html" with field=form.password %}
+
+        <div class="field">
+            <input class="submit" type="submit" value="ورود به حساب">
+            <i id="submit" class="fa-solid fa-arrow-right-to-bracket"></i>
+        </div>
+
+        <a href="{% url 'accounts_web:forgot_password' %}" class="back_to_forgot_pass">
+            <i class="fas fa-arrow-right"></i>
+            رمز عبور را فراموش کرده ام؟
+        </a>
+        <a href="{% url 'accounts_web:register' %}" class="back_to_signup">
+            <i class="fas fa-arrow-right"></i>
+            حساب کاربری ندارم؟ ساخت حساب جدید
+        </a>
+    </form>
+</div>
+<script src="{% project_static 'js/premium.js' %}"></script>
+</body>
+</html>

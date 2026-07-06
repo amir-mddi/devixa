@@ -1,3 +1,4 @@
-from .course_entities import CoursePriceEntity
+from .course_entities import *
+from .roadmap_entities import CourseRoadmapCatalogEntity
 
-__all__ = ["CoursePriceEntity"]
+__all__ = ["CourseRoadmapCatalogEntity"]

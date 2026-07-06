@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import logging
+from dealio.apps.common.utils.common_utils import CommonUtils
 import time
 from typing import Any, Callable
 
 from dealio.apps.telegram_bot.controllers.update_controller import BotUpdateController
 
-logger = logging.getLogger("dealio")
+logger = CommonUtils.get_project_logger(__name__)
 
 
 class BotPollingService:

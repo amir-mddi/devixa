@@ -3,7 +3,7 @@ from django.db import models
 
 
 class TelegramProfile(models.Model):
-    """Stores the Telegram chat that is linked to a Dealio user account."""
+    """Stores the Telegram chat that is linked to a application user account."""
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -198,6 +198,10 @@ class BotSupportTicket(models.Model):
         related_name="bot_support_tickets",
     )
     subject = models.CharField(max_length=180, blank=True, default="")
+    is_frequently_asked = models.BooleanField(default=False, db_index=True)
+    faq_question = models.CharField(max_length=220, blank=True, default="")
+    faq_answer = models.TextField(blank=True, default="")
+    faq_display_order = models.PositiveSmallIntegerField(default=100)
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default=STATUS_OPEN, db_index=True)
     last_message_at = models.DateTimeField(auto_now_add=True, db_index=True)
     closed_by = models.ForeignKey(
@@ -215,6 +219,7 @@ class BotSupportTicket(models.Model):
         ordering = ["-last_message_at"]
         indexes = [
             models.Index(fields=["provider", "status", "last_message_at"], name="support_provider_status_idx"),
+            models.Index(fields=["is_frequently_asked", "faq_display_order"], name="support_faq_order_idx"),
         ]
 
     def __str__(self):

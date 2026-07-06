@@ -21,6 +21,9 @@ class BotSupportLogicRepository:
     def get_ticket(self, *, provider: str, ticket_id):
         return self.adapter.get_ticket(provider=provider, ticket_id=ticket_id)
 
+    def list_frequently_asked_tickets(self, *, limit: int = 6):
+        return self.adapter.list_frequently_asked_tickets(limit=limit)
+
     def create_ticket(self, *, provider: str, profile, message: str, subject: str = ""):
         return self.adapter.create_ticket(
             BotSupportTicketCreateDTO(

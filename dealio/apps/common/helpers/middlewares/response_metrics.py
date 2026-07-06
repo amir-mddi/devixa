@@ -1,4 +1,4 @@
-import logging
+from dealio.apps.common.utils.common_utils import CommonUtils
 import os
 import time
 
@@ -8,7 +8,7 @@ from prometheus_client import Histogram, Counter
 from dealio.apps.common.response_utils import CommonJsonResponse
 from dealio.apps.core_models.vo.common_vo import ResponseVO
 
-logger = logging.getLogger("dealio")
+logger = CommonUtils.get_project_logger(__name__)
 
 REQUEST_LATENCY = Histogram(
     "django_request_latency_seconds",

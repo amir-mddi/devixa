@@ -76,10 +76,40 @@ class BotSupportMessageInline(admin.TabularInline):
 
 @admin.register(BotSupportTicket)
 class BotSupportTicketAdmin(admin.ModelAdmin):
-    list_display = ("id", "provider", "user", "profile", "status", "last_message_at", "created_at")
-    list_filter = ("provider", "status", "created_at", "last_message_at")
-    search_fields = ("subject", "user__email", "profile__chat_id", "profile__username")
+    list_display = ("id", "provider", "user", "profile", "status", "is_frequently_asked", "faq_display_order", "last_message_at", "created_at")
+    list_filter = ("provider", "status", "is_frequently_asked", "created_at", "last_message_at")
+    search_fields = ("subject", "faq_question", "faq_answer", "user__email", "profile__chat_id", "profile__username")
     readonly_fields = ("created_at", "updated_at", "closed_at")
+    fieldsets = (
+        (
+            "Ticket",
+            {
+                "fields": (
+                    "provider",
+                    "profile",
+                    "user",
+                    "subject",
+                    "status",
+                    "last_message_at",
+                    "closed_by",
+                    "closed_at",
+                )
+            },
+        ),
+        (
+            "Frequently asked question",
+            {
+                "fields": (
+                    "is_frequently_asked",
+                    "faq_question",
+                    "faq_answer",
+                    "faq_display_order",
+                ),
+                "description": "اگر این تیکت سوال پرتکرار است، این بخش را کامل کنید تا در FAQ سایت نمایش داده شود.",
+            },
+        ),
+        ("Status", {"fields": ("created_at", "updated_at")}),
+    )
     inlines = [BotSupportMessageInline]
 
 

@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import base64
 import hashlib
-import logging
+from dealio.apps.common.utils.common_utils import CommonUtils
 from typing import Final
 
 from django.conf import settings
 
-logger = logging.getLogger("dealio")
+logger = CommonUtils.get_project_logger(__name__)
 
 
 class BotSettingCryptoAdapter:

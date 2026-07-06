@@ -1,0 +1,148 @@
+{% extends "web/pages/base.html" %}
+{% load static project_tags course_web_tags %}
+
+{% block title %}{{ course.title }}{% endblock %}
+{% block page_styles %}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css">
+    <link rel="stylesheet" href="{% project_static 'Styles/single_course.css' %}">
+    <link rel="stylesheet" href="{% project_static 'Styles/courses.css' %}">
+    <style>
+        .course_description_box{width:min(980px,92%);margin:30px auto;padding:28px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-muted);line-height:2;}
+        .related_courses_title{padding-top:60px;background:var(--bg);}
+        .course_empty_state{width:min(720px,92%);margin:35px auto;padding:28px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);text-align:center;color:var(--text-muted);}
+        .lesson_lock{color:var(--secondary);}
+        .lesson_preview{color:var(--primary);}
+    </style>
+{% endblock %}
+
+{% block content %}
+<section class="single_course_hero">
+    <section class="introduction reveal_right">
+        <h4 class="badge flex-center"><span class="circle_gradient"></span>{{ course.category.title|default:"دوره آموزشی" }}</h4>
+        <h1 class="title mt-3">{{ course.title }}</h1>
+        <p class="subtitle mt-2" style="width:100%">{{ course.short_description|default:course.description|truncatechars:220 }}</p>
+        <section class="extra_info flex-around">
+            <div class="info">سطح: {{ course.level|course_level_label }}</div>
+            <div class="info">مدت: {{ course.duration_minutes|course_duration_label }}</div>
+            <div class="info">مدرس: {{ course|course_instructor_label }}</div>
+        </section>
+        <section class="Enroll_btn flex-between">
+            <div class="price flex-center">{{ course|course_price_label }}</div>
+            <a class="Registration" href="{% url 'pages_web:contact_us' %}">ثبت‌نام و مشاوره</a>
+        </section>
+        <section class="course_features mt-4">
+            <section class="extra_info flex-center">
+                <div class="info">پروژه محور <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></div>
+                <div class="info">دسترسی دائمی <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></div>
+                <div class="info">پشتیبانی <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></div>
+            </section>
+        </section>
+    </section>
+    <section class="dashboard_mockup reveal_left">
+        <h4>نمای کلی دوره</h4>
+        <div class="card completed flex-between"><span>شروع مسیر</span><span>✅</span></div>
+        <div class="card completed flex-between"><span>تمرین‌های عملی</span><span>✅</span></div>
+        <div class="card locked flex-between"><span>پروژه نهایی</span><span>🔒</span></div>
+        <div class="progress flex-between"><div class="txt">آمادگی بازار کار</div><div class="bar"><div class="loading"></div></div></div>
+    </section>
+</section>
+
+<section class="course_description_box">
+    <h4 class="title">درباره این دوره</h4>
+    <p class="subtitle mt-2" style="width:100%;text-align:right;">{{ course.description|default:course.short_description }}</p>
+</section>
+
+<section class="curriculum text-center">
+    <h4 class="title reveal">سرفصل‌های <span class="gradient_word">دوره</span></h4>
+    <p class="subtitle mt-1 reveal_right" style="width:100%">لیست درس‌ها و بخش‌هایی که در این دوره یاد می‌گیرید.</p>
+    <section class="summery_badges flex-around">
+        <div class="badge flex-center">{{ course.lessons.count }} درس</div>
+        <div class="badge flex-center">{{ course.duration_minutes|course_duration_label }}</div>
+        <div class="badge flex-center">{{ course.level|course_level_label }}</div>
+    </section>
+    <section class="items">
+        <section class="lesson_item">
+            <section class="left_faq">
+                {% for lesson in course.lessons.all %}
+                    {% if lesson.is_active and not lesson.is_deleted %}
+                        <input type="checkbox" id="chck{{ forloop.counter }}">
+                        <div class="faq_item item{{ forloop.counter }}">
+                            <div class="row_1 flex-between">
+                                <h4>{{ forloop.counter }}. {{ lesson.title }}</h4>
+                                <div class="btn"><label for="chck{{ forloop.counter }}">جزئیات</label></div>
+                            </div>
+                            <div class="row_2">
+                                <div class="L_item flex-between">
+                                    <span class="item_name">{{ lesson.description|default:"توضیحات این درس به زودی تکمیل می‌شود." }}</span>
+                                    <span>{{ lesson.duration_minutes|course_duration_label }}</span>
+                                    {% if lesson.is_preview %}<span class="lesson_preview">پیش‌نمایش</span>{% else %}<span class="lesson_lock">قفل</span>{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% empty %}
+                    <div class="course_empty_state">هنوز درسی برای این دوره ثبت نشده است.</div>
+                {% endfor %}
+            </section>
+        </section>
+    </section>
+</section>
+
+<section class="will_learn">
+    <h4 class="title reveal">در این دوره چه چیزی <span class="gradient_word">یاد می‌گیری؟</span></h4>
+    <p class="subtitle mt-1 reveal_right" style="width:100%">تمرکز این دوره روی خروجی قابل ارائه و مهارت واقعی است.</p>
+    <section class="card_learn mt-4">
+        <div class="card flex-center"><p class="title">کدنویسی تمیز و قابل توسعه</p></div>
+        <div class="card flex-center"><p class="title">ساخت پروژه واقعی</p></div>
+        <div class="card flex-center"><p class="title">آمادگی برای بازار کار</p></div>
+    </section>
+</section>
+
+<section class="instructor">
+    <h4 class="badge flex-center">مدرس دوره</h4>
+    <section class="teacher">
+        <section class="intro_teacher">
+            <section class="resume">
+                <h5 class="name title">{{ course|course_instructor_label }}</h5>
+                <h6 class="subtitle mt-1" style="width:100%">مدرس و منتور {{ project.display_name }}</h6>
+                <p class="subtitle mt-2" style="width:100%">این دوره با تمرکز روی پروژه، تمرین و ساخت نمونه‌کار طراحی شده است.</p>
+            </section>
+            <section class="picture flex-center">
+                <svg class="prof" xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/></svg>
+            </section>
+        </section>
+    </section>
+</section>
+
+<section class="student_reviews">
+    <h4 class="title text-center reveal">نظر دانشجوها</h4>
+    {% if reviews %}
+        <section class="carousel_wrapper">
+            <section class="review_cards">
+                {% for review in reviews %}
+                    <div class="card">
+                        <div class="scores">{{ review.rating }} / 5 ⭐</div>
+                        <p class="openion subtitle mt-2" style="width:100%">{{ review.comment }}</p>
+                        <div class="student flex-between"><span>{{ review.user.username }}</span><span>{{ review.title }}</span></div>
+                    </div>
+                {% endfor %}
+            </section>
+        </section>
+    {% else %}
+        <div class="course_empty_state">{{ reviews_empty_message }}</div>
+    {% endif %}
+</section>
+
+<section class="related_courses_title text-center">
+    <h4 class="title reveal">دوره‌های <span class="gradient_word">مرتبط</span></h4>
+</section>
+{% if related_courses %}
+    <section class="courses">
+        {% for course in related_courses %}
+            {% include "web/courses/_course_card.html" with course=course %}
+        {% endfor %}
+    </section>
+{% else %}
+    <div class="course_empty_state">{{ related_courses_empty_message }}</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,208 @@
+{% extends "web/pages/base.html" %}
+{% load static project_tags course_web_tags %}
+
+{% block title %}{{ project.display_name }} | آموزش برنامه‌نویسی پروژه محور{% endblock %}
+{% block page_styles %}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css">
+    <link rel="stylesheet" href="{% project_static 'Styles/home.css' %}">
+    <link rel="stylesheet" href="{% project_static 'Styles/courses.css' %}">
+    <style>
+        .home_empty_state{width:min(720px,92%);margin:30px auto;padding:26px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface);color:var(--text-muted);text-align:center;}
+        .learning_path .paths a{text-decoration:none;color:inherit;}
+        .learning_path .paths .path_icon i{font-size:72px;color:var(--primary);display:block;margin:auto;}
+    
+        .left_faq input[id^="homefaq"]:checked + .faq_item{max-height:300px;}
+        .left_faq input[id^="homefaq"]:checked + .faq_item .row_1 .btn label svg.plus{display:none;}
+        .left_faq input[id^="homefaq"]:checked + .faq_item .row_1 .btn label svg.mines{display:block;}
+        .testimonial_card{flex:0 0 auto;}
+    </style>
+{% endblock %}
+
+{% block content %}
+<section class="hero_section flex-between">
+    <section class="right_hero">
+        <h1 id="hero_title">مهارت برنامه‌نویسی را پروژه‌محور یاد بگیر</h1>
+        <h4>با دوره‌های تخصصی، نقشه راه‌های مرحله‌ای و پروژه‌های واقعی {{ project.display_name }}، مسیر یادگیری خودت را شفاف شروع کن و برای ورود به بازار کار آماده شو.</h4>
+        <section class="hero_cta flex">
+            <a class="courses_link" href="{% url 'courses_web:course_list' %}">مشاهده دوره‌ها</a>
+            <a class="starting" href="{% url 'courses_web:roadmap_list' %}">شروع مسیر</a>
+        </section>
+        <section class="student_started flex-around">
+            <p><span>+2500</span> دانشجو تا امروز مسیرشان را شروع کرده‌اند</p>
+            <section class="active_profiles">
+                <svg class="profile" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/></svg>
+                <svg class="profile" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.925 20.056a6 6 0 0 0-11.851.001"/><circle cx="12" cy="11" r="4"/><circle cx="12" cy="12" r="10"/></svg>
+                <svg class="profile" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/></svg>
+            </section>
+        </section>
+    </section>
+    <section class="left_hero">
+        <div class="mockup">
+            <div class="top_bar flex-between">
+                <div class="circles flex-center">
+                    <div class="circle_bar" style="background: var(--accent);"></div>
+                    <div class="circle_bar" style="background: var(--secondary);"></div>
+                    <div class="circle_bar" style="background: var(--primary);"></div>
+                </div>
+                <div class="searchbar"></div>
+                <div class="bars flex-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/></svg></div>
+            </div>
+            <h4 class="title mt-3 ml-3">Hello Developer!</h4>
+            <p class="subtitle ml-3" style="width:100%">keep learning and level up your skills.</p>
+            <div class="mockup_body flex-between">
+                <div class="circle_progress flex-center"><div class="progress flex-center"><div class="bg_process flex-center">75%</div></div></div>
+                <div class="current_course">
+                    <h4 class="title mt-2 ml-2">current course</h4>
+                    <div class="course_info flex-between">
+                        <div class="icon_course flex-center"><i class="devicon-django-plain colored"></i></div>
+                        <div class="extra_info">
+                            <p class="subtitle" style="width:100%;text-align:left;">Django clean architecture</p>
+                            <div class="bar mt-1"><div class="loading flex-center"><span style="line-height:1.7;height:100%;color:#fff;">60%</span></div></div>
+                        </div>
+                    </div>
+                    <div class="course_link mt-2">continue learning <svg style="vertical-align:-7px;" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></div>
+                </div>
+            </div>
+        </div>
+    </section>
+</section>
+
+<section class="stats flex-around">
+    <section class="section_right flex-around">
+        <section class="stat_card flex-around"><section class="card_info"><h4>+2500</h4><p>دانشجو</p></section><section class="card_icon"><div class="icon">👨‍🎓</div></section></section>
+        <section class="stat_card flex-around"><section class="card_info"><h4>+45</h4><p>دوره آموزشی</p></section><section class="card_icon"><div class="icon">📚</div></section></section>
+    </section>
+    <section class="section_left flex-around">
+        <section class="stat_card flex-around"><section class="card_info"><h4>+120</h4><p>پروژه عملی</p></section><section class="card_icon"><div class="icon">🎯</div></section></section>
+        <section class="stat_card flex-around"><section class="card_info"><h4>+10</h4><p>مسیر یادگیری</p></section><section class="card_icon"><div class="icon">🚀</div></section></section>
+    </section>
+</section>
+
+<section class="learning_path text-center">
+    <h4 class="title reveal">مسیرهای <span class="gradient_word">یادگیری</span></h4>
+    <p class="subtitle mt-1 reveal_right" style="width:100%">برای هر هدف، یک مسیر مرحله‌ای و قابل اجرا آماده شده است.</p>
+    <section class="paths mt-4">
+        {% for roadmap in featured_roadmaps %}
+            <a href="{% url 'courses_web:roadmap_detail' slug=roadmap.slug %}">
+                <div id="path_card" class="card_path">
+                    <div class="path_icon flex-center"><i class="{{ roadmap.icon_class }}"></i></div>
+                    <h4 class="title mt-2">{{ roadmap.title }}</h4>
+                    <p class="subtitle mt-1" style="width:100%">{{ roadmap.duration_label }}</p>
+                </div>
+            </a>
+        {% endfor %}
+    </section>
+</section>
+
+<section class="featured_courses">
+    <h4 class="title reveal">دوره‌های <span class="gradient_word">ویژه</span></h4>
+    {% if featured_courses %}
+        <section class="courses">
+            {% for course in featured_courses %}
+                {% include "web/courses/_course_card.html" with course=course %}
+            {% endfor %}
+        </section>
+        <a class="all" href="{% url 'courses_web:course_list' %}">مشاهده همه دوره‌ها<svg class="arrow_left" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg></a>
+    {% else %}
+        <div class="home_empty_state">هنوز دوره ویژه‌ای منتشر نشده است. با دستور seed توسعه می‌توانید داده نمونه بسازید.</div>
+    {% endif %}
+</section>
+
+<section class="dashboard">
+    <section class="right reveal_right">
+        <section class="panel">
+            <h2>یادگیری تعاملی و هدفمند</h2>
+            <p>پیشرفت خود را مرحله به مرحله دنبال کنید، پروژه‌ها را کامل کنید و با مسیر شفاف وارد بازار کار شوید.</p>
+            <section class="advantages">
+                <div class="advantage"><span>پیشرفت قابل اندازه‌گیری</span><span>✅</span></div>
+                <div class="advantage"><span>پروژه‌های عملی</span><span>✅</span></div>
+                <div class="advantage"><span>مسیر یادگیری مرحله‌ای</span><span>✅</span></div>
+                <div class="advantage"><span>دسترسی دائمی</span><span>✅</span></div>
+                <a href="{% url 'courses_web:course_list' %}" class="btn_start">شروع یادگیری</a>
+            </section>
+        </section>
+    </section>
+    <section class="left reveal_left">
+        <section class="dashboard_mockup">
+            <div class="dashboard_card flex-between completed"><span>HTML Fundamentals</span><span>✅</span></div>
+            <div class="dashboard_card flex-between completed"><span>CSS Mastery</span><span>✅</span></div>
+            <div class="dashboard_card flex-between completed"><span>JavaScript Basics</span><span>✅</span></div>
+            <div class="dashboard_card flex-between locked"><span>Django Backend</span><span>🔒</span></div>
+            <div class="dashboard_card flex-between locked"><span>Clean Architecture</span><span>🔒</span></div>
+        </section>
+    </section>
+</section>
+
+
+<section class="student_success">
+    <h4 class="title reveal">داستان موفقیت دانشجویان ما</h4>
+    <div class="testimonial_wrapper">
+        <section class="testimonial_track flex">
+            {% for testimonial in testimonials %}
+                <section class="testimonial_card">
+                    <p>"{{ testimonial.comment }}"</p>
+                    <h4>{{ testimonial.student_name }}</h4>
+                    <p>{{ testimonial.student_role }}</p>
+                </section>
+            {% endfor %}
+        </section>
+    </div>
+    <div class="next-prev flex-center">
+        <a id="prevBtn" class="prevBtn" href="#" aria-label="نظر قبلی">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </a>
+        <a id="nextBtn" class="nextBtn" href="#" aria-label="نظر بعدی">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+        </a>
+    </div>
+</section>
+
+<section class="faq">
+    <div class="right_faq">
+        <div class="badge"><h4>سوالات متداول</h4></div>
+        <h4 class="title mt-3">هنوز سوالی داری؟</h4>
+        <p class="subtitle">پاسخ پرتکرارترین سوالات ثبت‌شده در تیکت‌ها و سوالات رایج دانشجویان.</p>
+        <div class="faq_info flex-around">
+            <div class="info_icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg></div>
+            <div class="info_text text_right"><p class="subtitle">شفاف و صادقانه، بدون ابهام در مسیر یادگیری.</p></div>
+        </div>
+        <div class="faq_info flex-around">
+            <div class="info_icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/><path d="M12 11h.01"/><path d="M16 11h.01"/><path d="M8 11h.01"/></svg></div>
+            <div class="info_text text_right"><p class="subtitle">پشتیبانی قبل، حین و بعد از دوره همراه شماست.</p></div>
+        </div>
+        <div class="faq_info flex-around">
+            <div class="info_icon icon_box"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg></div>
+            <div class="info_text text_right"><p class="subtitle">سوالات پرتکرار از تیکتینگ قابل نمایش در این بخش هستند.</p></div>
+        </div>
+    </div>
+    <div class="left_faq">
+        {% for faq in frequently_asked_questions %}
+            <input type="checkbox" id="homefaq{{ forloop.counter }}">
+            <div class="faq_item item{{ forloop.counter }}">
+                <div class="row_1 flex-between">
+                    <div class="circle">{{ forloop.counter }}</div>
+                    <div class="faq_question"><p>{{ faq.question }}</p></div>
+                    <div class="btn">
+                        <label for="homefaq{{ forloop.counter }}">
+                            <svg class="plus" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                            <svg class="mines" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
+                        </label>
+                    </div>
+                </div>
+                <div class="row_2"><div class="response"><p class="subtitle">{{ faq.answer }}</p></div></div>
+            </div>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="courses_cta">
+    <div class="courses_box flex-center">
+        <h4 class="title reveal">آماده شروع <span class="gradient_word">مسیر یادگیری</span> هستی؟</h4>
+        <p class="subtitle text-center mt-2" style="width:100%">همین امروز مسیر مناسب خودت را انتخاب کن و با پروژه واقعی جلو برو.</p>
+        <section class="buttons flex-center">
+            <a class="courses_link" href="{% url 'pages_web:contact_us' %}">مشاوره رایگان</a>
+            <a class="starting" href="{% url 'courses_web:course_list' %}">مشاهده دوره‌ها</a>
+        </section>
+    </div>
+</section>
+{% endblock %}

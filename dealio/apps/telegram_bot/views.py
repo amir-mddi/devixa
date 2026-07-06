@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import logging
+from dealio.apps.common.utils.common_utils import CommonUtils
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -19,7 +19,7 @@ from dealio.apps.telegram_bot.application_services.webhook_service import BotWeb
 from dealio.apps.telegram_bot.repositories.logic.bot_setting_logic import BotRuntimeConfigProvider, BotSettingLogicRepository
 from dealio.apps.telegram_bot.serializers import BotSettingsUpdateSerializer
 
-logger = logging.getLogger("dealio")
+logger = CommonUtils.get_project_logger(__name__)
 
 
 class BaseBotWebhookAPIView(APIView):

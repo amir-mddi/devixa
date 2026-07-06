@@ -2,7 +2,7 @@ import hashlib
 import hmac
 import html
 import json
-import logging
+from dealio.apps.common.utils.common_utils import CommonUtils
 import secrets
 from decimal import Decimal
 from dataclasses import dataclass
@@ -26,6 +26,7 @@ from dealio.apps.common.helpers.validators.account_validators import (
     validate_persian_text,
 )
 from dealio.apps.common.email_service import send_html_email_async
+from dealio.apps.common.project_config import get_project_name
 from dealio.apps.telegram_bot.models import BotSupportTicket, TelegramProfile
 from dealio.apps.telegram_bot.enums.bot_setting_enums import BotSettingProviderEnum
 from dealio.apps.telegram_bot.repositories.bot_cache_repository import TelegramBotCacheRepository
@@ -54,7 +55,7 @@ from dealio.apps.courses.enums import CourseLevelEnum, CourseStatusEnum, ReviewS
 from dealio.apps.billing.enums import CurrencyEnum, PaymentProviderEnum, PaymentReceiptStatusEnum, PaymentStatusEnum
 
 
-logger = logging.getLogger("dealio")
+logger = CommonUtils.get_project_logger(__name__)
 User = get_user_model()
 
 
@@ -108,7 +109,7 @@ class TelegramAccountLinkService:
             template_name="emails/fa_telegram_link_code.html" if is_fa else "emails/telegram_link_code.html",
             context={
                 "subject": subject,
-                "app_name": "Devixa",
+                "app_name": get_project_name(),
                 "user_name": user_name,
                 "code": code,
                 "expiration_minutes": cls.LINK_CODE_EXPIRATION_MINUTES,
@@ -688,9 +689,14 @@ class TelegramBotService:
 
     @classmethod
     def t(cls, profile: TelegramProfile | None, key: str, **kwargs: Any) -> str:
+        class _SafeFormatDict(dict):
+            def __missing__(self, missing_key):
+                return "{" + str(missing_key) + "}"
+
         texts = TelegramBotMessageTextVO.TEXTS
         template = texts[cls.lang(profile)].get(key, texts[cls.LANG_EN].get(key, key))
-        return template.format(**kwargs) if kwargs else template
+        kwargs.setdefault("project_name", get_project_name())
+        return template.format_map(_SafeFormatDict(kwargs))
 
     @classmethod
     def icon(cls, key: str) -> str:
@@ -2183,7 +2189,7 @@ class TelegramBotService:
             template_name="emails/fa_verification_code.html" if self.lang(profile) == self.LANG_FA else "emails/verification_code.html",
             context={
                 "subject": subject,
-                "app_name": "Devixa",
+                "app_name": get_project_name(),
                 "user_name": user.first_name or user.username or TelegramBotMessageTextVO.DEFAULT_USER_NAME[self.lang(profile)],
                 "code": code,
                 "expiration_minutes": self.ADMIN_NOTIFICATION_CONFIRM_CODE_EXPIRATION_MINUTES,
@@ -3131,7 +3137,7 @@ class TelegramBotService:
             template_name="emails/fa_verification_code.html",
             context={
                 "subject": "کد تایید تغییر تنظیمات بات",
-                "app_name": "Devixa",
+                "app_name": get_project_name(),
                 "user_name": user.first_name or user.username or "there",
                 "code": code,
                 "expiration_minutes": self.BOT_SETTING_CONFIRM_CODE_EXPIRATION_MINUTES,

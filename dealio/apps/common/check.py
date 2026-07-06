@@ -15,7 +15,7 @@ def check_default_permission_cls(app_configs, **kwargs):
             Error(
                 "DEFAULT_PERMISSION_CLS must not be None.",
                 hint="Set DEFAULT_PERMISSION_CLS in settings.py",
-                id="dealio.E001",
+                id="project.E001",
             )
         )
         return errors
@@ -25,7 +25,7 @@ def check_default_permission_cls(app_configs, **kwargs):
             Error(
                 "DEFAULT_PERMISSION_CLS must be a class, not an instance.",
                 hint="Use DEFAULT_PERMISSION_CLS = class , not class().",
-                id="dealio.E002",
+                id="project.E002",
             )
         )
         return errors
@@ -35,7 +35,7 @@ def check_default_permission_cls(app_configs, **kwargs):
             Error(
                 "DEFAULT_PERMISSION_CLS must inherit from rest_framework.permissions.BasePermission.",
                 hint="Make your permission class inherit from BasePermission.",
-                id="dealio.E003",
+                id="project.E003",
             )
         )
 
