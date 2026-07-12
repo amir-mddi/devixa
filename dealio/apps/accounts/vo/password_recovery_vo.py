@@ -37,8 +37,8 @@ class AccountPasswordRecoveryCodeVO(IntEnum):
 
 
 class AccountPasswordRecoveryApiMessageVO(StrEnum):
-    CODE_SENT = "اگر این ایمیل وجود داشته باشد، کد بازیابی رمز عبور ارسال شد."
-    SMS_CODE_SENT = "اگر این شماره موبایل وجود داشته باشد، کد بازیابی رمز عبور ارسال شد."
+    CODE_SENT = "اگر این ایمیل وجود داشته باشد، کد بازیابی ارسال شده یا کد قبلی هنوز معتبر است."
+    SMS_CODE_SENT = "اگر این شماره موبایل وجود داشته باشد، کد بازیابی ارسال شده یا کد قبلی هنوز معتبر است."
     INVALID_OR_EXPIRED_CODE = "کد بازیابی نامعتبر است یا منقضی شده است."
     PASSWORD_RESET_SUCCESS = "رمز عبور با موفقیت تغییر کرد."
 

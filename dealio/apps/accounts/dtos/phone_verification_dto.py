@@ -19,13 +19,24 @@ class VerifyPhoneNumberDTO:
 
 
 @dataclass(frozen=True, slots=True)
+class VerifyPhoneNumberByTelegramDTO:
+    user_id: str
+    phone_number: str
+
+
+@dataclass(frozen=True, slots=True)
 class PhoneVerificationResultDTO:
     is_success: bool
     error_code: AccountPhoneVerificationErrorCodeVO | None = None
+    code_issued: bool | None = None
 
     @classmethod
-    def success(cls) -> "PhoneVerificationResultDTO":
-        return cls(is_success=True)
+    def success(
+        cls,
+        *,
+        code_issued: bool | None = None,
+    ) -> "PhoneVerificationResultDTO":
+        return cls(is_success=True, code_issued=code_issued)
 
     @classmethod
     def failed(

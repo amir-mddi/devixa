@@ -11,6 +11,7 @@ from dealio.apps.accounts.dtos.password_recovery_dto import (
 from dealio.apps.accounts.dtos.phone_verification_dto import (
     PhoneVerificationResultDTO,
     SendPhoneVerificationCodeDTO,
+    VerifyPhoneNumberByTelegramDTO,
     VerifyPhoneNumberDTO,
 )
 from dealio.apps.accounts.dtos.session_auth_dto import (
@@ -97,11 +98,11 @@ class AccountLogicRepository(metaclass=Singleton):
         )
         return AuthResultDTO.success(user=user)
 
-    def send_verification_email_code(self, user: User) -> None:
-        self.gmail_adapter.send_email_verification_code(user)
+    def send_verification_email_code(self, user: User) -> bool:
+        return self.gmail_adapter.send_email_verification_code(user)
 
-    def send_verification_forget_password_code(self, user: User) -> None:
-        self.gmail_adapter.send_forget_password_verification_code(user)
+    def send_verification_forget_password_code(self, user: User) -> bool:
+        return self.gmail_adapter.send_forget_password_verification_code(user)
 
     def check_email_validation_code(self, user: User, code: str) -> bool:
         return self.gmail_adapter.verify_email_code(user, code)
@@ -114,11 +115,13 @@ class AccountLogicRepository(metaclass=Singleton):
         dto: SendPasswordRecoveryCodeDTO,
     ) -> PasswordRecoveryResultDTO:
         user = self.postgres_adapter.fetch_user_base_email(dto.email)
+        code_issued = None
 
         if user and user.is_active:
-            self.send_verification_forget_password_code(user=user)
+            code_issued = self.send_verification_forget_password_code(user=user)
 
-        return PasswordRecoveryResultDTO.success()
+        # Keep the public response account-enumeration safe.
+        return PasswordRecoveryResultDTO.success(code_issued=code_issued)
 
     @transaction.atomic
     def reset_forget_password_by_email(
@@ -157,16 +160,13 @@ class AccountLogicRepository(metaclass=Singleton):
         if validation_error:
             return PhoneVerificationResultDTO.failed(error_code=validation_error)
 
-        cache_key = AccountPhoneVerificationCacheVO.KEY_TEMPLATE.value.format(
-            user_id=user.id,
-            phone_number=user.phone_number,
-        )
-        self._issue_and_send_sms_code(
+        cache_key = self._phone_verification_cache_key(user)
+        code_issued = self._issue_and_send_sms_code(
             phone_number=user.phone_number,
             template_name=KavenegarVo.VERIFY_PHONE_NUMBER,
             cache_key=cache_key,
         )
-        return PhoneVerificationResultDTO.success()
+        return PhoneVerificationResultDTO.success(code_issued=code_issued)
 
     @transaction.atomic
     def verify_phone_number(
@@ -178,10 +178,7 @@ class AccountLogicRepository(metaclass=Singleton):
         if validation_error:
             return PhoneVerificationResultDTO.failed(error_code=validation_error)
 
-        cache_key = AccountPhoneVerificationCacheVO.KEY_TEMPLATE.value.format(
-            user_id=user.id,
-            phone_number=user.phone_number,
-        )
+        cache_key = self._phone_verification_cache_key(user)
         if not self.verification_code_cache.verify_code(
             cache_key=cache_key,
             code=dto.code,
@@ -193,24 +190,61 @@ class AccountLogicRepository(metaclass=Singleton):
         self.postgres_adapter.mark_phone_number_verified(user=user)
         return PhoneVerificationResultDTO.success()
 
+    @transaction.atomic
+    def verify_phone_number_by_telegram(
+        self,
+        dto: VerifyPhoneNumberByTelegramDTO,
+    ) -> PhoneVerificationResultDTO:
+        user = self.postgres_adapter.fetch_user_base_id(dto.user_id)
+        if not user:
+            return PhoneVerificationResultDTO.failed(
+                error_code=AccountPhoneVerificationErrorCodeVO.USER_NOT_FOUND,
+            )
+        if not user.is_active:
+            return PhoneVerificationResultDTO.failed(
+                error_code=AccountPhoneVerificationErrorCodeVO.INACTIVE_ACCOUNT,
+            )
+        if user.phone_number_verified and user.phone_number == dto.phone_number:
+            return PhoneVerificationResultDTO.failed(
+                error_code=AccountPhoneVerificationErrorCodeVO.ALREADY_VERIFIED,
+            )
+        if self.postgres_adapter.phone_number_used_by_other_user(
+            phone_number=dto.phone_number,
+            user_id=str(user.id),
+        ):
+            return PhoneVerificationResultDTO.failed(
+                error_code=AccountPhoneVerificationErrorCodeVO.PHONE_NUMBER_ALREADY_IN_USE,
+            )
+
+        old_cache_key = self._phone_verification_cache_key(user) if user.phone_number else None
+        self.postgres_adapter.update_and_verify_phone_number(
+            user=user,
+            phone_number=dto.phone_number,
+        )
+        if old_cache_key:
+            self.verification_code_cache.delete_code(cache_key=old_cache_key)
+
+        return PhoneVerificationResultDTO.success()
+
     def send_forget_password_code_by_sms(
         self,
         dto: SendSmsPasswordRecoveryCodeDTO,
     ) -> PasswordRecoveryResultDTO:
         user = self.postgres_adapter.fetch_user_base_phone_number(dto.phone_number)
+        code_issued = None
 
         if user and user.is_active and user.phone_number_verified:
             cache_key = AccountPasswordRecoveryCacheVO.SMS_KEY_TEMPLATE.value.format(
                 user_id=user.id,
             )
-            self._issue_and_send_sms_code(
+            code_issued = self._issue_and_send_sms_code(
                 phone_number=user.phone_number,
                 template_name=KavenegarVo.FORGOT_PASSWORD,
                 cache_key=cache_key,
             )
 
         # Do not reveal whether an account exists for the submitted phone number.
-        return PasswordRecoveryResultDTO.success()
+        return PasswordRecoveryResultDTO.success(code_issued=code_issued)
 
     @transaction.atomic
     def reset_forget_password_by_sms(
@@ -262,8 +296,11 @@ class AccountLogicRepository(metaclass=Singleton):
         phone_number: str,
         template_name: str,
         cache_key: str,
-    ) -> None:
+    ) -> bool:
         code = self.verification_code_cache.issue_code(cache_key=cache_key)
+        if code is None:
+            return False
+
         self.shared_logic.send_sms(
             KavenegarTemplateSmsDTO(
                 recipient_phone_number=phone_number,
@@ -271,6 +308,14 @@ class AccountLogicRepository(metaclass=Singleton):
                 token=code,
                 token2=str(self.verification_code_cache.EXPIRATION_MINUTES),
             )
+        )
+        return True
+
+    @staticmethod
+    def _phone_verification_cache_key(user) -> str:
+        return AccountPhoneVerificationCacheVO.KEY_TEMPLATE.value.format(
+            user_id=user.id,
+            phone_number=user.phone_number,
         )
 
     @staticmethod

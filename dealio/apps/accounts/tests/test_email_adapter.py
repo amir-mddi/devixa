@@ -32,6 +32,19 @@ class AccountEmailAdapterTests(TestCase):
         self.assertEqual(cache.get(cache_key), self.adapter.hash_code("123456"))
         email_mock.assert_called_once()
 
+
+    @patch("dealio.apps.accounts.repositories.adapters.email_adapter.send_html_email_async")
+    @patch.object(AccountEmailAdapter, "generate_verification_code", side_effect=["123456", "654321"])
+    def test_does_not_send_new_email_while_previous_code_is_active(self, _code_mock, email_mock):
+        first_sent = self.adapter.send_email_verification_code(self.user)
+        second_sent = self.adapter.send_email_verification_code(self.user)
+
+        cache_key = self.adapter.get_email_verification_cache_key(self.user.id)
+        self.assertTrue(first_sent)
+        self.assertFalse(second_sent)
+        self.assertEqual(cache.get(cache_key), self.adapter.hash_code("123456"))
+        email_mock.assert_called_once()
+
     def test_verify_email_code_marks_user_verified_and_consumes_code(self):
         cache_key = self.adapter.get_email_verification_cache_key(self.user.id)
         cache.set(cache_key, self.adapter.hash_code("123456"), timeout=60)

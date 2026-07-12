@@ -31,6 +31,19 @@ class VerificationCodeCacheAdapterTests(IsolatedServiceTestMixin, TestCase):
         )
         self.assertNotEqual(cache.get("verification:test"), "123456")
 
+
+    @patch.object(VerificationCodeCacheAdapter, "generate_code", side_effect=["123456", "654321"])
+    def test_issue_code_does_not_replace_unexpired_code(self, _generate_mock):
+        first_code = self.adapter.issue_code(cache_key="verification:test")
+        second_code = self.adapter.issue_code(cache_key="verification:test")
+
+        self.assertEqual(first_code, "123456")
+        self.assertIsNone(second_code)
+        self.assertEqual(
+            cache.get("verification:test"),
+            self.adapter.hash_code("123456"),
+        )
+
     def test_wrong_code_does_not_consume_valid_code(self):
         self.adapter.store_code(cache_key="verification:test", code="123456")
 

@@ -45,6 +45,15 @@ class PostgresAdapter(metaclass=Singleton):
         ).exists()
 
     @staticmethod
+    def phone_number_used_by_other_user(*, phone_number: str, user_id: str) -> bool:
+        return (
+            User.objects
+            .filter(phone_number=phone_number)
+            .exclude(id=user_id)
+            .exists()
+        )
+
+    @staticmethod
     def get_or_create_default_user_role() -> Role:
         role, _ = Role.objects.get_or_create(
             symbol=UserRoleVO.USER,
@@ -81,3 +90,15 @@ class PostgresAdapter(metaclass=Singleton):
     def mark_phone_number_verified(*, user) -> None:
         user.phone_number_verified = True
         user.save(update_fields=["phone_number_verified"])
+
+    @staticmethod
+    def update_and_verify_phone_number(*, user, phone_number: str) -> None:
+        # QuerySet.update intentionally bypasses CustomUser.save(), which resets
+        # verification whenever the phone number changes. Telegram's own-contact
+        # payload proves ownership, so both values must be persisted atomically.
+        User.objects.filter(id=user.id).update(
+            phone_number=phone_number,
+            phone_number_verified=True,
+        )
+        user.phone_number = phone_number
+        user.phone_number_verified = True

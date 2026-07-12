@@ -32,10 +32,29 @@ class VerificationCodeCacheAdapter(metaclass=Singleton):
             timeout=self.expiration_seconds(),
         )
 
-    def issue_code(self, *, cache_key: str) -> str:
+    def store_code_if_absent(self, *, cache_key: str, code: str) -> bool:
+        return cache.add(
+            cache_key,
+            self.hash_code(code),
+            timeout=self.expiration_seconds(),
+        )
+
+    def issue_code(self, *, cache_key: str) -> str | None:
+        """Create a code only when no unexpired code already exists.
+
+        ``cache.add`` is atomic on supported shared cache backends, so concurrent
+        requests cannot replace each other's active verification code.
+        """
         code = self.generate_code()
-        self.store_code(cache_key=cache_key, code=code)
-        return code
+        return (
+            code
+            if self.store_code_if_absent(cache_key=cache_key, code=code)
+            else None
+        )
+
+    @staticmethod
+    def has_active_code(*, cache_key: str) -> bool:
+        return cache.get(cache_key) is not None
 
     def verify_code(
         self,

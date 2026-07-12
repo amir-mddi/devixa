@@ -33,10 +33,15 @@ class ResetPasswordBySmsDTO:
 class PasswordRecoveryResultDTO:
     is_success: bool
     error_code: AccountPasswordRecoveryErrorCodeVO | None = None
+    code_issued: bool | None = None
 
     @classmethod
-    def success(cls) -> "PasswordRecoveryResultDTO":
-        return cls(is_success=True)
+    def success(
+        cls,
+        *,
+        code_issued: bool | None = None,
+    ) -> "PasswordRecoveryResultDTO":
+        return cls(is_success=True, code_issued=code_issued)
 
     @classmethod
     def failed(

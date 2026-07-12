@@ -53,8 +53,11 @@ class TelegramBotStateVO:
     LINK_EMAIL = "link_email"
     LINK_CODE = "link_code"
     VERIFY_EMAIL_CODE = "verify_email_code"
+    VERIFY_PHONE_METHOD = "verify_phone_method"
     VERIFY_PHONE_CODE = "verify_phone_code"
+    FORGOT_PASSWORD_METHOD = "forgot_password_method"
     FORGOT_PASSWORD_EMAIL = "forgot_password_email"
+    FORGOT_PASSWORD_PHONE = "forgot_password_phone"
     CREATE_USERNAME = "create_user_username"
     CREATE_EMAIL = "create_user_email"
     CREATE_PHONE = "create_user_phone"
@@ -100,7 +103,11 @@ class TelegramBotButtonKeyVO:
     ACCOUNT = "account"
     VERIFY_EMAIL = "verify_email"
     VERIFY_PHONE = "verify_phone"
+    VERIFY_PHONE_SMS = "verify_phone_sms"
+    VERIFY_PHONE_TELEGRAM = "verify_phone_telegram"
     FORGOT_PASSWORD = "forgot_password"
+    FORGOT_BY_EMAIL = "forgot_by_email"
+    FORGOT_BY_PHONE = "forgot_by_phone"
     CREATE_USER = "create_user"
     WEBAPP = "webapp"
     LANGUAGE = "language"
@@ -137,7 +144,11 @@ class TelegramBotButtonTextVO:
             TelegramBotButtonKeyVO.ACCOUNT: "👤 My account",
             TelegramBotButtonKeyVO.VERIFY_EMAIL: "✅ Verify email",
             TelegramBotButtonKeyVO.VERIFY_PHONE: "📱 Verify phone",
+            TelegramBotButtonKeyVO.VERIFY_PHONE_SMS: "✉️ Send SMS code",
+            TelegramBotButtonKeyVO.VERIFY_PHONE_TELEGRAM: "📲 Share Telegram phone",
             TelegramBotButtonKeyVO.FORGOT_PASSWORD: "🔐 Forgot password",
+            TelegramBotButtonKeyVO.FORGOT_BY_EMAIL: "📧 Recover by email",
+            TelegramBotButtonKeyVO.FORGOT_BY_PHONE: "📱 Recover by phone",
             TelegramBotButtonKeyVO.CREATE_USER: "➕ Create user",
             TelegramBotButtonKeyVO.WEBAPP: "🌐 Open app",
             TelegramBotButtonKeyVO.LANGUAGE: "🌍 Language",
@@ -166,7 +177,11 @@ class TelegramBotButtonTextVO:
             TelegramBotButtonKeyVO.ACCOUNT: "👤 حساب من",
             TelegramBotButtonKeyVO.VERIFY_EMAIL: "✅ تأیید ایمیل",
             TelegramBotButtonKeyVO.VERIFY_PHONE: "📱 تأیید موبایل",
+            TelegramBotButtonKeyVO.VERIFY_PHONE_SMS: "✉️ ارسال کد پیامکی",
+            TelegramBotButtonKeyVO.VERIFY_PHONE_TELEGRAM: "📲 اشتراک شماره تلگرام",
             TelegramBotButtonKeyVO.FORGOT_PASSWORD: "🔐 فراموشی رمز عبور",
+            TelegramBotButtonKeyVO.FORGOT_BY_EMAIL: "📧 بازیابی با ایمیل",
+            TelegramBotButtonKeyVO.FORGOT_BY_PHONE: "📱 بازیابی با موبایل",
             TelegramBotButtonKeyVO.CREATE_USER: "➕ ساخت کاربر",
             TelegramBotButtonKeyVO.WEBAPP: "🌐 باز کردن برنامه",
             TelegramBotButtonKeyVO.LANGUAGE: "🌍 زبان",
@@ -207,7 +222,11 @@ class TelegramBotAliasVO:
         TelegramBotButtonKeyVO.ACCOUNT: {"my account", "account", "حساب من"},
         TelegramBotButtonKeyVO.VERIFY_EMAIL: {"verify email", "email verification", "تایید ایمیل", "تأیید ایمیل"},
         TelegramBotButtonKeyVO.VERIFY_PHONE: {"verify phone", "phone verification", "verify mobile", "تایید موبایل", "تأیید موبایل", "تایید شماره موبایل", "تأیید شماره موبایل"},
+        TelegramBotButtonKeyVO.VERIFY_PHONE_SMS: {"send sms code", "verify by sms", "ارسال کد پیامکی", "تایید با پیامک", "تأیید با پیامک"},
+        TelegramBotButtonKeyVO.VERIFY_PHONE_TELEGRAM: {"share telegram phone", "share phone", "اشتراک شماره تلگرام", "اشتراک موبایل"},
         TelegramBotButtonKeyVO.FORGOT_PASSWORD: {"forgot password", "فراموشی رمز عبور"},
+        TelegramBotButtonKeyVO.FORGOT_BY_EMAIL: {"recover by email", "email recovery", "بازیابی با ایمیل"},
+        TelegramBotButtonKeyVO.FORGOT_BY_PHONE: {"recover by phone", "phone recovery", "بازیابی با موبایل", "بازیابی با شماره موبایل"},
         TelegramBotButtonKeyVO.CREATE_USER: {"create user", "ساخت کاربر"},
         TelegramBotButtonKeyVO.WEBAPP: {"open app", "web app", "باز کردن برنامه"},
         TelegramBotButtonKeyVO.LANGUAGE: {"language", "زبان"},
@@ -358,16 +377,30 @@ class TelegramBotMessageTextVO:
             "linked_success": "Your Telegram account is linked successfully.",
             "verify_already": "Your email is already verified.",
             "verify_sent": "I sent a 6-digit email verification code to your linked email. Send the code here.",
+            "verify_code_active": "Your previous email verification code is still active. Send that 6-digit code here.",
             "verify_success": "✅ Email verified successfully.",
             "verify_invalid": "Invalid or expired verification code. Try again or request a new code.",
+            "phone_verify_choose": "Choose how to verify your phone number. You can receive an SMS code or securely share your own Telegram phone number.",
             "phone_verify_already": "Your phone number is already verified.",
-            "phone_verify_required": "No phone number is registered for this account. Add a phone number in the app first.",
+            "phone_verify_required": "No phone number is registered for this account. Share your own Telegram phone number, or add one in the app first.",
             "phone_verify_inactive": "This account is inactive and its phone number cannot be verified.",
             "phone_verify_sent": "I sent a 6-digit SMS verification code to <code>{phone}</code>. Send the code here.",
+            "phone_verify_code_active": "The previous SMS verification code for <code>{phone}</code> is still active. Send that code here.",
+            "phone_verify_share_prompt": "Tap <b>Share Telegram phone</b> below. Telegram will ask permission before sharing your own contact.",
+            "phone_verify_contact_not_own": "For security, share your own Telegram contact using the button below. Forwarded or another person's contact is not accepted.",
+            "phone_verify_contact_invalid": "Telegram returned an invalid phone number. Check the number on your Telegram account and try again.",
+            "phone_verify_phone_in_use": "This phone number is already registered for another account.",
             "phone_verify_success": "✅ Phone number verified successfully.",
             "phone_verify_invalid": "Invalid or expired phone verification code. Try again or request a new code.",
+            "forgot_choose": "Choose how you want to receive the password recovery code:",
+            "forgot_email_prompt": "Send your account email address.",
+            "forgot_phone_prompt": "Send your account phone number. Example: <code>09123456789</code>",
+            "forgot_invalid_phone": "That phone number is invalid. Send an Iranian mobile number such as <code>09123456789</code>.",
+            "forgot_email_sent": "If this account exists, an email recovery code was sent or the previous code is still active.\n\nFor security, set the new password only in the app/API reset form.",
+            "forgot_phone_sent": "If this account exists and its phone is verified, an SMS recovery code was sent or the previous code is still active.\n\nFor security, set the new password only in the app/API reset form.",
+            "forgot_phone_unavailable": "This linked account has no verified phone number. Verify the phone first or recover by email.",
             "forgot_prompt": "Send your account email address, and I will send a password recovery code if it exists.",
-            "forgot_sent": "If this account exists, a password recovery code has been sent to the account email.\n\nFor security, do not send your new password in Telegram. Use the app/API reset form with the code.",
+            "forgot_sent": "If this account exists, a password recovery code has been sent or the previous code is still active.\n\nFor security, do not send your new password in Telegram. Use the app/API reset form with the code.",
             "unlink_ask": "Are you sure you want to unlink this Telegram account?",
             "unlink_choose": "Choose <b>Yes, unlink</b> or <b>Cancel</b> from the keyboard below.",
             "unlinked": "Your Telegram account has been unlinked.",
@@ -651,16 +684,30 @@ class TelegramBotMessageTextVO:
             "linked_success": "حساب تلگرام شما با موفقیت متصل شد.",
             "verify_already": "ایمیل شما قبلاً تأیید شده است.",
             "verify_sent": "کد ۶ رقمی تأیید ایمیل به ایمیل متصل‌شده ارسال شد. کد را همین‌جا بفرستید.",
+            "verify_code_active": "کد تأیید ایمیل قبلی هنوز معتبر است. همان کد ۶ رقمی را همین‌جا بفرستید.",
             "verify_success": "✅ ایمیل با موفقیت تأیید شد.",
             "verify_invalid": "کد تأیید نامعتبر است یا منقضی شده. دوباره تلاش کنید یا کد جدید بگیرید.",
+            "phone_verify_choose": "روش تأیید شماره موبایل را انتخاب کنید. می‌توانید کد پیامکی بگیرید یا شماره شخصی تلگرام خود را با اجازه خودتان به اشتراک بگذارید.",
             "phone_verify_already": "شماره موبایل شما قبلاً تأیید شده است.",
-            "phone_verify_required": "برای این حساب شماره موبایلی ثبت نشده است. ابتدا شماره موبایل را در برنامه ثبت کنید.",
+            "phone_verify_required": "برای این حساب شماره موبایلی ثبت نشده است. شماره شخصی تلگرام خود را به اشتراک بگذارید یا ابتدا در برنامه شماره ثبت کنید.",
             "phone_verify_inactive": "این حساب غیرفعال است و امکان تأیید شماره موبایل آن وجود ندارد.",
             "phone_verify_sent": "کد ۶ رقمی تأیید موبایل به <code>{phone}</code> پیامک شد. کد را همین‌جا ارسال کنید.",
+            "phone_verify_code_active": "کد پیامکی قبلی برای <code>{phone}</code> هنوز معتبر است. همان کد را همین‌جا ارسال کنید.",
+            "phone_verify_share_prompt": "دکمه <b>اشتراک شماره تلگرام</b> را بزنید. تلگرام قبل از ارسال شماره شخصی شما اجازه می‌گیرد.",
+            "phone_verify_contact_not_own": "برای امنیت، فقط شماره شخصی خودتان را با دکمه پایین ارسال کنید. مخاطب فورواردشده یا شماره شخص دیگر پذیرفته نمی‌شود.",
+            "phone_verify_contact_invalid": "شماره‌ای که تلگرام ارسال کرد معتبر نیست. شماره حساب تلگرام خود را بررسی و دوباره تلاش کنید.",
+            "phone_verify_phone_in_use": "این شماره موبایل برای حساب دیگری ثبت شده است.",
             "phone_verify_success": "✅ شماره موبایل با موفقیت تأیید شد.",
             "phone_verify_invalid": "کد تأیید موبایل نامعتبر است یا منقضی شده. دوباره تلاش کنید یا کد جدید بگیرید.",
+            "forgot_choose": "روش دریافت کد بازیابی رمز عبور را انتخاب کنید:",
+            "forgot_email_prompt": "ایمیل حساب کاربری خود را ارسال کنید.",
+            "forgot_phone_prompt": "شماره موبایل حساب را ارسال کنید. مثال: <code>09123456789</code>",
+            "forgot_invalid_phone": "شماره موبایل معتبر نیست. شماره ایرانی مانند <code>09123456789</code> ارسال کنید.",
+            "forgot_email_sent": "اگر حساب وجود داشته باشد، کد بازیابی ایمیلی ارسال شده یا کد قبلی هنوز معتبر است.\n\nبرای امنیت، رمز جدید را فقط در فرم بازیابی برنامه/API تنظیم کنید.",
+            "forgot_phone_sent": "اگر حساب وجود داشته باشد و موبایل آن تأیید شده باشد، کد پیامکی ارسال شده یا کد قبلی هنوز معتبر است.\n\nبرای امنیت، رمز جدید را فقط در فرم بازیابی برنامه/API تنظیم کنید.",
+            "forgot_phone_unavailable": "این حساب متصل شماره موبایل تأییدشده ندارد. ابتدا موبایل را تأیید کنید یا بازیابی با ایمیل را انتخاب کنید.",
             "forgot_prompt": "ایمیل حساب خود را ارسال کنید تا در صورت وجود حساب، کد بازیابی رمز عبور ارسال شود.",
-            "forgot_sent": "اگر این حساب وجود داشته باشد، کد بازیابی رمز عبور به ایمیل حساب ارسال شد.\n\nبرای امنیت، رمز جدید خود را در تلگرام ارسال نکنید. از فرم تغییر رمز برنامه/API با همین کد استفاده کنید.",
+            "forgot_sent": "اگر این حساب وجود داشته باشد، کد بازیابی ارسال شده یا کد قبلی هنوز معتبر است.\n\nبرای امنیت، رمز جدید خود را در تلگرام ارسال نکنید. از فرم تغییر رمز برنامه/API با همین کد استفاده کنید.",
             "unlink_ask": "آیا مطمئن هستید که می‌خواهید اتصال تلگرام را حذف کنید؟",
             "unlink_choose": "از دکمه‌های پایین <b>بله، قطع اتصال</b> یا <b>لغو</b> را انتخاب کنید.",
             "unlinked": "اتصال حساب تلگرام شما حذف شد.",

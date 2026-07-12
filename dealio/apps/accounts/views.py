@@ -112,10 +112,15 @@ class SendEmailVerificationCodeAPIView(BaseAPIView):
                 status_code=ResponseVO.http_400,
             )
 
-        account_logic.send_verification_email_code(user)
+        code_issued = account_logic.send_verification_email_code(user)
+        detail = (
+            "Verification code sent successfully."
+            if code_issued
+            else "The previous verification code is still active."
+        )
 
         return ResponseUtil(
-            data={"detail": "Verification code sent successfully."},
+            data={"detail": detail},
             status_code=ResponseVO.http_200,
         )
 
@@ -162,8 +167,13 @@ class SendPhoneVerificationCodeAPIView(BaseAPIView):
                 status_code=ResponseVO.http_400,
             )
 
+        message = (
+            AccountPhoneVerificationApiMessageVO.CODE_SENT.value
+            if result.code_issued
+            else AccountPhoneVerificationApiMessageVO.CODE_STILL_ACTIVE.value
+        )
         return ResponseUtil(
-            data={"detail": AccountPhoneVerificationApiMessageVO.CODE_SENT.value},
+            data={"detail": message},
             status_code=ResponseVO.http_200,
         )
 
@@ -363,6 +373,7 @@ def _phone_verification_error_message(error_code):
         AccountPhoneVerificationErrorCodeVO.PHONE_NUMBER_REQUIRED: AccountPhoneVerificationApiMessageVO.PHONE_NUMBER_REQUIRED.value,
         AccountPhoneVerificationErrorCodeVO.ALREADY_VERIFIED: AccountPhoneVerificationApiMessageVO.ALREADY_VERIFIED.value,
         AccountPhoneVerificationErrorCodeVO.INVALID_OR_EXPIRED_CODE: AccountPhoneVerificationApiMessageVO.INVALID_OR_EXPIRED_CODE.value,
+        AccountPhoneVerificationErrorCodeVO.PHONE_NUMBER_ALREADY_IN_USE: AccountPhoneVerificationApiMessageVO.PHONE_NUMBER_ALREADY_IN_USE.value,
     }
     return messages.get(
         error_code,
