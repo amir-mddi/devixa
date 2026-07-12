@@ -8,11 +8,18 @@ from dealio.tests.factories import UserFactory
 
 
 class TelegramWebhookAPITests(APITestCase):
-    def test_get_reports_endpoint_ready(self):
-        response = self.client.get(reverse("telegram-webhook"))
-
+    @patch("dealio.apps.telegram_bot.views.BotRuntimeConfigProvider.get_env", return_value="expected-secret")
+    def test_get_reports_endpoint_ready_with_valid_secret(self, _secret_mock):
+        response = self.client.get(
+            reverse("telegram-webhook"),
+            HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN="expected-secret",
+        )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.json()["ok"])
+
+    def test_get_hides_endpoint_when_secret_is_not_configured(self):
+        response = self.client.get(reverse("telegram-webhook"))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     @patch("dealio.apps.telegram_bot.views.BotRuntimeConfigProvider.get_env", return_value="expected")
     def test_post_rejects_invalid_webhook_secret(self, _secret_mock):
@@ -27,11 +34,16 @@ class TelegramWebhookAPITests(APITestCase):
 
     @patch("dealio.apps.telegram_bot.views.BotWebhookService.process", return_value=True)
     @patch("dealio.apps.telegram_bot.views.TelegramWebhookAPIView.get_client")
-    @patch("dealio.apps.telegram_bot.views.BotRuntimeConfigProvider.get_env", return_value="")
+    @patch("dealio.apps.telegram_bot.views.BotRuntimeConfigProvider.get_env", return_value="expected-secret")
     def test_post_processes_configured_client(self, _secret_mock, client_mock, process_mock):
         client_mock.return_value = MagicMock(is_configured=True)
 
-        response = self.client.post(reverse("telegram-webhook"), {"update_id": 1}, format="json")
+        response = self.client.post(
+            reverse("telegram-webhook"),
+            {"update_id": 1},
+            format="json",
+            HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN="expected-secret",
+        )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.json()["processed"])

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from datetime import datetime
+
 from dealio.apps.telegram_bot.models import TelegramUpdateLog
 from dealio.apps.telegram_bot.repositories.adapters.postgres_bot_adapter import TelegramBotPostgresAdapter
 
@@ -18,3 +20,6 @@ class TelegramUpdateLogRepository:
 
     def mark_error(self, update_log: TelegramUpdateLog, error_text: str) -> None:
         self.adapter.mark_update_error(update_log, error_text)
+
+    def cleanup_before(self, cutoff: datetime) -> int:
+        return self.adapter.delete_update_logs_before(cutoff)

@@ -17,6 +17,9 @@ class TelegramBotCacheRepository:
     def set(self, key: str, value: Any, *, timeout: int | None = None) -> None:
         self.adapter.set(key, value, timeout=timeout)
 
+    def add(self, key: str, value: Any, *, timeout: int | None = None) -> bool:
+        return self.adapter.add(key, value, timeout=timeout)
+
     def delete(self, key: str) -> None:
         self.adapter.delete(key)
 
@@ -27,6 +30,10 @@ class TelegramBotCacheRepository:
     @classmethod
     def set_value(cls, key: str, value: Any, *, timeout: int | None = None) -> None:
         cls().set(key, value, timeout=timeout)
+
+    @classmethod
+    def add_value(cls, key: str, value: Any, *, timeout: int | None = None) -> bool:
+        return cls().add(key, value, timeout=timeout)
 
     @classmethod
     def delete_value(cls, key: str) -> None:

@@ -54,39 +54,110 @@ class BaseBotWebhookAPIView(APIView):
                 return value
         return ""
 
+    @staticmethod
+    def _json_response(payload: dict, *, status_code: int = 200) -> JsonResponse:
+        response = JsonResponse(payload, status=status_code)
+        response["Cache-Control"] = "no-store"
+        response["Pragma"] = "no-cache"
+        return response
+
     def post(self, request):
         expected_secret = BotRuntimeConfigProvider.get_env(self.secret_env_name)
-        webhook_service = BotWebhookService(
-            provider=self.provider,
-            service_factory=lambda: self.make_service(self.get_client()),
-            update_id_getter=self.get_update_id,
-        )
-
-        if not webhook_service.validate_secret(
+        if not BotWebhookService.validate_secret(
             expected_secret=expected_secret,
             provided_secret=self.get_secret(request),
         ):
-            return JsonResponse({"ok": False, "detail": "Forbidden"}, status=403)
+            return self._json_response(
+                {"ok": False, "detail": "Forbidden"},
+                status_code=403,
+            )
 
-        update = request.data if isinstance(request.data, dict) else {}
+        update = request.data if isinstance(request.data, dict) else None
+        if not update or not self._is_safe_update(update):
+            return self._json_response(
+                {"ok": False, "detail": "Invalid update"},
+                status_code=400,
+            )
+        update_id = self.get_update_id(update)
+        if update_id is None:
+            return self._json_response(
+                {"ok": False, "detail": "Invalid update"},
+                status_code=400,
+            )
+        try:
+            normalized_update_id = int(update_id)
+        except (TypeError, ValueError):
+            return self._json_response(
+                {"ok": False, "detail": "Invalid update"},
+                status_code=400,
+            )
+        if normalized_update_id < 0 or normalized_update_id > 9_223_372_036_854_775_807:
+            return self._json_response(
+                {"ok": False, "detail": "Invalid update"},
+                status_code=400,
+            )
+
         client = self.get_client()
         if not client.is_configured:
-            return JsonResponse({"ok": False, "detail": self.not_configured_message}, status=503)
+            return self._json_response(
+                {"ok": False, "detail": self.not_configured_message},
+                status_code=503,
+            )
 
+        webhook_service = BotWebhookService(
+            provider=self.provider,
+            service_factory=lambda: self.make_service(client),
+            update_id_getter=self.get_update_id,
+        )
         try:
-            processed = BotWebhookService(
-                provider=self.provider,
-                service_factory=lambda: self.make_service(client),
-                update_id_getter=self.get_update_id,
-            ).process(update)
+            processed = webhook_service.process(update)
         except Exception:
             logger.exception("Failed to process %s update", self.provider)
-            return JsonResponse({"ok": False, "detail": "Update received but processing failed"})
+            # Non-2xx lets the provider retry. Processing is idempotent by update id.
+            return self._json_response(
+                {"ok": False, "detail": "Update processing failed"},
+                status_code=503,
+            )
 
-        return JsonResponse({"ok": True, "processed": processed})
+        return self._json_response({"ok": True, "processed": processed})
+
+    @staticmethod
+    def _is_safe_update(update: dict) -> bool:
+        max_nodes = 2_000
+        max_string_length = 100_000
+        nodes = 0
+        stack = [update]
+        while stack:
+            current = stack.pop()
+            nodes += 1
+            if nodes > max_nodes:
+                return False
+            if isinstance(current, dict):
+                if len(current) > 200:
+                    return False
+                for key, value in current.items():
+                    if len(str(key)) > 200:
+                        return False
+                    stack.append(value)
+            elif isinstance(current, list):
+                if len(current) > 500:
+                    return False
+                stack.extend(current)
+            elif isinstance(current, str) and len(current) > max_string_length:
+                return False
+        return True
 
     def get(self, request):
-        return JsonResponse({"ok": True, "detail": self.ready_message})
+        expected_secret = BotRuntimeConfigProvider.get_env(self.secret_env_name)
+        if not BotWebhookService.validate_secret(
+            expected_secret=expected_secret,
+            provided_secret=self.get_secret(request),
+        ):
+            return self._json_response(
+                {"ok": False, "detail": "Not found"},
+                status_code=404,
+            )
+        return self._json_response({"ok": True, "detail": self.ready_message})
 
 
 @method_decorator(csrf_exempt, name="dispatch")

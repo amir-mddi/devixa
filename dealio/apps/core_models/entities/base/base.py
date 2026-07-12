@@ -57,7 +57,8 @@ class BaseModel(models.Model):
             if soft:
                 self.deleted_at = now()
                 self.is_deleted = True
-                self.save()
+                self.is_active = False
+                self.save(update_fields=["deleted_at", "is_deleted", "is_active", "updated_at"])
             else:
                 logger.warning(
                     "Hard delete requested. Proceeding with permanent deletion."
@@ -92,7 +93,17 @@ class BaseModel(models.Model):
 
     def to_dict(self) -> Dict[str, Any]:
         data = {}
+        sensitive_names = {
+            "password", "token", "refresh", "api_key", "secret",
+            "client_secret", "access_token", "refresh_token",
+        }
         for field in self._meta.fields:
+            normalized_name = field.name.lower()
+            if normalized_name in sensitive_names or any(
+                part in normalized_name
+                for part in ("password", "secret", "token", "api_key")
+            ):
+                continue
             value = getattr(self, field.name)
             if isinstance(value, datetime):
                 value = value.isoformat()

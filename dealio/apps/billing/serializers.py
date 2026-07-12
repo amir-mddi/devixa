@@ -1,8 +1,14 @@
+from decimal import Decimal
+
 from rest_framework import serializers
 
 from dealio.apps.billing.enums import PaymentProviderEnum, PaymentReceiptStatusEnum
 from dealio.apps.billing.models import Order, OrderItem, Payment, PaymentReceipt
 from dealio.apps.courses.serializers import CourseListSerializer
+from dealio.apps.common.helpers.validators.security_validators import (
+    validate_payment_receipt_file,
+    validate_safe_https_url,
+)
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -36,7 +42,6 @@ class OrderSerializer(serializers.ModelSerializer):
 
 class PaymentReceiptSerializer(serializers.ModelSerializer):
     receipt_file = serializers.FileField(read_only=True)
-    reviewed_by = serializers.StringRelatedField(read_only=True)
 
     class Meta:
         model = PaymentReceipt
@@ -46,14 +51,11 @@ class PaymentReceiptSerializer(serializers.ModelSerializer):
             "status",
             "source",
             "receipt_file",
-            "receipt_file_url",
             "tracking_code",
             "payer_card_last4",
             "paid_amount",
             "paid_at",
             "note",
-            "admin_note",
-            "reviewed_by",
             "reviewed_at",
             "created_at",
         ]
@@ -121,13 +123,34 @@ class PaymentConfirmSerializer(serializers.Serializer):
 
 class PaymentReceiptUploadSerializer(serializers.Serializer):
     payment_id = serializers.UUIDField()
-    receipt_file = serializers.FileField(required=False, allow_empty_file=False)
+    receipt_file = serializers.FileField(
+        required=False,
+        allow_empty_file=False,
+        validators=[validate_payment_receipt_file],
+    )
     receipt_file_url = serializers.URLField(required=False, allow_blank=True)
     tracking_code = serializers.CharField(required=False, allow_blank=True, max_length=120)
     payer_card_last4 = serializers.RegexField(regex=r"^\d{0,4}$", required=False, allow_blank=True)
-    paid_amount = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
+    paid_amount = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        required=False,
+        min_value=Decimal("0.01"),
+    )
     paid_at = serializers.DateTimeField(required=False)
-    note = serializers.CharField(required=False, allow_blank=True)
+    note = serializers.CharField(required=False, allow_blank=True, max_length=1000)
+
+    def validate_receipt_file_url(self, value):
+        return validate_safe_https_url(value)
+
+    def validate_tracking_code(self, value):
+        value = str(value or "").strip()
+        if value and not all(character.isalnum() or character in "-_/." for character in value):
+            raise serializers.ValidationError("Tracking code contains unsupported characters.")
+        return value
+
+    def validate_note(self, value):
+        return str(value or "").strip()
 
     def validate(self, attrs):
         if not attrs.get("receipt_file") and not attrs.get("receipt_file_url") and not attrs.get("tracking_code"):
@@ -139,11 +162,12 @@ class PaymentReceiptReviewSerializer(serializers.Serializer):
     approve = serializers.BooleanField()
     transaction_id = serializers.CharField(required=False, allow_blank=True)
     authority = serializers.CharField(required=False, allow_blank=True)
-    admin_note = serializers.CharField(required=False, allow_blank=True)
+    admin_note = serializers.CharField(required=False, allow_blank=True, max_length=1000)
 
 
 class AdminPaymentReceiptSerializer(PaymentReceiptSerializer):
     payment = PaymentSerializer(read_only=True)
+    reviewed_by = serializers.StringRelatedField(read_only=True)
 
     class Meta(PaymentReceiptSerializer.Meta):
         fields = [

@@ -1,5 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 
+from dealio.apps.common.utils.network_security import UnsafeOutboundUrlError, validate_public_https_url
+
 from dealio.apps.telegram_bot.enums.bot_setting_enums import BotSettingProviderEnum
 from dealio.apps.telegram_bot.repositories.logic.bot_setting_logic import BotRuntimeConfigProvider
 from dealio.apps.telegram_bot.services import TelegramBotClient
@@ -31,7 +33,13 @@ class Command(BaseCommand):
             url = options.get("url") or BotRuntimeConfigProvider.get(BotSettingProviderEnum.TELEGRAM.value, "webhook_url")
             if not url:
                 raise CommandError("TELEGRAM_WEBHOOK_URL is required or pass --url.")
+            try:
+                validate_public_https_url(url, resolve_dns=False)
+            except UnsafeOutboundUrlError as exc:
+                raise CommandError(str(exc)) from exc
             secret = options.get("secret") or BotRuntimeConfigProvider.get(BotSettingProviderEnum.TELEGRAM.value, "webhook_secret")
+            if len(str(secret or "")) < 32:
+                raise CommandError("A webhook secret of at least 32 characters is required.")
             response = client.set_webhook(
                 url,
                 secret_token=secret or None,

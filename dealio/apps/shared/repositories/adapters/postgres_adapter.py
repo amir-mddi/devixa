@@ -1,6 +1,4 @@
 from dealio.apps.common.utils.common_utils import CommonUtils
-from pickle import FALSE
-
 from django.db import transaction
 
 from dealio.apps.core_models.enum.general_enum import ApiKeyStatusEnum

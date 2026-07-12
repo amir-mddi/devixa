@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from dealio.apps.accounts.models import CustomUser, Access, Role, TokenBlacklist, SocialAccount
+from dealio.apps.accounts.models import CustomUser, Access, Role, SocialAccount
 
 
 class UserAgentAdmin(admin.ModelAdmin):
@@ -26,6 +26,5 @@ class SocialAccountAdmin(admin.ModelAdmin):
 admin.site.register(CustomUser, UserAgentAdmin)
 admin.site.register(Role, RoleAdmin)
 admin.site.register(Access)
-admin.site.register(TokenBlacklist)
 
 admin.site.register(SocialAccount, SocialAccountAdmin)

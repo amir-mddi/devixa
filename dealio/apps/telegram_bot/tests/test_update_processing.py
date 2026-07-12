@@ -8,8 +8,8 @@ from dealio.apps.telegram_bot.logic.update_process_logic import BotUpdateProcess
 
 
 class BotWebhookServiceTests(SimpleTestCase):
-    def test_empty_expected_secret_allows_request(self):
-        self.assertTrue(BotWebhookService.validate_secret(expected_secret="", provided_secret="anything"))
+    def test_empty_expected_secret_fails_closed(self):
+        self.assertFalse(BotWebhookService.validate_secret(expected_secret="", provided_secret="anything"))
 
     def test_configured_secret_requires_constant_time_match(self):
         self.assertTrue(BotWebhookService.validate_secret(expected_secret="secret", provided_secret="secret"))
@@ -53,7 +53,7 @@ class BotUpdateProcessLogicTests(SimpleTestCase):
         with self.assertRaisesMessage(RuntimeError, "boom"):
             self.logic.process(self.dto)
 
-        self.update_log_repository.mark_error.assert_called_once_with(update_log, "boom")
+        self.update_log_repository.mark_error.assert_called_once_with(update_log, "RuntimeError")
         self.update_log_repository.mark_processed.assert_not_called()
 
     def test_process_without_update_id_does_not_create_log(self):

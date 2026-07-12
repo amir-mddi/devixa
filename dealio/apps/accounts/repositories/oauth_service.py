@@ -43,9 +43,9 @@ class SocialOAuthService:
     GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
     GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo"
 
-    # GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"
-    # GITHUB_USER_URL = "https://api.github.com/user"
-    # GITHUB_EMAILS_URL = "https://api.github.com/user/emails"
+    GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"
+    GITHUB_USER_URL = "https://api.github.com/user"
+    GITHUB_EMAILS_URL = "https://api.github.com/user/emails"
 
     def login_with_google(self, *, code: str, redirect_uri: str) -> dict[str, Any]:
         self._validate_redirect_uri(redirect_uri)
@@ -143,10 +143,11 @@ class SocialOAuthService:
 
             if social_account:
                 user = social_account.user
+                self._assert_user_can_authenticate(user)
                 self._sync_user_from_profile(user, profile)
-                if social_account.email != profile.email or social_account.extra_data != (profile.raw or {}):
+                if social_account.email != profile.email or social_account.extra_data != self._safe_profile_data(profile):
                     social_account.email = profile.email
-                    social_account.extra_data = profile.raw or {}
+                    social_account.extra_data = self._safe_profile_data(profile)
                     social_account.save(update_fields=["email", "extra_data", "updated_at"])
             else:
                 user = self._get_or_create_user(profile)
@@ -156,7 +157,7 @@ class SocialOAuthService:
                         provider=profile.provider,
                         provider_user_id=profile.provider_user_id,
                         email=profile.email,
-                        extra_data=profile.raw or {},
+                        extra_data=self._safe_profile_data(profile),
                     )
                 except IntegrityError:
                     social_account = SocialAccount.objects.select_related("user").get(
@@ -164,6 +165,8 @@ class SocialOAuthService:
                         provider_user_id=profile.provider_user_id,
                     )
                     user = social_account.user
+
+        self._assert_user_can_authenticate(user)
 
         refresh = RefreshToken.for_user(user)
         access = refresh.access_token
@@ -184,6 +187,7 @@ class SocialOAuthService:
     def _get_or_create_user(self, profile: OAuthProfile):
         user = User.objects.filter(email__iexact=profile.email).order_by("date_joined").first()
         if user:
+            self._assert_user_can_authenticate(user)
             self._sync_user_from_profile(user, profile)
             return user
 
@@ -202,13 +206,15 @@ class SocialOAuthService:
 
     def _sync_user_from_profile(self, user, profile: OAuthProfile) -> None:
         changed_fields: list[str] = []
+        email_changed = False
 
-        if profile.email and user.email.lower() != profile.email:
+        if profile.email and str(user.email or "").lower() != profile.email:
+            conflict = User.objects.filter(email__iexact=profile.email).exclude(pk=user.pk).exists()
+            if conflict:
+                raise OAuthProviderError("This email is already linked to another account.")
             user.email = profile.email
+            email_changed = True
             changed_fields.append("email")
-        if profile.email_verified and not user.email_verified:
-            user.email_verified = True
-            changed_fields.append("email_verified")
         if profile.first_name and not user.first_name:
             user.first_name = profile.first_name[:150]
             changed_fields.append("first_name")
@@ -222,15 +228,37 @@ class SocialOAuthService:
         if changed_fields:
             user.save(update_fields=[*changed_fields, "updated_at"])
 
+        # The model intentionally resets verification when an email changes. A
+        # verified OAuth provider proves the new email, so mark it verified only
+        # after the new address has been persisted.
+        if profile.email_verified and (email_changed or not user.email_verified):
+            user.email_verified = True
+            user.save(update_fields=["email_verified", "updated_at"])
+
     def _default_role(self) -> Role:
         symbol = getattr(settings, "OAUTH_DEFAULT_USER_ROLE_SYMBOL", "user")
-        role, _ = Role.objects.get_or_create(symbol=symbol, defaults={"name": "کاربر سیستم"})
+        role = Role.objects.filter(
+            symbol=symbol,
+            is_active=True,
+            is_deleted=False,
+        ).first()
+        if not role:
+            raise OAuthProviderError(
+                "OAuth account provisioning is not configured.",
+                status_code=500,
+                log_message=f"Missing active OAuth default role: {symbol}",
+            )
         return role
+
+    @staticmethod
+    def _assert_user_can_authenticate(user) -> None:
+        if not user.is_active or getattr(user, "is_deleted", False):
+            raise OAuthProviderError("This account is inactive.")
 
     def _build_unique_username(self, hint: str) -> str:
         base = re.sub(r"[^a-zA-Z0-9_.-]+", "", (hint or "user").strip().lower())[:120] or "user"
         username = base
-        while User.objects.filter(username=username).exists():
+        while User.objects.filter(username__iexact=username).exists():
             username = f"{base}-{get_random_string(6).lower()}"[:150]
         return username
 
@@ -249,6 +277,15 @@ class SocialOAuthService:
         raise OAuthProviderError(
             "GitHub account does not expose a verified primary email. Request the user:email scope."
         )
+
+    @staticmethod
+    def _safe_profile_data(profile: OAuthProfile) -> dict[str, Any]:
+        raw = profile.raw or {}
+        allowed_keys = {
+            "sub", "id", "login", "name", "given_name", "family_name",
+            "picture", "avatar_url", "html_url", "locale",
+        }
+        return {key: raw[key] for key in allowed_keys if key in raw}
 
     @staticmethod
     def _split_name(full_name: str) -> tuple[str, str]:
@@ -301,10 +338,17 @@ class SocialOAuthService:
     def _open_json(request: Request) -> dict[str, Any] | list[dict[str, Any]]:
         try:
             with urlopen(request, timeout=getattr(settings, "OAUTH_HTTP_TIMEOUT_SECONDS", 10)) as response:
-                body = response.read().decode("utf-8")
+                max_bytes = int(getattr(settings, "OAUTH_MAX_RESPONSE_BYTES", 1024 * 1024))
+                content_length = response.headers.get("Content-Length")
+                if content_length and int(content_length) > max_bytes:
+                    raise OAuthProviderError("OAuth provider returned an oversized response.")
+                raw_body = response.read(max_bytes + 1)
+                if len(raw_body) > max_bytes:
+                    raise OAuthProviderError("OAuth provider returned an oversized response.")
+                body = raw_body.decode("utf-8")
         except HTTPError as exc:
-            error_body = exc.read().decode("utf-8", errors="ignore")
-            logger.warning("OAuth provider HTTP error: %s %s", exc.code, error_body)
+            exc.read()
+            logger.warning("OAuth provider HTTP error: status=%s", exc.code)
             raise OAuthProviderError("OAuth provider rejected the request.") from exc
         except URLError as exc:
             logger.warning("OAuth provider connection error: %s", exc)
@@ -313,5 +357,5 @@ class SocialOAuthService:
         try:
             return json.loads(body)
         except json.JSONDecodeError as exc:
-            logger.warning("OAuth provider returned non-JSON response: %s", body[:500])
+            logger.warning("OAuth provider returned a non-JSON response.")
             raise OAuthProviderError("OAuth provider returned an invalid response.") from exc

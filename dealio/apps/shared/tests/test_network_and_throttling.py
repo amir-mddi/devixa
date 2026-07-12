@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 
 from django.core.cache import cache
-from django.test import RequestFactory, SimpleTestCase, TestCase
+from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
 
 from dealio.apps.shared.enums.network_enum import NetworkType
 from dealio.apps.shared.throttling import ClientIP, FixedWindowLimiter, RateLimitExceeded, RateParser
@@ -36,7 +36,24 @@ class ThrottlingTests(TestCase):
         with self.assertRaises(RateLimitExceeded):
             limiter.allow("USER@example.com")
 
-    def test_client_ip_prefers_first_forwarded_address(self):
-        request = RequestFactory().get("/", HTTP_X_FORWARDED_FOR="10.0.0.1, 10.0.0.2")
+    def test_client_ip_ignores_forwarded_address_from_untrusted_peer(self):
+        request = RequestFactory().get(
+            "/",
+            REMOTE_ADDR="127.0.0.1",
+            HTTP_X_FORWARDED_FOR="10.0.0.1, 10.0.0.2",
+        )
+
+        self.assertEqual(ClientIP.get(request), "127.0.0.1")
+
+    @override_settings(
+        TRUST_X_FORWARDED_FOR=True,
+        TRUSTED_PROXY_IPS=["127.0.0.1/32"],
+    )
+    def test_client_ip_uses_forwarded_address_from_trusted_proxy(self):
+        request = RequestFactory().get(
+            "/",
+            REMOTE_ADDR="127.0.0.1",
+            HTTP_X_FORWARDED_FOR="10.0.0.1, 10.0.0.2",
+        )
 
         self.assertEqual(ClientIP.get(request), "10.0.0.1")

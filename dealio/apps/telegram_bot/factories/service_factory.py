@@ -3,6 +3,7 @@ from __future__ import annotations
 from dealio.apps.accounts.repositories.account_logic import AccountLogicRepository
 from dealio.apps.telegram_bot.interfaces.bot_client_interface import BotClientInterface
 from dealio.apps.telegram_bot.interfaces.commerce_bot_logic_interface import CommerceBotLogicInterface
+from dealio.apps.telegram_bot.repositories.logic.account_link_logic import BotAccountLinkLogicRepository
 from dealio.apps.telegram_bot.repositories.logic.bot_notification_logic import BotNotificationLogicRepository
 from dealio.apps.telegram_bot.repositories.logic.bot_support_logic import BotSupportLogicRepository
 from dealio.apps.telegram_bot.repositories.logic.commerce_bot_logic import TelegramCommerceBotLogicRepository
@@ -26,6 +27,7 @@ class TelegramBotServiceFactory:
         notification_logic: BotNotificationLogicRepository | None = None,
         support_logic: BotSupportLogicRepository | None = None,
         account_logic: AccountLogicRepository | None = None,
+        account_link_logic: BotAccountLinkLogicRepository | None = None,
     ) -> TelegramBotService:
         return TelegramBotService(
             client=client,
@@ -33,4 +35,5 @@ class TelegramBotServiceFactory:
             notification_logic=notification_logic or BotNotificationLogicRepository(),
             support_logic=support_logic or BotSupportLogicRepository(),
             account_logic=account_logic or AccountLogicRepository(),
+            account_link_logic=account_link_logic or BotAccountLinkLogicRepository(),
         )

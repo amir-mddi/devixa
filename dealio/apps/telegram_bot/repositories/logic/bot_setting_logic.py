@@ -4,8 +4,10 @@ import os
 from urllib.parse import urlparse
 from typing import Any
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 
+from dealio.apps.common.utils.network_security import UnsafeOutboundUrlError, validate_public_https_url
 from dealio.apps.telegram_bot.dtos.bot_setting_dtos import (
     BotSettingDefinitionDTO,
     BotSettingPresentationDTO,
@@ -192,6 +194,13 @@ class BotSettingLogicRepository:
         if value == "":
             return ""
 
+        if definition.is_secret:
+            minimum = 32 if definition.key == "webhook_secret" else 16
+            if len(value) < minimum:
+                raise ValidationError(
+                    f"{definition.key} must contain at least {minimum} characters."
+                )
+
         if value_type == BotSettingValueTypeEnum.BOOL.value:
             lowered = value.lower()
             if lowered in {"1", "true", "yes", "on"}:
@@ -214,7 +223,18 @@ class BotSettingLogicRepository:
 
         if value_type == BotSettingValueTypeEnum.URL.value:
             parsed = urlparse(value)
-            if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            if parsed.username or parsed.password or not parsed.netloc:
+                raise ValidationError(f"{definition.key} contains an invalid URL.")
+            if definition.key == "proxy_url":
+                if parsed.scheme not in {"http", "https"}:
+                    raise ValidationError(f"{definition.key} must be a valid http/https URL.")
+                return value
+            if getattr(settings, "IS_PROD", False):
+                try:
+                    return validate_public_https_url(value, resolve_dns=False)
+                except UnsafeOutboundUrlError as exc:
+                    raise ValidationError(str(exc)) from exc
+            if parsed.scheme not in {"http", "https"}:
                 raise ValidationError(f"{definition.key} must be a valid http/https URL.")
             return value
 

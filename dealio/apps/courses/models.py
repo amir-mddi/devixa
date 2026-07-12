@@ -54,7 +54,12 @@ class Course(BaseModel):
     short_description = models.CharField(max_length=300, blank=True, default="")
     description = models.TextField(blank=True, default="")
     thumbnail = models.ImageField(upload_to="courses/thumbnails/", null=True, blank=True)
-    price = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    price = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0.00"))],
+    )
     currency = models.CharField(
         max_length=10,
         choices=CurrencyEnum.choices(),

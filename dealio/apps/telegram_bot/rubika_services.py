@@ -5,12 +5,11 @@ import html
 import re
 from typing import Any
 
-import requests
-
 from dealio.apps.telegram_bot.enums.bot_setting_enums import BotSettingProviderEnum
 from dealio.apps.telegram_bot.services import TelegramBotService
 from dealio.apps.telegram_bot.repositories.logic.bot_setting_logic import BotRuntimeConfigProvider
 from dealio.apps.telegram_bot.repositories.logic.commerce_bot_logic import TelegramCommerceBotLogicRepository
+from dealio.apps.telegram_bot.repositories.adapters.bot_http_transport import BotProviderHttpTransport
 
 
 class RubikaBotClient:
@@ -64,21 +63,16 @@ class RubikaBotClient:
         if not self.is_configured:
             raise RuntimeError("RUBIKA_BOT_TOKEN and RUBIKA_BOT_BASE_URL are required.")
 
-        response = requests.post(
-            f"{self.base_url}/{method_name}",
-            json=payload or {},
+        body = BotProviderHttpTransport.post_json(
+            url=f"{self.base_url}/{method_name}",
+            method_name=method_name,
+            payload=payload or {},
             timeout=(3.0, 20.0),
             proxies=self.proxies,
+            provider_name="Rubika",
         )
-
-        try:
-            body = response.json()
-        except ValueError:
-            body = {"status": "ERROR", "description": response.text}
-
-        if not response.ok or not self._is_success(body):
-            raise RuntimeError(f"Rubika API error in {method_name}: {body}")
-
+        if not self._is_success(body):
+            raise RuntimeError(f"Rubika API request failed in {method_name}.")
         return body
 
     @staticmethod

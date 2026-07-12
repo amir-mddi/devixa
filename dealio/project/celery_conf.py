@@ -28,6 +28,11 @@ app.conf.beat_schedule = {
         "schedule": timedelta(minutes=1),
         "options": {"queue": "high_priority"},
     },
+    "cleanup_bot_update_logs": {
+        "task": "dealio.apps.telegram_bot.tasks.cleanup_bot_update_logs",
+        "schedule": timedelta(days=1),
+        "options": {"queue": "high_priority"},
+    },
     # "metric_gauge_task": {
     #     "task": "dealio.apps.asset.tasks.metric_gauges_task.metric_gauge_task",
     #     "schedule": timedelta(minutes=1),

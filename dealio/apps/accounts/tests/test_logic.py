@@ -97,7 +97,7 @@ class AccountLogicRepositoryTests(IsolatedServiceTestMixin, TestCase):
     def test_reset_password_rejects_invalid_code(self):
         user = UserFactory.create()
         self.repository.postgres_adapter.fetch_user_base_email.return_value = user
-        self.repository.gmail_adapter.verify_forget_password_code.return_value = False
+        self.repository.verification_code_cache.verify_code.return_value = False
 
         result = self.repository.reset_forget_password_by_email(
             ResetPasswordDTO(email=user.email, code="000000", new_password="NewStrongPass123!")
@@ -110,7 +110,7 @@ class AccountLogicRepositoryTests(IsolatedServiceTestMixin, TestCase):
     def test_reset_password_delegates_update_after_valid_email_code(self):
         user = UserFactory.create()
         self.repository.postgres_adapter.fetch_user_base_email.return_value = user
-        self.repository.gmail_adapter.verify_forget_password_code.return_value = True
+        self.repository.verification_code_cache.verify_code.return_value = True
 
         result = self.repository.reset_forget_password_by_email(
             ResetPasswordDTO(email=user.email, code="123456", new_password="NewStrongPass123!")
@@ -236,8 +236,9 @@ class AccountLogicRepositoryTests(IsolatedServiceTestMixin, TestCase):
         )
 
         self.assertTrue(result.is_success)
+        expected_cache_key = self.repository._phone_verification_cache_key(user)
         self.repository.verification_code_cache.verify_code.assert_called_once_with(
-            cache_key="phone_verification:user-id:09121234567",
+            cache_key=expected_cache_key,
             code="123456",
         )
         self.repository.postgres_adapter.mark_phone_number_verified.assert_called_once_with(user=user)
@@ -313,6 +314,7 @@ class AccountLogicRepositoryTests(IsolatedServiceTestMixin, TestCase):
             phone_number="09121234567",
             phone_number_verified=True,
         )
+        user.check_password.return_value = False
         self.repository.postgres_adapter.fetch_user_base_phone_number.return_value = user
         self.repository.verification_code_cache.verify_code.return_value = True
 

@@ -29,6 +29,15 @@ class ProjectConfigTests(IsolatedServiceTestMixin, TestCase):
         self.assertEqual(valid.validated_data["slug"], "dealio_app")
         self.assertFalse(invalid.is_valid())
 
+    def test_serializer_rejects_private_or_insecure_public_links(self):
+        serializer = ProjectConfigSerializer(
+            data={"telegram_url": "http://127.0.0.1/internal"},
+            partial=True,
+        )
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("telegram_url", serializer.errors)
+
     def test_postgres_adapter_updates_singleton_instead_of_creating_duplicates(self):
         actor = UserFactory.create()
         first = PostgresAdapter.change_project_config({"name": "First", "slug": "first"}, actor)

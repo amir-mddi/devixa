@@ -81,8 +81,16 @@ class TelegramCourseLessonCreateDTO:
 class TelegramPaymentReceiptDTO:
     payment_id: UUID
     tracking_code: str = ""
+    receipt_file: object | None = None
     receipt_file_url: str = ""
     note: str = ""
+
+
+@dataclass(frozen=True)
+class BotDownloadedFileDTO:
+    content: bytes
+    filename: str
+    content_type: str
 
 
 @dataclass(frozen=True)

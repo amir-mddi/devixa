@@ -1,4 +1,3 @@
-from urllib.request import Request
 from uuid import UUID
 from django.db import transaction
 from django.db.models import Q
@@ -8,8 +7,9 @@ from prometheus_client import Counter
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import AllowAny, IsAdminUser
 from prometheus_client import CollectorRegistry, CONTENT_TYPE_LATEST, generate_latest, multiprocess
-from django.http import HttpResponse
-from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
+from django.http import Http404, HttpResponse
+import hmac
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
@@ -91,10 +91,9 @@ class BaseViewSet(TaggedSchemaViewSet):
 
 
 class ManageMetricsViewSet(BaseViewSet):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAdminUser]
     model_clz = None
     tag_name = "Shared"
-    authentication_classes = []
     http_method_names = ["get"]
     serializer_class = None
 
@@ -104,18 +103,36 @@ class ManageMetricsViewSet(BaseViewSet):
 
 
 class ApiKeyManagementViewSet(BaseViewSet):
+    permission_classes = [IsAdminUser]
     http_method_names = ["get", "post"]
     model_clz = ApiKeyManagerModel
     tag_name = "ApiKeyManagement"
     serializer_class = ApiKeyMngSerializer
 
 
-@csrf_exempt
 def prometheus_metrics(request):
+    if request.method != "GET":
+        raise Http404
+
+    expected_token = str(getattr(settings, "PROMETHEUS_METRICS_TOKEN", "") or "")
+    provided_token = request.headers.get("X-Metrics-Token", "")
+    authorization = request.headers.get("Authorization", "")
+    if authorization.startswith("Bearer "):
+        provided_token = authorization.removeprefix("Bearer ").strip()
+
+    if expected_token:
+        if not hmac.compare_digest(provided_token, expected_token):
+            raise Http404
+    elif not settings.DEBUG:
+        # Metrics are disabled by default outside development unless protected.
+        raise Http404
+
     registry = CollectorRegistry()
     multiprocess.MultiProcessCollector(registry)
     data = generate_latest(registry)
-    return HttpResponse(data, content_type=CONTENT_TYPE_LATEST)
+    response = HttpResponse(data, content_type=CONTENT_TYPE_LATEST)
+    response["Cache-Control"] = "no-store"
+    return response
 
 
 

@@ -79,6 +79,8 @@ from dataclasses import dataclass
 from typing import Iterable
 
 from django.core.cache import cache
+
+from dealio.apps.common.utils.common_utils import CommonUtils
 from django.utils.encoding import force_str
 from rest_framework.request import Request
 from rest_framework.throttling import BaseThrottle
@@ -133,12 +135,7 @@ class ClientIP:
 
     @staticmethod
     def get(request: Request) -> str:
-        forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
-
-        if forwarded_for:
-            return forwarded_for.split(",", 1)[0].strip()
-
-        return request.META.get("REMOTE_ADDR", "")
+        return CommonUtils.get_client_ip(request)
 
 
 class FixedWindowLimiter:
@@ -336,3 +333,11 @@ class LoginThrottle(MultiRuleThrottle):
             return None
 
         return str(value).strip().lower()
+
+class PaymentCallbackThrottle(BaseFixedWindowThrottle):
+    scope = "payment_callback"
+    rate = "60/minute"
+
+    def get_identity(self, request: Request, view) -> str | None:
+        ip = ClientIP.get(request)
+        return f"ip:{ip}" if ip else None

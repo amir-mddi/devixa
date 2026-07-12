@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.db import models
+from django.core.validators import MinValueValidator
 from django.utils.timezone import now
 
 from dealio.apps.billing.enums import (
@@ -39,9 +40,9 @@ class Order(BaseModel):
         default=OrderStatusEnum.PENDING.value,
         db_index=True,
     )
-    subtotal_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
-    discount_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
-    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    subtotal_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), validators=[MinValueValidator(Decimal("0.00"))])
+    discount_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), validators=[MinValueValidator(Decimal("0.00"))])
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), validators=[MinValueValidator(Decimal("0.00"))])
     currency = models.CharField(
         max_length=10,
         choices=CurrencyEnum.choices(),
@@ -75,9 +76,9 @@ class OrderItem(BaseModel):
         on_delete=models.PROTECT,
     )
     course_title = models.CharField(max_length=180)
-    unit_price = models.DecimalField(max_digits=12, decimal_places=2)
+    unit_price = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal("0.00"))])
     quantity = models.PositiveIntegerField(default=1)
-    total_price = models.DecimalField(max_digits=12, decimal_places=2)
+    total_price = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal("0.00"))])
 
     class Meta:
         constraints = [
@@ -102,9 +103,9 @@ class DiscountCode(BaseModel):
         choices=DiscountTypeEnum.choices(),
         default=DiscountTypeEnum.PERCENT.value,
     )
-    value = models.DecimalField(max_digits=12, decimal_places=2)
+    value = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal("0.00"))])
     max_discount_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
-    minimum_order_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    minimum_order_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), validators=[MinValueValidator(Decimal("0.00"))])
     usage_limit = models.PositiveIntegerField(null=True, blank=True)
     used_count = models.PositiveIntegerField(default=0)
     per_user_limit = models.PositiveIntegerField(default=1)
@@ -170,7 +171,7 @@ class Payment(BaseModel):
         default=PaymentStatusEnum.INITIATED.value,
         db_index=True,
     )
-    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal("0.01"))])
     currency = models.CharField(
         max_length=10,
         choices=CurrencyEnum.choices(),
@@ -213,7 +214,7 @@ class PaymentReceipt(BaseModel):
     receipt_file_url = models.URLField(blank=True, default="")
     tracking_code = models.CharField(max_length=120, blank=True, default="")
     payer_card_last4 = models.CharField(max_length=4, blank=True, default="")
-    paid_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    paid_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, validators=[MinValueValidator(Decimal("0.01"))])
     paid_at = models.DateTimeField(null=True, blank=True)
     note = models.TextField(blank=True, default="")
     status = models.CharField(

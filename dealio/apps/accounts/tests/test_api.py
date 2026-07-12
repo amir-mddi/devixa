@@ -162,3 +162,23 @@ class AccountAPITests(APITestCase):
         dto = reset_mock.call_args.kwargs["dto"]
         self.assertEqual(dto.phone_number, "09121234567")
         self.assertEqual(dto.code, "123456")
+
+
+class UserDirectorySecurityAPITests(APITestCase):
+    def test_non_staff_user_cannot_list_accounts(self):
+        self.client.force_authenticate(UserFactory.create())
+
+        response = self.client.get(reverse("users-list"))
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_non_staff_user_cannot_probe_another_account_id(self):
+        user = UserFactory.create()
+        other_user = UserFactory.create()
+        self.client.force_authenticate(user)
+
+        response = self.client.get(
+            reverse("users-detail", kwargs={"pk": other_user.pk}),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

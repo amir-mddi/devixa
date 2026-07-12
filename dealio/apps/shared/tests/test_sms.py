@@ -41,6 +41,7 @@ class KavenegarSmsServiceTests(SimpleTestCase):
                 "token2": "5",
             },
             rotate_proxy_on_error=False,
+            redact_url=True,
         )
 
     def test_send_in_thread_submits_synchronous_adapter_method(self):

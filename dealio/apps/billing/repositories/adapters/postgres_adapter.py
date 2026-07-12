@@ -51,19 +51,30 @@ class BillingPostgresAdapter(metaclass=Singleton):
         return payment
 
     @staticmethod
-    def get_payment_for_gateway_callback(provider: str, payload: dict):
+    def get_payment_for_gateway_callback(provider: str, payload: dict, *, lock: bool = False):
         payment_id = payload.get("payment_id") or payload.get("PaymentId") or payload.get("paymentId")
         authority = payload.get("authority") or payload.get("Authority") or payload.get("token") or payload.get("ref_id")
         order_number = payload.get("order_number") or payload.get("order_id") or payload.get("OrderId")
 
-        queryset = Payment.objects.select_related("order", "user").filter(provider=provider, is_deleted=False)
+        queryset = Payment.objects.select_related("order", "user").filter(
+            provider=provider,
+            is_deleted=False,
+        )
+        if lock:
+            queryset = queryset.select_for_update()
         if payment_id:
             payment = queryset.filter(id=payment_id).first()
             if payment:
+                if authority and payment.authority and payment.authority != authority:
+                    raise NotFound(BillingMessagesVO.PAYMENT_NOT_FOUND)
+                if order_number and payment.order.order_number != str(order_number):
+                    raise NotFound(BillingMessagesVO.PAYMENT_NOT_FOUND)
                 return payment
         if authority:
             payment = queryset.filter(authority=authority).first()
             if payment:
+                if order_number and payment.order.order_number != str(order_number):
+                    raise NotFound(BillingMessagesVO.PAYMENT_NOT_FOUND)
                 return payment
         if order_number:
             payment = queryset.filter(order__order_number=order_number).order_by("-created_at").first()

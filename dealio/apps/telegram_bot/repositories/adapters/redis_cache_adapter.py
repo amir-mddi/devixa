@@ -22,5 +22,9 @@ class TelegramBotRedisCacheAdapter:
         cache.set(key, value, timeout=timeout)
 
     @staticmethod
+    def add(key: str, value: Any, *, timeout: int | None = None) -> bool:
+        return cache.add(key, value, timeout=timeout)
+
+    @staticmethod
     def delete(key: str) -> None:
         cache.delete(key)

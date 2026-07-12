@@ -4,6 +4,7 @@ from dealio.apps.common.utils.common_utils import CommonUtils
 from dataclasses import dataclass
 from typing import Any, Optional, Mapping
 from typing import Tuple
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -48,7 +49,7 @@ class HTTPRequestError(RuntimeError):
 class RetryConfig:
     total: int = 5
     backoff_factor: float = 4.0
-    status_forcelist: tuple[int, ...] = (400, 408, 429, 500, 502, 503, 504)
+    status_forcelist: tuple[int, ...] = (408, 429, 500, 502, 503, 504)
     respect_retry_after_header: bool = True
 
 
@@ -67,7 +68,7 @@ class RequestUtils:
             status=retry_cfg.total,
             backoff_factor=retry_cfg.backoff_factor,
             status_forcelist=list(retry_cfg.status_forcelist),
-            allowed_methods=frozenset(["GET", "POST", "PUT", "DELETE"]),
+            allowed_methods=frozenset(["GET", "HEAD", "OPTIONS", "PUT", "DELETE"]),
             raise_on_status=False,
             respect_retry_after_header=retry_cfg.respect_retry_after_header,
         )
@@ -98,9 +99,13 @@ class RequestUtils:
         if "params" in safe and isinstance(safe["params"], dict):
             p = dict(safe["params"])
             for k, v in list(p.items()):
-                s = str(v)
-                if len(s) > 400:
-                    p[k] = s[:400] + "...(truncated)"
+                lowered_key = str(k).lower()
+                if any(part in lowered_key for part in ("token", "password", "secret", "api_key", "apikey", "authorization")):
+                    p[k] = "***"
+                    continue
+                text = str(v)
+                if len(text) > 400:
+                    p[k] = text[:400] + "...(truncated)"
             safe["params"] = p
 
         if safe.get("data") is not None:
@@ -111,6 +116,28 @@ class RequestUtils:
             safe["files"] = "<omitted>"
 
         return safe
+
+
+    @staticmethod
+    def _safe_url(url: str, *, redact_entire_url: bool = False) -> str:
+        if redact_entire_url:
+            try:
+                parts = urlsplit(url)
+                return urlunsplit((parts.scheme, parts.netloc, "/<redacted>", "", ""))
+            except Exception:
+                return "<redacted-url>"
+        try:
+            parts = urlsplit(url)
+            safe_query = []
+            for key, value in parse_qsl(parts.query, keep_blank_values=True):
+                lowered_key = key.lower()
+                safe_query.append((
+                    key,
+                    "***" if any(part in lowered_key for part in ("token", "password", "secret", "key", "authorization")) else value,
+                ))
+            return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(safe_query), ""))
+        except Exception:
+            return "<invalid-url>"
 
     @staticmethod
     def short_body(resp: requests.Response, limit: int = 800) -> str:
@@ -154,9 +181,11 @@ class RequestUtils:
             retry: RetryConfig = RetryConfig(),
             rotate_proxy_on_error: bool = True,
             raise_for_status: bool = True,
-            auth=None
+            auth=None,
+            redact_url: bool = False,
     ) -> requests.Response:
         session = cls._get_session(retry)
+        safe_url = cls._safe_url(url, redact_entire_url=redact_url)
 
         request_kwargs: dict[str, Any] = {
             "headers": dict(headers) if headers else None,
@@ -173,59 +202,59 @@ class RequestUtils:
             resp = cls._send(session, method, url, request_kwargs)
         except requests.exceptions.ProxyError as exc:
             safe = cls._safe_log_params(request_kwargs)
-            logger.error("ProxyError | %s %s | %s | kwargs=%s", method, url, exc, safe)
+            logger.error("ProxyError | %s %s | %s | kwargs=%s", method, safe_url, exc, safe)
 
             if not rotate_proxy_on_error:
                 raise HTTPRequestError(
                     "Proxy error while sending request.",
-                    url=url,
+                    url=safe_url,
                     method=str(method),
                     cause=exc,
                 ) from exc
 
             request_kwargs["proxies"] = ProxyUrls.get_proxy()
             safe2 = cls._safe_log_params(request_kwargs)
-            logger.info("Retrying with rotated proxy | %s %s | kwargs=%s", method, url, safe2)
+            logger.info("Retrying with rotated proxy | %s %s | kwargs=%s", method, safe_url, safe2)
 
             try:
                 resp = cls._send(session, method, url, request_kwargs)
             except Exception as exc2:
                 raise HTTPRequestError(
                     "Request failed even after rotating proxy.",
-                    url=url,
+                    url=safe_url,
                     method=str(method),
                     cause=exc2,
                 ) from exc2
 
         except (requests.exceptions.Timeout, requests.exceptions.RequestException) as exc:
             safe = cls._safe_log_params(request_kwargs)
-            logger.error("RequestException | %s %s | %s | kwargs=%s", method, url, exc, safe)
+            logger.error("RequestException | %s %s | %s | kwargs=%s", method, safe_url, exc, safe)
             raise HTTPRequestError(
                 "Network/transport error while sending request.",
-                url=url,
+                url=safe_url,
                 method=str(method),
                 cause=exc,
             ) from exc
 
         if not resp.ok:
             safe = cls._safe_log_params(request_kwargs)
-            body_snip = cls.short_body(resp)
+            # Provider responses can contain credentials, OTPs or PII. Keep
+            # operational logs limited to metadata and sanitized request data.
             logger.warning(
-                "Non-success response | %s %s | status=%s | body=%s | kwargs=%s",
+                "Non-success response | %s %s | status=%s | kwargs=%s",
                 method,
-                url,
+                safe_url,
                 resp.status_code,
-                body_snip,
                 safe,
             )
 
             if raise_for_status:
                 raise HTTPRequestError(
                     f"HTTP request failed with status={resp.status_code}.",
-                    url=url,
+                    url=safe_url,
                     method=str(method),
                     status_code=resp.status_code,
-                    response_text=body_snip,
+                    response_text=None,
                 )
 
         return resp

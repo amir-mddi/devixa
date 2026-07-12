@@ -1,5 +1,3 @@
-import hashlib
-import hmac
 import html
 import json
 from dealio.apps.common.utils.common_utils import CommonUtils
@@ -11,6 +9,7 @@ from typing import Any
 
 import requests
 from django.conf import settings
+from django.core.files.base import ContentFile
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
@@ -29,6 +28,7 @@ from dealio.apps.accounts.dtos.phone_verification_dto import (
     VerifyPhoneNumberDTO,
 )
 from dealio.apps.accounts.repositories.account_logic import AccountLogicRepository
+from dealio.apps.accounts.repositories.adapters.verification_code_cache_adapter import VerificationCodeCacheAdapter
 from dealio.apps.accounts.vo.phone_verification_vo import (
     AccountPhoneVerificationErrorCodeVO,
 )
@@ -40,6 +40,10 @@ from dealio.apps.common.helpers.validators.account_validators import (
 )
 from dealio.apps.common.email_service import send_html_email_async
 from dealio.apps.common.project_config import get_project_name
+from dealio.apps.telegram_bot.dtos.account_link_dtos import (
+    ConfirmBotAccountLinkCodeDTO,
+    SendBotAccountLinkCodeDTO,
+)
 from dealio.apps.telegram_bot.models import BotSupportTicket, TelegramProfile
 from dealio.apps.telegram_bot.enums.bot_setting_enums import BotSettingProviderEnum
 from dealio.apps.telegram_bot.repositories.bot_cache_repository import TelegramBotCacheRepository
@@ -58,9 +62,13 @@ from dealio.apps.telegram_bot.vo.commerce_bot_vo import (
     TelegramCommerceFeatureVO,
 )
 from dealio.apps.telegram_bot.repositories.logic import TelegramCommerceBotLogicRepository
+from dealio.apps.telegram_bot.repositories.logic.account_link_logic import (
+    BotAccountLinkLogicRepository,
+)
 from dealio.apps.telegram_bot.repositories.logic.bot_setting_logic import BotRuntimeConfigProvider, BotSettingLogicRepository
 from dealio.apps.telegram_bot.repositories.logic.bot_notification_logic import BotNotificationLogicRepository
 from dealio.apps.telegram_bot.repositories.logic.bot_support_logic import BotSupportLogicRepository
+from dealio.apps.telegram_bot.vo.account_link_vo import BotAccountLinkVO
 from dealio.apps.telegram_bot.vo.bot_setting_vo import BotSettingRegistryVO
 from dealio.apps.telegram_bot.interfaces.commerce_bot_logic_interface import CommerceBotLogicInterface
 from dealio.apps.telegram_bot.repositories.logic.channel_sync_logic import ChannelSyncLogicRepository
@@ -80,84 +88,6 @@ class TelegramCommand:
 
 
 # TelegramBotClient moved to repositories.adapters.telegram_api_adapter and is imported above.
-class TelegramAccountLinkService:
-    LINK_CODE_EXPIRATION_MINUTES = 10
-
-    @staticmethod
-    def generate_code() -> str:
-        return str(secrets.randbelow(900000) + 100000)
-
-    @staticmethod
-    def hash_code(code: str) -> str:
-        return hashlib.sha256(code.encode("utf-8")).hexdigest()
-
-    @classmethod
-    def link_cache_key(cls, chat_id: int, user_id: str, provider: str = "telegram") -> str:
-        return f"{provider}_link:{chat_id}:{user_id}"
-
-    @classmethod
-    def pending_user_cache_key(cls, chat_id: int, provider: str = "telegram") -> str:
-        return f"{provider}_pending_link:{chat_id}"
-
-    @classmethod
-    def send_link_code(cls, *, email: str, chat_id: int, provider: str = "telegram") -> bool:
-        user = User.objects.filter(email__iexact=email, is_active=True).first()
-        if not user:
-            return False
-
-        code = cls.generate_code()
-        timeout_seconds = cls.LINK_CODE_EXPIRATION_MINUTES * 60
-
-        TelegramBotCacheRepository.set_value(cls.pending_user_cache_key(chat_id, provider), str(user.id), timeout=timeout_seconds)
-        TelegramBotCacheRepository.set_value(cls.link_cache_key(chat_id, str(user.id), provider), cls.hash_code(code), timeout=timeout_seconds)
-
-        profile = TelegramProfile.objects.filter(messenger_provider=provider, chat_id=chat_id).only("bot_language").first()
-        language = TelegramBotLanguageVO.FA if profile and profile.bot_language == TelegramBotLanguageVO.FA else TelegramBotLanguageVO.EN
-        is_fa = language == TelegramBotLanguageVO.FA
-        subject = TelegramBotMessageTextVO.LINK_EMAIL_SUBJECT[language]
-        user_name = user.first_name or user.username or TelegramBotMessageTextVO.DEFAULT_USER_NAME[language]
-
-        send_html_email_async(
-            subject=subject,
-            template_name="emails/fa_telegram_link_code.html" if is_fa else "emails/telegram_link_code.html",
-            context={
-                "subject": subject,
-                "app_name": get_project_name(),
-                "user_name": user_name,
-                "code": code,
-                "expiration_minutes": cls.LINK_CODE_EXPIRATION_MINUTES,
-                "current_year": datetime.now().year,
-            },
-            recipient_list=[user.email],
-        )
-        return True
-
-    @classmethod
-    def confirm_link_code(cls, *, profile: TelegramProfile, code: str) -> bool:
-        provider = getattr(profile, "messenger_provider", "telegram")
-        user_id = TelegramBotCacheRepository.get_value(cls.pending_user_cache_key(profile.chat_id, provider))
-        if not user_id:
-            return False
-
-        saved_hash = TelegramBotCacheRepository.get_value(cls.link_cache_key(profile.chat_id, user_id, provider))
-        if not saved_hash or not hmac.compare_digest(saved_hash, cls.hash_code(code)):
-            return False
-
-        user = User.objects.filter(id=user_id, is_active=True).first()
-        if not user:
-            return False
-
-        with transaction.atomic():
-            profile.user = user
-            profile.is_verified = True
-            profile.is_active = True
-            profile.save(update_fields=["user", "is_verified", "is_active", "updated_at"])
-
-        TelegramBotCacheRepository.delete_value(cls.pending_user_cache_key(profile.chat_id, provider))
-        TelegramBotCacheRepository.delete_value(cls.link_cache_key(profile.chat_id, user_id, provider))
-        return True
-
-
 class TelegramBotService:
     MESSENGER_PROVIDER = "telegram"
     CACHE_PREFIX = "telegram"
@@ -234,7 +164,9 @@ class TelegramBotService:
     ICONS = TelegramBotIconVO
     COMMERCE_FEATURE = TelegramCommerceFeatureVO
 
+    STATE_LINK_METHOD = TelegramBotStateVO.LINK_METHOD
     STATE_LINK_EMAIL = TelegramBotStateVO.LINK_EMAIL
+    STATE_LINK_PHONE = TelegramBotStateVO.LINK_PHONE
     STATE_LINK_CODE = TelegramBotStateVO.LINK_CODE
     STATE_VERIFY_EMAIL_CODE = TelegramBotStateVO.VERIFY_EMAIL_CODE
     STATE_VERIFY_PHONE_METHOD = TelegramBotStateVO.VERIFY_PHONE_METHOD
@@ -284,7 +216,7 @@ class TelegramBotService:
     BOT_SETTING_CONFIRM_CODE_EXPIRATION_MINUTES = 5
     ADMIN_NOTIFICATION_CONFIRM_CODE_EXPIRATION_MINUTES = 5
     ADMIN_NOTIFICATION_MAX_LENGTH = getattr(TelegramCommerceFeatureVO, "ADMIN_NOTIFICATION_MAX_LENGTH", 3500)
-    ACTION_TIMEOUT_SECONDS = TelegramAccountLinkService.LINK_CODE_EXPIRATION_MINUTES * 60
+    ACTION_TIMEOUT_SECONDS = BotAccountLinkVO.CODE_EXPIRATION_MINUTES * 60
     MIN_REVIEW_COMMENT_CHARACTERS = 2
 
     def __init__(
@@ -296,9 +228,10 @@ class TelegramBotService:
         notification_logic: BotNotificationLogicRepository | None = None,
         support_logic: BotSupportLogicRepository | None = None,
         account_logic: AccountLogicRepository | None = None,
+        account_link_logic: BotAccountLinkLogicRepository | None = None,
     ):
         self.client = client or TelegramBotClient()
-        self.link_service = TelegramAccountLinkService()
+        self.account_link_logic = account_link_logic or BotAccountLinkLogicRepository()
         self.commerce_logic = commerce_logic or TelegramCommerceBotLogicRepository()
         self.channel_sync_logic = channel_sync_logic or ChannelSyncLogicRepository()
         self.notification_logic = notification_logic or BotNotificationLogicRepository()
@@ -912,28 +845,26 @@ class TelegramBotService:
         return f"{cls.CACHE_PREFIX}_bot_setting_email_code:{chat_id}"
 
     @classmethod
-    def set_bot_setting_email_code(cls, chat_id: int, code: str) -> None:
-        code_hash = hashlib.sha256(code.encode("utf-8")).hexdigest()
-        TelegramBotCacheRepository.set_value(
-            cls.bot_setting_email_code_cache_key(chat_id),
-            code_hash,
-            timeout=cls.BOT_SETTING_CONFIRM_CODE_EXPIRATION_MINUTES * 60,
+    def set_bot_setting_email_code(cls, chat_id: int, code: str) -> bool:
+        return VerificationCodeCacheAdapter().store_code_if_absent(
+            cache_key=cls.bot_setting_email_code_cache_key(chat_id),
+            code=code,
+            timeout_seconds=cls.BOT_SETTING_CONFIRM_CODE_EXPIRATION_MINUTES * 60,
         )
 
     @classmethod
     def verify_bot_setting_email_code(cls, chat_id: int, code: str) -> bool:
-        saved_hash = TelegramBotCacheRepository.get_value(cls.bot_setting_email_code_cache_key(chat_id))
-        if not saved_hash:
-            return False
-        code_hash = hashlib.sha256(code.encode("utf-8")).hexdigest()
-        if not hmac.compare_digest(str(saved_hash), code_hash):
-            return False
-        cls.clear_bot_setting_email_code(chat_id)
-        return True
+        return VerificationCodeCacheAdapter().verify_code(
+            cache_key=cls.bot_setting_email_code_cache_key(chat_id),
+            code=code,
+            timeout_seconds=cls.BOT_SETTING_CONFIRM_CODE_EXPIRATION_MINUTES * 60,
+        )
 
     @classmethod
     def clear_bot_setting_email_code(cls, chat_id: int) -> None:
-        TelegramBotCacheRepository.delete_value(cls.bot_setting_email_code_cache_key(chat_id))
+        VerificationCodeCacheAdapter().delete_code(
+            cache_key=cls.bot_setting_email_code_cache_key(chat_id),
+        )
 
     @classmethod
     def admin_notification_cache_key(cls, chat_id: int) -> str:
@@ -969,28 +900,26 @@ class TelegramBotService:
         return f"{cls.CACHE_PREFIX}_admin_notification_email_code:{chat_id}"
 
     @classmethod
-    def set_admin_notification_email_code(cls, chat_id: int, code: str) -> None:
-        code_hash = hashlib.sha256(code.encode("utf-8")).hexdigest()
-        TelegramBotCacheRepository.set_value(
-            cls.admin_notification_email_code_cache_key(chat_id),
-            code_hash,
-            timeout=cls.ADMIN_NOTIFICATION_CONFIRM_CODE_EXPIRATION_MINUTES * 60,
+    def set_admin_notification_email_code(cls, chat_id: int, code: str) -> bool:
+        return VerificationCodeCacheAdapter().store_code_if_absent(
+            cache_key=cls.admin_notification_email_code_cache_key(chat_id),
+            code=code,
+            timeout_seconds=cls.ADMIN_NOTIFICATION_CONFIRM_CODE_EXPIRATION_MINUTES * 60,
         )
 
     @classmethod
     def verify_admin_notification_email_code(cls, chat_id: int, code: str) -> bool:
-        saved_hash = TelegramBotCacheRepository.get_value(cls.admin_notification_email_code_cache_key(chat_id))
-        if not saved_hash:
-            return False
-        code_hash = hashlib.sha256(code.encode("utf-8")).hexdigest()
-        if not hmac.compare_digest(str(saved_hash), code_hash):
-            return False
-        cls.clear_admin_notification_email_code(chat_id)
-        return True
+        return VerificationCodeCacheAdapter().verify_code(
+            cache_key=cls.admin_notification_email_code_cache_key(chat_id),
+            code=code,
+            timeout_seconds=cls.ADMIN_NOTIFICATION_CONFIRM_CODE_EXPIRATION_MINUTES * 60,
+        )
 
     @classmethod
     def clear_admin_notification_email_code(cls, chat_id: int) -> None:
-        TelegramBotCacheRepository.delete_value(cls.admin_notification_email_code_cache_key(chat_id))
+        VerificationCodeCacheAdapter().delete_code(
+            cache_key=cls.admin_notification_email_code_cache_key(chat_id),
+        )
 
 
     @classmethod
@@ -1140,8 +1069,16 @@ class TelegramBotService:
         if text.startswith("/"):
             return False
 
+        if action == self.STATE_LINK_METHOD:
+            self.handle_link_method_text(profile, text)
+            return True
+
         if action == self.STATE_LINK_EMAIL:
             self.handle_link_email_text(profile, text)
+            return True
+
+        if action == self.STATE_LINK_PHONE:
+            self.handle_link_phone_text(profile, text)
             return True
 
         if action == self.STATE_LINK_CODE:
@@ -1362,26 +1299,29 @@ class TelegramBotService:
         return True
 
     @staticmethod
-    def telegram_receipt_attachment(message: dict[str, Any]) -> dict[str, str]:
+    def telegram_receipt_attachment(message: dict[str, Any]) -> dict[str, Any]:
         photos = message.get("photo") or []
         if photos:
             selected = max(photos, key=lambda item: int(item.get("file_size") or 0))
             return {
-                "file_id": selected.get("file_id", ""),
+                "file_id": str(selected.get("file_id") or ""),
                 "kind": "photo",
                 "filename": "telegram-receipt.jpg",
-                "caption": (message.get("caption") or "").strip(),
+                "mime_type": "image/jpeg",
+                "file_size": int(selected.get("file_size") or 0),
+                "caption": str(message.get("caption") or "").strip(),
             }
 
         document = message.get("document") or {}
         if document:
             return {
-                "file_id": document.get("file_id", ""),
+                "file_id": str(document.get("file_id") or ""),
                 "kind": "document",
-                "filename": document.get("file_name") or "telegram-receipt",
-                "caption": (message.get("caption") or "").strip(),
+                "filename": str(document.get("file_name") or "telegram-receipt"),
+                "mime_type": str(document.get("mime_type") or ""),
+                "file_size": int(document.get("file_size") or 0),
+                "caption": str(message.get("caption") or "").strip(),
             }
-
         return {}
 
     def handle_payment_receipt_file_message(self, profile: TelegramProfile, message: dict[str, Any]) -> None:
@@ -1391,32 +1331,53 @@ class TelegramBotService:
 
         attachment = self.telegram_receipt_attachment(message)
         file_id = attachment.get("file_id")
-        if not file_id:
-            self.client.send_message(profile.chat_id, self.t(profile, "payment_receipt_unsupported_file"), reply_markup=self.cancel_keyboard(profile))
+        if not file_id or not self._valid_receipt_attachment_metadata(attachment):
+            self.client.send_message(
+                profile.chat_id,
+                self.t(profile, "payment_receipt_unsupported_file"),
+                reply_markup=self.cancel_keyboard(profile),
+            )
+            return
+
+        downloader = getattr(self.client, "download_file", None)
+        if not callable(downloader):
+            self.client.send_message(
+                profile.chat_id,
+                self.t(profile, "payment_receipt_unsupported_file"),
+                reply_markup=self.cancel_keyboard(profile),
+            )
             return
 
         data = self.get_payment_receipt_flow_data(profile.chat_id)
-        receipt_url = ""
         try:
-            receipt_url = self.client.get_file_url(file_id)
+            downloaded = downloader(file_id, filename=attachment.get("filename", ""))
+            receipt_file = ContentFile(downloaded.content, name=downloaded.filename)
+            receipt_file.content_type = downloaded.content_type
         except Exception:
-            logger.debug("Could not resolve Telegram receipt file URL", exc_info=True)
+            logger.warning("Payment receipt provider download failed.", exc_info=True)
+            self.client.send_message(
+                profile.chat_id,
+                self.t(profile, "payment_receipt_unsupported_file"),
+                reply_markup=self.cancel_keyboard(profile),
+            )
+            return
 
-        tracking_code = attachment.get("caption", "")[:120]
-        note_parts = ["Registered from Telegram bot.", f"telegram_file_id={file_id}", f"telegram_file_kind={attachment.get('kind', '')}"]
-        if attachment.get("filename"):
-            note_parts.append(f"filename={attachment['filename']}")
+        caption = str(attachment.get("caption") or "").strip()[:500]
+        tracking_code = caption[:120] if self._is_safe_tracking_code(caption) else ""
+        note_parts = ["Registered from bot.", f"provider={self.MESSENGER_PROVIDER}"]
+        if caption and not tracking_code:
+            note_parts.append(f"caption={caption}")
 
         try:
             receipt = self.commerce_logic.upload_payment_receipt(
                 user=user,
                 payment_id=data.get("payment_id"),
                 tracking_code=tracking_code,
-                receipt_file_url=receipt_url,
+                receipt_file=receipt_file,
                 note=" | ".join(note_parts),
             )
         except Exception as error:
-            logger.exception("Telegram payment receipt file registration failed")
+            logger.exception("Payment receipt file registration failed")
             self.clear_all_flow_data(profile.chat_id)
             self.client.send_message(
                 profile.chat_id,
@@ -1429,9 +1390,32 @@ class TelegramBotService:
         self.notify_admins_about_payment_receipt(receipt)
         self.client.send_message(
             profile.chat_id,
-            self.t(profile, "payment_receipt_saved_with_id", message=self.t(profile, "payment_receipt_saved"), receipt_id=html.escape(str(receipt.id))),
+            self.t(
+                profile,
+                "payment_receipt_saved_with_id",
+                message=self.t(profile, "payment_receipt_saved"),
+                receipt_id=html.escape(str(receipt.id)),
+            ),
             reply_markup=self.main_menu_keyboard(profile),
         )
+
+    @staticmethod
+    def _is_safe_tracking_code(value: str) -> bool:
+        return bool(value) and len(value) <= 120 and all(
+            character.isalnum() or character in "-_/ ." for character in value
+        )
+
+    @staticmethod
+    def _valid_receipt_attachment_metadata(attachment: dict[str, Any]) -> bool:
+        max_bytes = int(getattr(settings, "PAYMENT_RECEIPT_MAX_BYTES", 5 * 1024 * 1024))
+        file_size = int(attachment.get("file_size") or 0)
+        if file_size and file_size > max_bytes:
+            return False
+        filename = str(attachment.get("filename") or "").lower()
+        mime_type = str(attachment.get("mime_type") or "").lower()
+        allowed_extensions = (".jpg", ".jpeg", ".png", ".pdf")
+        allowed_mime_types = {"", "image/jpeg", "image/png", "application/pdf"}
+        return filename.endswith(allowed_extensions) and mime_type in allowed_mime_types
 
     def start_link_flow(self, profile: TelegramProfile) -> None:
         if profile.user_id and profile.is_verified:
@@ -1442,14 +1426,57 @@ class TelegramBotService:
             )
             return
 
-        self.set_action(profile.chat_id, self.STATE_LINK_EMAIL)
+        self.set_action(profile.chat_id, self.STATE_LINK_METHOD)
         self.client.send_message(
             profile.chat_id,
-            self.t(profile, "link_prompt"),
-            reply_markup=self.cancel_keyboard(profile),
+            self.t(profile, "link_choose"),
+            reply_markup=self.link_method_keyboard(profile),
         )
 
-    def handle_link_email_text(self, profile: TelegramProfile, email: str) -> None:
+    def handle_link_method_text(
+        self,
+        profile: TelegramProfile,
+        text: str,
+    ) -> None:
+        normalized = self.normalize_button_text(text)
+
+        email_choices = self.all_button_texts("link_by_email") | {
+            self.normalize_button_text(value)
+            for value in TelegramBotAliasVO.MENU_BUTTON_ALIASES["link_by_email"]
+        }
+        if normalized in email_choices:
+            self.set_action(profile.chat_id, self.STATE_LINK_EMAIL)
+            self.client.send_message(
+                profile.chat_id,
+                self.t(profile, "link_email_prompt"),
+                reply_markup=self.cancel_keyboard(profile),
+            )
+            return
+
+        phone_choices = self.all_button_texts("link_by_phone") | {
+            self.normalize_button_text(value)
+            for value in TelegramBotAliasVO.MENU_BUTTON_ALIASES["link_by_phone"]
+        }
+        if normalized in phone_choices:
+            self.set_action(profile.chat_id, self.STATE_LINK_PHONE)
+            self.client.send_message(
+                profile.chat_id,
+                self.t(profile, "link_phone_prompt"),
+                reply_markup=self.cancel_keyboard(profile),
+            )
+            return
+
+        self.client.send_message(
+            profile.chat_id,
+            self.t(profile, "link_choose"),
+            reply_markup=self.link_method_keyboard(profile),
+        )
+
+    def handle_link_email_text(
+        self,
+        profile: TelegramProfile,
+        email: str,
+    ) -> None:
         email = email.strip()
         if not self.is_valid_email(email):
             self.client.send_message(
@@ -1459,19 +1486,78 @@ class TelegramBotService:
             )
             return
 
-        self.link_service.send_link_code(email=email, chat_id=profile.chat_id, provider=self.MESSENGER_PROVIDER)
+        self._send_account_link_code_by_email(profile, email)
+
+    def handle_link_phone_text(
+        self,
+        profile: TelegramProfile,
+        phone_number: str,
+    ) -> None:
+        phone_number = self.normalize_iranian_phone_number(phone_number)
+        try:
+            phone_number = validate_iranian_phone_number(phone_number)
+        except (ValidationError, DRFValidationError, ValueError):
+            self.client.send_message(
+                profile.chat_id,
+                self.t(profile, "invalid_link_phone"),
+                reply_markup=self.cancel_keyboard(profile),
+            )
+            return
+
+        self._send_account_link_code_by_phone(profile, phone_number)
+
+    def _send_account_link_code_by_email(
+        self,
+        profile: TelegramProfile,
+        email: str,
+    ) -> None:
+        self.account_link_logic.send_code_by_email(
+            SendBotAccountLinkCodeDTO(
+                provider=self.MESSENGER_PROVIDER,
+                chat_id=str(profile.chat_id),
+                identifier=email,
+                language=self.lang(profile),
+            )
+        )
         self.set_action(profile.chat_id, self.STATE_LINK_CODE)
 
-        # Always return the same response so the bot does not reveal which emails exist.
+        # Keep the response account-enumeration safe. It is intentionally the
+        # same for a missing account, a newly sent code, and an active code.
         self.client.send_message(
             profile.chat_id,
-            self.t(profile, "link_code_sent"),
+            self.t(profile, "link_email_code_sent"),
             reply_markup=self.cancel_keyboard(profile),
         )
 
-    def handle_link_code_text(self, profile: TelegramProfile, code: str) -> None:
+    def _send_account_link_code_by_phone(
+        self,
+        profile: TelegramProfile,
+        phone_number: str,
+    ) -> None:
+        self.account_link_logic.send_code_by_phone(
+            SendBotAccountLinkCodeDTO(
+                provider=self.MESSENGER_PROVIDER,
+                chat_id=str(profile.chat_id),
+                identifier=phone_number,
+                language=self.lang(profile),
+            )
+        )
+        self.set_action(profile.chat_id, self.STATE_LINK_CODE)
+
+        # Keep the response account-enumeration safe.
+        self.client.send_message(
+            profile.chat_id,
+            self.t(profile, "link_phone_code_sent"),
+            reply_markup=self.cancel_keyboard(profile),
+        )
+
+    def handle_link_code_text(
+        self,
+        profile: TelegramProfile,
+        code: str,
+    ) -> None:
         code = code.strip()
-        if not code.isdigit() or len(code) != 6:
+        if not code.isdigit() or len(code) != BotAccountLinkVO.CODE_LENGTH:
             self.client.send_message(
                 profile.chat_id,
                 self.t(profile, "code_only"),
@@ -1479,7 +1565,14 @@ class TelegramBotService:
             )
             return
 
-        if not self.link_service.confirm_link_code(profile=profile, code=code):
+        if not self.account_link_logic.confirm_code(
+            ConfirmBotAccountLinkCodeDTO(
+                provider=self.MESSENGER_PROVIDER,
+                chat_id=str(profile.chat_id),
+                profile_id=profile.id,
+                code=code,
+            )
+        ):
             self.client.send_message(
                 profile.chat_id,
                 self.t(profile, "invalid_link_code"),
@@ -2176,8 +2269,15 @@ class TelegramBotService:
             self.start_link_flow(profile)
             return
 
-        email = command.args[0].strip()
-        if not self.is_valid_email(email):
+        identifier = command.args[0].strip()
+        if self.is_valid_email(identifier):
+            self._send_account_link_code_by_email(profile, identifier)
+            return
+
+        phone_number = self.normalize_iranian_phone_number(identifier)
+        try:
+            phone_number = validate_iranian_phone_number(phone_number)
+        except (ValidationError, DRFValidationError, ValueError):
             self.client.send_message(
                 profile.chat_id,
                 self.t(profile, "link_usage"),
@@ -2185,18 +2285,14 @@ class TelegramBotService:
             )
             return
 
-        self.link_service.send_link_code(email=email, chat_id=profile.chat_id, provider=self.MESSENGER_PROVIDER)
-        self.set_action(profile.chat_id, self.STATE_LINK_CODE)
-
-        # Always return the same response so the bot does not reveal which emails exist.
-        self.client.send_message(
-            profile.chat_id,
-            self.t(profile, "link_code_sent"),
-            reply_markup=self.cancel_keyboard(profile),
-        )
+        self._send_account_link_code_by_phone(profile, phone_number)
 
     def handle_confirm(self, profile: TelegramProfile, command: TelegramCommand) -> None:
-        if not command.args or not command.args[0].isdigit() or len(command.args[0]) != 6:
+        if (
+            not command.args
+            or not command.args[0].isdigit()
+            or len(command.args[0]) != BotAccountLinkVO.CODE_LENGTH
+        ):
             self.client.send_message(
                 profile.chat_id,
                 self.t(profile, "code_only"),
@@ -2204,21 +2300,7 @@ class TelegramBotService:
             )
             return
 
-        if not self.link_service.confirm_link_code(profile=profile, code=command.args[0]):
-            self.client.send_message(
-                profile.chat_id,
-                self.t(profile, "invalid_link_code"),
-                reply_markup=self.cancel_keyboard(profile),
-            )
-            return
-
-        self.clear_action(profile.chat_id)
-        profile.refresh_from_db(fields=["user", "is_verified"])
-        self.client.send_message(
-            profile.chat_id,
-            self.t(profile, "linked_success"),
-            reply_markup=self.main_menu_keyboard(profile),
-        )
+        self.handle_link_code_text(profile, command.args[0])
 
     def start_unlink_flow(self, profile: TelegramProfile) -> None:
         if not profile.user_id or not profile.is_verified:
@@ -2566,8 +2648,9 @@ class TelegramBotService:
 
     def send_admin_notification_confirmation_email(self, profile: TelegramProfile) -> None:
         user = profile.user
-        code = str(secrets.randbelow(900000) + 100000)
-        self.set_admin_notification_email_code(profile.chat_id, code)
+        code = VerificationCodeCacheAdapter.generate_code()
+        if not self.set_admin_notification_email_code(profile.chat_id, code):
+            return False
         subject = self.t(profile, "admin_notification_email_subject")
         send_html_email_async(
             subject=subject,
@@ -2582,6 +2665,7 @@ class TelegramBotService:
             },
             recipient_list=[user.email],
         )
+        return True
 
 
     def send_discount_menu(self, profile: TelegramProfile, message_id: int | None = None) -> None:
@@ -3513,10 +3597,11 @@ class TelegramBotService:
             message_id=message_id,
         )
 
-    def send_bot_setting_confirmation_email(self, profile: TelegramProfile, definition) -> None:
+    def send_bot_setting_confirmation_email(self, profile: TelegramProfile, definition) -> bool:
         user = profile.user
-        code = str(secrets.randbelow(900000) + 100000)
-        self.set_bot_setting_email_code(profile.chat_id, code)
+        code = VerificationCodeCacheAdapter.generate_code()
+        if not self.set_bot_setting_email_code(profile.chat_id, code):
+            return False
         send_html_email_async(
             subject="تایید تغییر تنظیمات بات",
             template_name="emails/fa_verification_code.html",
@@ -3530,6 +3615,7 @@ class TelegramBotService:
             },
             recipient_list=[user.email],
         )
+        return True
 
     @staticmethod
     def mask_email(email: str) -> str:
@@ -5229,6 +5315,25 @@ class TelegramBotService:
 
         placeholder = cls.t(profile, "placeholder_main_menu")
         return cls.reply_keyboard(rows, placeholder=placeholder)
+
+    @classmethod
+    def link_method_keyboard(
+        cls,
+        profile: TelegramProfile | None = None,
+    ) -> dict[str, Any]:
+        return cls.reply_keyboard(
+            [
+                [
+                    cls.button(profile, "link_by_email"),
+                    cls.button(profile, "link_by_phone"),
+                ],
+                [
+                    cls.button(profile, "main_menu"),
+                    cls.button(profile, "cancel"),
+                ],
+            ],
+            placeholder=cls.t(profile, "link_choose"),
+        )
 
     @classmethod
     def forgot_password_method_keyboard(

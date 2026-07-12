@@ -48,6 +48,7 @@ class KavenegarSmsService:
             method=RequestMethod.GET,
             params=params,
             rotate_proxy_on_error=False,
+            redact_url=True,
         )
         return response.json()
 

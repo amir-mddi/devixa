@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 
 from dealio.apps.accounts.models import Role
 from dealio.apps.accounts.vo.auth_vo import (
@@ -84,7 +85,10 @@ class PostgresAdapter(metaclass=Singleton):
     @staticmethod
     def update_user_password(*, user, password: str) -> None:
         user.set_password(password)
-        user.save(update_fields=[AccountUserFieldVO.PASSWORD.value])
+        user.save(update_fields=[AccountUserFieldVO.PASSWORD.value, "updated_at"])
+        outstanding_tokens = OutstandingToken.objects.filter(user=user)
+        for token in outstanding_tokens.iterator():
+            BlacklistedToken.objects.get_or_create(token=token)
 
     @staticmethod
     def mark_phone_number_verified(*, user) -> None:

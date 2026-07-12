@@ -30,9 +30,13 @@ class CommonUtilsTests(SimpleTestCase):
             {"key": ["value", {"nested": "ok"}]},
         )
 
-    def test_get_client_ip_prefers_forwarded_header(self):
+    def test_get_client_ip_ignores_forwarded_header_from_untrusted_peer(self):
         request = RequestFactory().get("/", HTTP_X_FORWARDED_FOR="1.1.1.1, 2.2.2.2", REMOTE_ADDR="3.3.3.3")
+        self.assertEqual(CommonUtils.get_client_ip(request), "3.3.3.3")
 
+    @override_settings(TRUST_X_FORWARDED_FOR=True, TRUSTED_PROXY_IPS=["10.0.0.0/8"])
+    def test_get_client_ip_accepts_forwarded_header_from_trusted_proxy(self):
+        request = RequestFactory().get("/", HTTP_X_FORWARDED_FOR="1.1.1.1, 10.0.0.5", REMOTE_ADDR="10.0.0.5")
         self.assertEqual(CommonUtils.get_client_ip(request), "1.1.1.1")
 
 

@@ -26,13 +26,17 @@ class SharedApplicationLogic(metaclass=Singleton):
         # self.rabbitmq_adapter = RabbitMQProducerAdapter()
 
     def push_notification_into_kafka(self, message: json, kafka_topic: str = "notification"):
-        self.kafka_adapter.commit(message=message, topic=kafka_topic)
+        from dealio.apps.shared.repositories.adapters.kafka_adapter import KafkaProducerAdapter
+
+        KafkaProducerAdapter().commit(message=message, topic=kafka_topic)
 
     def send_sms(self, data_dto: KavenegarTemplateSmsDTO):
         return self.sms_provider.send_in_thread(data_dto)
 
     def push_notification_into_rabbitmq(self, message: str, queue_name: str = "notification"):
-        self.rabbitmq_adapter.commit(message=message, queue_name=queue_name)
+        from dealio.apps.shared.repositories.adapters.rabbitmq_adapter import RabbitMQProducerAdapter
+
+        RabbitMQProducerAdapter().commit(message=message, queue_name=queue_name)
 
     def expire_an_api_key(self, expired_key):
         return self.postgres_adapter.expire_an_api_key(expired_key)

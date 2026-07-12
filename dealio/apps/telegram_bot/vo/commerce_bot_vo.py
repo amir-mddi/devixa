@@ -50,7 +50,9 @@ class TelegramBotCallbackVO:
 
 
 class TelegramBotStateVO:
+    LINK_METHOD = "link_method"
     LINK_EMAIL = "link_email"
+    LINK_PHONE = "link_phone"
     LINK_CODE = "link_code"
     VERIFY_EMAIL_CODE = "verify_email_code"
     VERIFY_PHONE_METHOD = "verify_phone_method"
@@ -100,6 +102,8 @@ class TelegramBotStateVO:
 
 class TelegramBotButtonKeyVO:
     LINK = "link"
+    LINK_BY_EMAIL = "link_by_email"
+    LINK_BY_PHONE = "link_by_phone"
     ACCOUNT = "account"
     VERIFY_EMAIL = "verify_email"
     VERIFY_PHONE = "verify_phone"
@@ -141,6 +145,8 @@ class TelegramBotButtonTextVO:
     BUTTONS = {
         TelegramBotLanguageVO.EN: {
             TelegramBotButtonKeyVO.LINK: "🔗 Link account",
+            TelegramBotButtonKeyVO.LINK_BY_EMAIL: "📧 Connect by email",
+            TelegramBotButtonKeyVO.LINK_BY_PHONE: "📱 Connect by phone",
             TelegramBotButtonKeyVO.ACCOUNT: "👤 My account",
             TelegramBotButtonKeyVO.VERIFY_EMAIL: "✅ Verify email",
             TelegramBotButtonKeyVO.VERIFY_PHONE: "📱 Verify phone",
@@ -174,6 +180,8 @@ class TelegramBotButtonTextVO:
         },
         TelegramBotLanguageVO.FA: {
             TelegramBotButtonKeyVO.LINK: "🔗 اتصال حساب",
+            TelegramBotButtonKeyVO.LINK_BY_EMAIL: "📧 اتصال با ایمیل",
+            TelegramBotButtonKeyVO.LINK_BY_PHONE: "📱 اتصال با موبایل",
             TelegramBotButtonKeyVO.ACCOUNT: "👤 حساب من",
             TelegramBotButtonKeyVO.VERIFY_EMAIL: "✅ تأیید ایمیل",
             TelegramBotButtonKeyVO.VERIFY_PHONE: "📱 تأیید موبایل",
@@ -219,6 +227,8 @@ class TelegramBotAliasVO:
     NO_ALIASES = {"no", "n", "false", "0", "draft", "نه", "خیر"}
     MENU_BUTTON_ALIASES = {
         TelegramBotButtonKeyVO.LINK: {"link account", "اتصال حساب"},
+        TelegramBotButtonKeyVO.LINK_BY_EMAIL: {"connect by email", "link by email", "اتصال با ایمیل"},
+        TelegramBotButtonKeyVO.LINK_BY_PHONE: {"connect by phone", "link by phone", "connect by mobile", "اتصال با موبایل", "اتصال با شماره موبایل"},
         TelegramBotButtonKeyVO.ACCOUNT: {"my account", "account", "حساب من"},
         TelegramBotButtonKeyVO.VERIFY_EMAIL: {"verify email", "email verification", "تایید ایمیل", "تأیید ایمیل"},
         TelegramBotButtonKeyVO.VERIFY_PHONE: {"verify phone", "phone verification", "verify mobile", "تایید موبایل", "تأیید موبایل", "تایید شماره موبایل", "تأیید شماره موبایل"},
@@ -348,8 +358,8 @@ class TelegramBotMessageTextVO:
         TelegramBotLanguageVO.FA: "کاربر",
     }
     LINK_EMAIL_SUBJECT = {
-        TelegramBotLanguageVO.EN: "Telegram account link code",
-        TelegramBotLanguageVO.FA: "کد اتصال حساب تلگرام",
+        TelegramBotLanguageVO.EN: "{provider_name} account link code",
+        TelegramBotLanguageVO.FA: "کد اتصال حساب {provider_name}",
     }
 
     TEXTS = {
@@ -368,13 +378,20 @@ class TelegramBotMessageTextVO:
             "menu_linked": "Welcome back, <b>{name}</b>!\n\nChoose an action:",
             "menu_guest": "Welcome to {project_name} bot.\n\nChoose an action:",
             "not_linked": "Your account is not linked yet. Tap <b>Link account</b> below.",
-            "already_linked": "Your Telegram account is already linked.",
-            "link_prompt": "Send your app account email address here.\n\nExample: <code>you@example.com</code>",
+            "already_linked": "Your messenger account is already linked.",
+            "link_choose": "Choose how to connect your {project_name} account:",
+            "link_email_prompt": "Send the email address registered on your account.\n\nExample: <code>you@example.com</code>",
+            "link_phone_prompt": "Send the Iranian mobile number registered on your account.\n\nExample: <code>09123456789</code>",
+            "link_prompt": "Send the email address registered on your account.\n\nExample: <code>you@example.com</code>",
             "invalid_email": "That does not look like a valid email. Please send only your email address.",
-            "link_code_sent": "If this email exists, I sent a 6-digit link code to it.\n\nNow send the 6-digit code here.",
+            "invalid_link_phone": "That phone number is invalid. Send an Iranian mobile number such as <code>09123456789</code>.",
+            "link_email_code_sent": "If an active account exists for this email, a 6-digit connection code was sent or the previous code is still valid.\n\nSend the 6-digit code here.",
+            "link_phone_code_sent": "If an active account exists for this phone number, a 6-digit SMS connection code was sent or the previous code is still valid.\n\nSend the 6-digit code here.",
+            "link_code_sent": "If an active account exists for this email, a 6-digit connection code was sent or the previous code is still valid.\n\nSend the 6-digit code here.",
+            "link_usage": "Use <code>/link email@example.com</code> or <code>/link 09123456789</code>, or use the Link account button.",
             "code_only": "Please send the 6-digit code only. Example: <code>123456</code>",
             "invalid_link_code": "Invalid or expired link code. Try again, or cancel and request a new code.",
-            "linked_success": "Your Telegram account is linked successfully.",
+            "linked_success": "Your messenger account is linked successfully.",
             "verify_already": "Your email is already verified.",
             "verify_sent": "I sent a 6-digit email verification code to your linked email. Send the code here.",
             "verify_code_active": "Your previous email verification code is still active. Send that 6-digit code here.",
@@ -659,7 +676,7 @@ class TelegramBotMessageTextVO:
             "archive_button": "🗄 Archive",
             "public_view_button": "👁 Public view",
             "all_courses_button": "📋 All courses",
-            "help_text": "<b>Available actions</b>\nUse the bottom keyboard buttons instead of typing commands.\n\n🔗 <b>Link account</b> - connect your app account\n👤 <b>My account</b> - show linked account\n✅ <b>Verify email</b> - send and confirm email verification code\n📱 <b>Verify phone</b> - send and confirm SMS verification code\n🔐 <b>Forgot password</b> - send a recovery code\n➕ <b>Create user</b> - admin only, create an app user\n🌐 <b>Open app</b> - open the configured web app\n🌍 <b>Language</b> - change bot language\n🚪 <b>Unlink</b> - remove the account link",
+            "help_text": "<b>{project_name} bot guide</b>\nUse the keyboard buttons; you usually do not need to type commands.\n\n<b>Account and security</b>\n🔗 <b>Link account</b> - connect by registered email or Iranian phone number. Email receives an email code; phone receives an SMS code.\n👤 <b>My account</b> - view username, email, phone, and verification status.\n✅ <b>Verify email</b> - receive and confirm the email verification code.\n📱 <b>Verify phone</b> - receive an SMS code, or on Telegram securely share your own contact.\n🔐 <b>Forgot password</b> - request recovery by email or verified phone. Set the new password only in the app/API.\n🚪 <b>Unlink</b> - remove only the messenger connection; your app account remains active.\n\n<b>Courses and purchases</b>\n📚 Browse courses, view details and reviews, buy a course, upload a manual-payment receipt, and follow your orders and enrollments.\n\n<b>Other tools</b>\n💬 Contact support and follow your tickets.\n📣 Open official channels.\n🌐 Open the web app.\n🌍 Change language.\n\n<b>Admin tools</b>\nAdmins can manage courses and lessons, create users, review payments and comments, manage discounts, notifications, support tickets, and runtime bot settings.",
             "placeholder_language": "Language / زبان",
             "placeholder_main_menu": "Choose an action",
             "placeholder_cancel": "Send the requested value or cancel",
@@ -675,13 +692,20 @@ class TelegramBotMessageTextVO:
             "menu_linked": "خوش برگشتی، <b>{name}</b>!\n\nیک گزینه را انتخاب کنید:",
             "menu_guest": "به ربات {project_name} خوش آمدید.\n\nیک گزینه را انتخاب کنید:",
             "not_linked": "حساب شما هنوز متصل نشده است. دکمه <b>اتصال حساب</b> را بزنید.",
-            "already_linked": "حساب تلگرام شما قبلاً متصل شده است.",
-            "link_prompt": "ایمیل حساب کاربری خود را ارسال کنید.\n\nمثال: <code>you@example.com</code>",
+            "already_linked": "حساب پیام‌رسان شما قبلاً متصل شده است.",
+            "link_choose": "روش اتصال حساب {project_name} را انتخاب کنید:",
+            "link_email_prompt": "ایمیل ثبت‌شده در حساب کاربری را ارسال کنید.\n\nمثال: <code>you@example.com</code>",
+            "link_phone_prompt": "شماره موبایل ایرانی ثبت‌شده در حساب را ارسال کنید.\n\nمثال: <code>09123456789</code>",
+            "link_prompt": "ایمیل ثبت‌شده در حساب کاربری را ارسال کنید.\n\nمثال: <code>you@example.com</code>",
             "invalid_email": "ایمیل وارد شده معتبر نیست. لطفاً فقط آدرس ایمیل را ارسال کنید.",
-            "link_code_sent": "اگر این ایمیل وجود داشته باشد، کد ۶ رقمی اتصال برای آن ارسال شد.\n\nحالا کد ۶ رقمی را همین‌جا بفرستید.",
+            "invalid_link_phone": "شماره موبایل معتبر نیست. یک شماره ایرانی مانند <code>09123456789</code> ارسال کنید.",
+            "link_email_code_sent": "اگر حساب فعالی با این ایمیل وجود داشته باشد، کد ۶ رقمی اتصال ارسال شده یا کد قبلی هنوز معتبر است.\n\nکد ۶ رقمی را همین‌جا بفرستید.",
+            "link_phone_code_sent": "اگر حساب فعالی با این شماره وجود داشته باشد، کد ۶ رقمی اتصال پیامک شده یا کد قبلی هنوز معتبر است.\n\nکد ۶ رقمی را همین‌جا بفرستید.",
+            "link_code_sent": "اگر حساب فعالی با این ایمیل وجود داشته باشد، کد ۶ رقمی اتصال ارسال شده یا کد قبلی هنوز معتبر است.\n\nکد ۶ رقمی را همین‌جا بفرستید.",
+            "link_usage": "از <code>/link email@example.com</code> یا <code>/link 09123456789</code> استفاده کنید، یا دکمه اتصال حساب را بزنید.",
             "code_only": "لطفاً فقط کد ۶ رقمی را ارسال کنید. مثال: <code>123456</code>",
             "invalid_link_code": "کد اتصال نامعتبر است یا منقضی شده. دوباره تلاش کنید یا لغو کنید و کد جدید بگیرید.",
-            "linked_success": "حساب تلگرام شما با موفقیت متصل شد.",
+            "linked_success": "حساب پیام‌رسان شما با موفقیت متصل شد.",
             "verify_already": "ایمیل شما قبلاً تأیید شده است.",
             "verify_sent": "کد ۶ رقمی تأیید ایمیل به ایمیل متصل‌شده ارسال شد. کد را همین‌جا بفرستید.",
             "verify_code_active": "کد تأیید ایمیل قبلی هنوز معتبر است. همان کد ۶ رقمی را همین‌جا بفرستید.",
@@ -966,7 +990,7 @@ class TelegramBotMessageTextVO:
             "archive_button": "🗄 آرشیو",
             "public_view_button": "👁 نمایش عمومی",
             "all_courses_button": "📋 همه دوره‌ها",
-            "help_text": "<b>گزینه‌های موجود</b>\nاز دکمه‌های پایین استفاده کنید و نیازی به تایپ دستور نیست.\n\n🔗 <b>اتصال حساب</b> - اتصال حساب برنامه به پیام‌رسان\n👤 <b>حساب من</b> - نمایش اطلاعات حساب متصل‌شده\n✅ <b>تأیید ایمیل</b> - ارسال و بررسی کد تأیید ایمیل\n📱 <b>تأیید موبایل</b> - ارسال و بررسی کد پیامکی\n🔐 <b>فراموشی رمز عبور</b> - ارسال کد بازیابی رمز عبور\n➕ <b>ساخت کاربر</b> - فقط برای ادمین\n🌐 <b>باز کردن برنامه</b> - باز کردن برنامه وب\n🌍 <b>زبان</b> - تغییر زبان ربات\n🚪 <b>قطع اتصال</b> - حذف اتصال حساب",
+            "help_text": "<b>راهنمای ربات {project_name}</b>\nبرای بیشتر کارها از دکمه‌های پایین استفاده کنید و نیازی به تایپ دستور نیست.\n\n<b>حساب و امنیت</b>\n🔗 <b>اتصال حساب</b> - اتصال با ایمیل ثبت‌شده یا شماره موبایل ایرانی. برای ایمیل کد ایمیلی و برای موبایل کد پیامکی ارسال می‌شود.\n👤 <b>حساب من</b> - نمایش نام کاربری، ایمیل، موبایل و وضعیت تأییدها.\n✅ <b>تأیید ایمیل</b> - دریافت و بررسی کد تأیید ایمیل.\n📱 <b>تأیید موبایل</b> - دریافت کد پیامکی یا در تلگرام اشتراک امن شماره شخصی خودتان.\n🔐 <b>فراموشی رمز عبور</b> - دریافت کد بازیابی با ایمیل یا موبایل تأییدشده. رمز جدید را فقط در برنامه/API تنظیم کنید.\n🚪 <b>قطع اتصال</b> - فقط اتصال پیام‌رسان حذف می‌شود و حساب برنامه فعال می‌ماند.\n\n<b>دوره‌ها و خرید</b>\n📚 مشاهده دوره‌ها، جزئیات و دیدگاه‌ها، خرید دوره، ارسال رسید کارت‌به‌کارت و پیگیری سفارش‌ها و دوره‌های ثبت‌نام‌شده.\n\n<b>ابزارهای دیگر</b>\n💬 ارتباط با پشتیبانی و پیگیری تیکت‌ها.\n📣 مشاهده کانال‌های رسمی.\n🌐 باز کردن برنامه وب.\n🌍 تغییر زبان ربات.\n\n<b>امکانات مدیر</b>\nمدیران می‌توانند دوره و درس را مدیریت کنند، کاربر بسازند، پرداخت‌ها و دیدگاه‌ها را بررسی کنند و تخفیف، اعلان، تیکت پشتیبانی و تنظیمات runtime بات را مدیریت کنند.",
             "placeholder_language": "Language / زبان",
             "placeholder_main_menu": "یک گزینه را انتخاب کنید",
             "placeholder_cancel": "مقدار خواسته‌شده را ارسال کنید یا لغو کنید",
@@ -1008,8 +1032,8 @@ class TelegramBotProfileVO:
         ),
     }
     SHORT_DESCRIPTION = {
-        TelegramBotLanguageVO.FA: "دوره‌ها، خرید، سفارش‌ها، دیدگاه‌ها و مدیریت حساب {project_name}",
-        TelegramBotLanguageVO.EN: "Browse courses, buy, review, track orders, and manage your {project_name} account.",
+        TelegramBotLanguageVO.FA: "دوره‌ها، خرید، پشتیبانی و اتصال امن حساب {project_name}",
+        TelegramBotLanguageVO.EN: "Courses, purchases, support, and secure {project_name} account linking.",
     }
 
     @classmethod
@@ -1023,6 +1047,7 @@ class TelegramBotProfileVO:
     COMMANDS = {
         TelegramBotLanguageVO.FA: [
             {"command": "start", "description": "شروع و نمایش منو"},
+            {"command": "link", "description": "اتصال حساب با ایمیل یا موبایل"},
             {"command": "courses", "description": "مشاهده دوره‌ها"},
             {"command": "my_courses", "description": "دوره‌های من"},
             {"command": "orders", "description": "سفارش‌های من"},
@@ -1040,6 +1065,7 @@ class TelegramBotProfileVO:
         ],
         TelegramBotLanguageVO.EN: [
             {"command": "start", "description": "Start and show menu"},
+            {"command": "link", "description": "Link account by email or phone"},
             {"command": "courses", "description": "Browse courses"},
             {"command": "my_courses", "description": "My courses"},
             {"command": "orders", "description": "My orders"},

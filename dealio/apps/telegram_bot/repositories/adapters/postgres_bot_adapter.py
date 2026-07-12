@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from datetime import datetime
+
 from dealio.apps.accounts.models import Role
 from dealio.apps.telegram_bot.models import TelegramProfile, TelegramUpdateLog
 
@@ -52,11 +54,38 @@ class TelegramBotPostgresAdapter:
 
     @staticmethod
     def get_or_create_update_log(*, provider: str, update_id: str | int, payload: dict[str, Any]) -> tuple[TelegramUpdateLog, bool]:
+        try:
+            normalized_update_id = int(update_id)
+        except (TypeError, ValueError):
+            raise ValueError("Bot update id must be an integer.") from None
+        if normalized_update_id < 0 or normalized_update_id > 9_223_372_036_854_775_807:
+            raise ValueError("Bot update id is out of range.")
+
         return TelegramUpdateLog.objects.get_or_create(
-            messenger_provider=provider,
-            update_id=str(update_id),
-            defaults={"payload": payload},
+            messenger_provider=str(provider or "")[:30],
+            update_id=normalized_update_id,
+            defaults={"payload": TelegramBotPostgresAdapter._summarize_update(payload)},
         )
+
+    @staticmethod
+    def _summarize_update(payload: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(payload, dict):
+            return {"event_type": "invalid"}
+        known_event_keys = (
+            "message",
+            "edited_message",
+            "channel_post",
+            "edited_channel_post",
+            "callback_query",
+            "inline_query",
+            "my_chat_member",
+            "chat_member",
+        )
+        event_type = next((key for key in known_event_keys if key in payload), "unknown")
+        return {
+            "event_type": event_type,
+            "top_level_keys": sorted(str(key)[:100] for key in payload.keys())[:50],
+        }
 
     @staticmethod
     def mark_update_processed(update_log: TelegramUpdateLog) -> None:
@@ -65,8 +94,13 @@ class TelegramBotPostgresAdapter:
 
     @staticmethod
     def mark_update_error(update_log: TelegramUpdateLog, error_text: str) -> None:
-        update_log.error_text = error_text
+        update_log.error_text = str(error_text or "ProcessingError")[:120]
         update_log.save(update_fields=["error_text"])
+
+    @staticmethod
+    def delete_update_logs_before(cutoff: datetime) -> int:
+        deleted_count, _ = TelegramUpdateLog.objects.filter(created_at__lt=cutoff).delete()
+        return deleted_count
 
     @staticmethod
     def ensure_default_user_role() -> None:

@@ -5,9 +5,24 @@ from dealio.apps.shared.models import ApiKeyManagerModel, ProjectConfigModel
 
 @admin.register(ApiKeyManagerModel)
 class ApiKeyManagerModelAdmin(admin.ModelAdmin):
-    list_display = ("api_key", "status", "is_active", "created_at")
+    list_display = ("masked_api_key", "status", "is_active", "created_at")
     search_fields = ("api_key",)
     list_filter = ("status", "is_active")
+    readonly_fields = ("masked_api_key",)
+
+    def get_fields(self, request, obj=None):
+        # Accept the secret only when creating a key. The change form never
+        # renders the stored plaintext value back into HTML.
+        if obj is None:
+            return ("api_key", "status", "is_active")
+        return ("masked_api_key", "status", "is_active")
+
+    @admin.display(description="API key")
+    def masked_api_key(self, obj):
+        value = str(obj.api_key or "")
+        if len(value) <= 8:
+            return "********" if value else ""
+        return f"{value[:4]}…{value[-4:]}"
 
 
 @admin.register(ProjectConfigModel)

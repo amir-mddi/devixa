@@ -183,6 +183,7 @@ class TelegramCommerceBotDjangoAdapter:
             dto=PaymentReceiptUploadDTO(
                 payment_id=dto.payment_id,
                 tracking_code=(dto.tracking_code or "").strip(),
+                receipt_file=dto.receipt_file,
                 receipt_file_url=(dto.receipt_file_url or "").strip(),
                 note=dto.note,
                 source=PaymentReceiptSourceEnum.TELEGRAM,

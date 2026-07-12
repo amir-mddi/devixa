@@ -21,7 +21,13 @@ class UserSerializer(BaseSerializerModel):
         return validate_iranian_phone_number(value)
 
     def validate_email(self, value):
-        return validate_gmail_email(value)
+        value = validate_gmail_email(value)
+        queryset = User.objects.filter(email__iexact=value)
+        if self.instance:
+            queryset = queryset.exclude(pk=self.instance.pk)
+        if queryset.exists():
+            raise serializers.ValidationError("This email is already in use.")
+        return value
 
     def validate_first_name(self, value):
         return validate_persian_text(value)
@@ -30,7 +36,13 @@ class UserSerializer(BaseSerializerModel):
         return validate_persian_text(value)
 
     def validate_username(self, value):
-        return validate_english_username(value)
+        value = validate_english_username(value)
+        queryset = User.objects.filter(username__iexact=value)
+        if self.instance:
+            queryset = queryset.exclude(pk=self.instance.pk)
+        if queryset.exists():
+            raise serializers.ValidationError("This username is already in use.")
+        return value
 
     def get_role(self, obj):
         if not obj.role:
@@ -70,12 +82,17 @@ class UserSerializer(BaseSerializerModel):
 
 
 class ChangePasswordSerializer(serializers.Serializer):
-    current_password = serializers.CharField(write_only=True, required=True)
-    new_password = serializers.CharField(
-        write_only=True,
-        required=True,
-        validators=[validate_password],
-    )
+    current_password = serializers.CharField(write_only=True, required=True, trim_whitespace=False)
+    new_password = serializers.CharField(write_only=True, required=True, trim_whitespace=False)
+
+    def validate(self, attrs):
+        user = self.context["request"].user
+        if not user.check_password(attrs["current_password"]):
+            raise serializers.ValidationError({"current_password": "Current password is incorrect."})
+        if user.check_password(attrs["new_password"]):
+            raise serializers.ValidationError({"new_password": "New password must be different."})
+        validate_password(attrs["new_password"], user=user)
+        return attrs
 
 
 class SixDigitCodeSerializer(serializers.Serializer):
@@ -99,7 +116,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-        token["role"] = user.role.symbol
+        token["role"] = getattr(getattr(user, "role", None), "symbol", "")
         return token
 
 
@@ -136,8 +153,8 @@ class ForgotPasswordSmsVerifyCodeSerializer(SixDigitCodeSerializer):
 
 
 class SocialOAuthLoginSerializer(serializers.Serializer):
-    code = serializers.CharField(write_only=True, required=True, trim_whitespace=True)
-    redirect_uri = serializers.URLField(write_only=True, required=True)
+    code = serializers.CharField(write_only=True, required=True, trim_whitespace=True, max_length=2048)
+    redirect_uri = serializers.URLField(write_only=True, required=True, max_length=1000)
 
     def to_internal_value(self, data):
         if isinstance(data, dict) and "redirectUri" in data and "redirect_uri" not in data:

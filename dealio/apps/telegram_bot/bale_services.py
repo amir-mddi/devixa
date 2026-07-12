@@ -4,12 +4,11 @@ import html
 import re
 from typing import Any
 
-import requests
-
 from dealio.apps.telegram_bot.enums.bot_setting_enums import BotSettingProviderEnum
 from dealio.apps.telegram_bot.services import TelegramBotService
 from dealio.apps.telegram_bot.repositories.logic.bot_setting_logic import BotRuntimeConfigProvider
 from dealio.apps.telegram_bot.repositories.logic.commerce_bot_logic import TelegramCommerceBotLogicRepository
+from dealio.apps.telegram_bot.repositories.adapters.bot_http_transport import BotProviderHttpTransport
 
 
 class BaleBotClient:
@@ -59,21 +58,16 @@ class BaleBotClient:
         if not self.is_configured:
             raise RuntimeError("BALE_BOT_TOKEN and BALE_BOT_BASE_URL are required.")
 
-        response = requests.post(
-            f"{self.base_url}/{method_name}",
-            json=payload or {},
+        body = BotProviderHttpTransport.post_json(
+            url=f"{self.base_url}/{method_name}",
+            method_name=method_name,
+            payload=payload or {},
             timeout=(3.0, 15.0),
             proxies=self.proxies,
+            provider_name="Bale",
         )
-
-        try:
-            body = response.json()
-        except ValueError:
-            body = {"ok": False, "description": response.text}
-
-        if not response.ok or not body.get("ok", False):
-            raise RuntimeError(f"Bale API error in {method_name}: {body}")
-
+        if body.get("ok") is not True:
+            raise RuntimeError(f"Bale API request failed in {method_name}.")
         return body
 
     def _request_multipart(
@@ -86,22 +80,17 @@ class BaleBotClient:
         if not self.is_configured:
             raise RuntimeError("BALE_BOT_TOKEN and BALE_BOT_BASE_URL are required.")
 
-        response = requests.post(
-            f"{self.base_url}/{method_name}",
+        body = BotProviderHttpTransport.post_multipart(
+            url=f"{self.base_url}/{method_name}",
+            method_name=method_name,
             data=data or {},
             files=files or {},
             timeout=(5.0, 60.0),
             proxies=self.proxies,
+            provider_name="Bale",
         )
-
-        try:
-            body = response.json()
-        except ValueError:
-            body = {"ok": False, "description": response.text}
-
-        if not response.ok or not body.get("ok", False):
-            raise RuntimeError(f"Bale API error in {method_name}: {body}")
-
+        if body.get("ok") is not True:
+            raise RuntimeError(f"Bale API request failed in {method_name}.")
         return body
 
 

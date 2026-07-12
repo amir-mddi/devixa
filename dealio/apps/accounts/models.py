@@ -2,6 +2,8 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
 from django.db import models
+from django.db.models import Q
+from django.db.models.functions import Lower
 from django.utils.timezone import now
 
 from dealio.apps.core_models.entities.base.base import BaseModel
@@ -47,20 +49,43 @@ class CustomUser(BaseModel, AbstractUser):
     is_service_user = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
+        self.email = str(self.email or "").strip().lower()
+        self.username = str(self.username or "").strip()
+
         if not self._state.adding:
-            previous_phone_number = (
+            previous = (
                 type(self).objects
                 .filter(pk=self.pk)
-                .values_list("phone_number", flat=True)
+                .values("phone_number", "email")
                 .first()
+                or {}
             )
-            if previous_phone_number != self.phone_number:
+            changed_verification_fields = set()
+            if previous.get("phone_number") != self.phone_number:
                 self.phone_number_verified = False
-                update_fields = kwargs.get("update_fields")
-                if update_fields is not None:
-                    kwargs["update_fields"] = set(update_fields) | {"phone_number_verified"}
+                changed_verification_fields.add("phone_number_verified")
+            if str(previous.get("email") or "").strip().lower() != self.email:
+                self.email_verified = False
+                changed_verification_fields.add("email_verified")
+
+            update_fields = kwargs.get("update_fields")
+            if update_fields is not None and changed_verification_fields:
+                kwargs["update_fields"] = set(update_fields) | changed_verification_fields | {"email"}
 
         super().save(*args, **kwargs)
+
+    class Meta(AbstractUser.Meta):
+        constraints = [
+            models.UniqueConstraint(
+                Lower("username"),
+                name="accounts_user_username_ci_unique",
+            ),
+            models.UniqueConstraint(
+                Lower("email"),
+                condition=~Q(email=""),
+                name="accounts_user_email_ci_unique",
+            ),
+        ]
 
     # def save(self, *args, **kwargs):
     #     try:
@@ -69,16 +94,6 @@ class CustomUser(BaseModel, AbstractUser):
     #         raise Exception("Role Not Found")
     #     self.role = role
     #     super().save(*args, **kwargs)
-
-class TokenBlacklist(BaseModel):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    token = models.CharField(max_length=255)
-    refresh = models.CharField(max_length=255, default='')
-
-    def __str__(self):
-        return f'TokenBlacklist for User: {self.user.username}'
-
-
 
 class SocialAuthProvider(models.TextChoices):
     GOOGLE = "google", "Google"

@@ -11,7 +11,7 @@ class AccountPhoneVerificationErrorCodeVO(StrEnum):
 
 
 class AccountPhoneVerificationCacheVO(StrEnum):
-    KEY_TEMPLATE = "phone_verification:{user_id}:{phone_number}"
+    KEY_TEMPLATE = "phone_verification:{user_id}:{identifier_fingerprint}"
 
 
 class AccountPhoneVerificationApiMessageVO(StrEnum):

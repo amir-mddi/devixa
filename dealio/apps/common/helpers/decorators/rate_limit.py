@@ -35,23 +35,22 @@ def get_cache_ttl(key, default):
 
 
 def is_rate_limit_allowed(*, key, limit, period):
-    if key is None:
+    if key is None or limit <= 0 or period <= 0:
         return False
 
-    count = cache.get(key, 0)
-
-    if count >= limit:
-        return False
-
-    added = cache.add(key, 1, timeout=period)
-
-    if not added:
+    if cache.add(key, 1, timeout=period):
+        count = 1
+    else:
         try:
-            cache.incr(key)
+            count = cache.incr(key)
         except ValueError:
-            cache.set(key, 1, timeout=period)
+            # The key may have expired between add() and incr(). Retry once.
+            if cache.add(key, 1, timeout=period):
+                count = 1
+            else:
+                count = cache.incr(key)
 
-    return True
+    return count <= limit
 
 
 def rate_limit(

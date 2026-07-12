@@ -11,29 +11,19 @@ from dealio.apps.accounts.views import (
     SendForgotPasswordSmsCodeAPIView,
     SendPhoneVerificationCodeAPIView,
     UserViewSet,
-    UsersApiView,
     VerifyEmailCodeAPIView,
     VerifyForgotPasswordCodeAPIView,
     VerifyForgotPasswordSmsCodeAPIView,
     VerifyPhoneCodeAPIView,
 )
 from dealio.apps.common.helpers.jwt.custom_jwt import CustomTokenObtainPairView
+from rest_framework_simplejwt.views import TokenBlacklistView, TokenRefreshView
 
 router = routers.DefaultRouter()
 router.register("change_password", ChangePasswordView, basename="change-password")
 router.register("users", UserViewSet, basename="users")
 
 urlpatterns = [
-    path(
-        "users/",
-        UsersApiView.as_view(http_method_names=["get", "post", "head", "options"]),
-        name="users-list-create",
-    ),
-    path(
-        "users/<uuid:pk>/",
-        UsersApiView.as_view(http_method_names=["get", "put", "delete"]),
-        name="users-detail",
-    ),
     path(
         "email-verification/send/",
         SendEmailVerificationCodeAPIView.as_view(http_method_names=["post"]),
@@ -75,6 +65,8 @@ urlpatterns = [
         name="verify-forgot-password-sms-code",
     ),
     path("signin/", CustomTokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("token/logout/", TokenBlacklistView.as_view(), name="token_blacklist"),
     path("oauth/google/", GoogleOAuthLoginAPIView.as_view(http_method_names=["post"]), name="google-oauth-login"),
     path("oauth/github/", GitHubOAuthLoginAPIView.as_view(http_method_names=["post"]), name="github-oauth-login"),
     path("", include(router.urls)),

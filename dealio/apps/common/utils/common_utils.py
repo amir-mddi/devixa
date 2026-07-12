@@ -1,3 +1,4 @@
+import ipaddress
 import json
 import logging
 import os
@@ -149,12 +150,46 @@ class CommonUtils:
 
     @staticmethod
     def get_client_ip(request):
-        forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+        remote_addr = str(request.META.get("REMOTE_ADDR") or "").strip()
 
-        if forwarded_for:
-            return forwarded_for.split(",")[0].strip()
+        try:
+            from django.conf import settings
 
-        return request.META.get("REMOTE_ADDR")
+            trust_forwarded_for = bool(
+                getattr(settings, "TRUST_X_FORWARDED_FOR", False)
+            )
+            trusted_proxy_values = getattr(settings, "TRUSTED_PROXY_IPS", []) or []
+        except Exception:
+            trust_forwarded_for = False
+            trusted_proxy_values = []
+
+        def normalized_ip(value: str) -> str | None:
+            try:
+                return str(ipaddress.ip_address(value))
+            except ValueError:
+                return None
+
+        remote_ip = normalized_ip(remote_addr)
+        if not trust_forwarded_for or not remote_ip:
+            return remote_ip
+
+        try:
+            trusted_networks = [
+                ipaddress.ip_network(value, strict=False)
+                for value in trusted_proxy_values
+            ]
+        except ValueError:
+            trusted_networks = []
+
+        if not any(ipaddress.ip_address(remote_ip) in network for network in trusted_networks):
+            return remote_ip
+
+        forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR", "")
+        for candidate in str(forwarded_for).split(","):
+            candidate_ip = normalized_ip(candidate.strip())
+            if candidate_ip:
+                return candidate_ip
+        return remote_ip
 
     @staticmethod
     def get_request_from_args_kwargs(*args, **kwargs):
@@ -227,18 +262,17 @@ class CommonUtils:
         return os.environ.get("ENV", EnvVO.development) == EnvVO.development
 
     @classmethod
-    def convert_timestamp_to_datetime(cls, time):
+    def convert_timestamp_to_datetime(cls, value):
+        if value in (None, ""):
+            return None
         try:
-            date = datetime.fromtimestamp(time, tz=pytz.utc)
-        except Exception as e:
-            print(f"First attempt error: {e}")
-
-            try:
-                time_set = int(time) / 1000
-                date = datetime.fromtimestamp(time_set, tz=pytz.utc)
-            except Exception as e:
-                print(f"Second attempt error: {e}")
-        return date if time else None
+            numeric_value = float(value)
+            # Browser timestamps are commonly expressed in milliseconds.
+            if abs(numeric_value) > 10_000_000_000:
+                numeric_value /= 1000
+            return datetime.fromtimestamp(numeric_value, tz=pytz.utc)
+        except (TypeError, ValueError, OverflowError, OSError):
+            return None
 
     @classmethod
     def to_human_text(cls, s: str) -> str:

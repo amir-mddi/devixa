@@ -2,20 +2,18 @@ from __future__ import annotations
 
 import base64
 import hashlib
-from dealio.apps.common.utils.common_utils import CommonUtils
 from typing import Final
 
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
+
+from dealio.apps.common.utils.common_utils import CommonUtils
 
 logger = CommonUtils.get_project_logger(__name__)
 
 
 class BotSettingCryptoAdapter:
-    """Small reversible encoder for secret runtime settings.
-
-    Values are encrypted when the optional cryptography dependency is available.
-    If it is not available, the app still works and stores the value as plain text.
-    """
+    """Encrypt/decrypt secret runtime settings with a stable application key."""
 
     PREFIX: Final[str] = "fernet:"
 
@@ -24,35 +22,43 @@ class BotSettingCryptoAdapter:
         value = value or ""
         if value == "":
             return ""
-        fernet = cls._fernet()
-        if fernet is None:
-            return value
-        token = fernet.encrypt(value.encode("utf-8")).decode("utf-8")
+        token = cls._fernet().encrypt(value.encode("utf-8")).decode("utf-8")
         return f"{cls.PREFIX}{token}"
 
     @classmethod
     def decode(cls, value: str) -> str:
         value = value or ""
-        if not value.startswith(cls.PREFIX):
-            return value
-        fernet = cls._fernet()
-        if fernet is None:
+        if value == "":
             return ""
+        if not value.startswith(cls.PREFIX):
+            # Backward compatibility for existing rows. Saving the value through
+            # the settings API encrypts it. Never write new plaintext secrets.
+            logger.warning("A legacy plaintext bot secret was read; rotate and save it again.")
+            return value
         token = value[len(cls.PREFIX) :]
         try:
-            return fernet.decrypt(token.encode("utf-8")).decode("utf-8")
-        except Exception:
-            logger.exception("Failed to decrypt bot runtime setting.")
-            return ""
+            return cls._fernet().decrypt(token.encode("utf-8")).decode("utf-8")
+        except Exception as exc:
+            raise ImproperlyConfigured(
+                "Unable to decrypt a bot runtime secret. Check ENCRYPTION_KEY/APP_SECRET_KEY."
+            ) from exc
 
     @staticmethod
     def _fernet():
         try:
             from cryptography.fernet import Fernet
-        except Exception:
-            return None
+        except ImportError as exc:
+            raise ImproperlyConfigured(
+                "cryptography is required to store bot secrets securely."
+            ) from exc
 
-        secret = str(getattr(settings, "SECRET_KEY", "") or "dealio-bot-settings")
+        secret = str(
+            getattr(settings, "ENCRYPTION_KEY", "")
+            or getattr(settings, "SECRET_KEY", "")
+        )
+        if not secret:
+            raise ImproperlyConfigured(
+                "ENCRYPTION_KEY or APP_SECRET_KEY is required for bot secrets."
+            )
         digest = hashlib.sha256(secret.encode("utf-8")).digest()
-        key = base64.urlsafe_b64encode(digest)
-        return Fernet(key)
+        return Fernet(base64.urlsafe_b64encode(digest))

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from abc import ABC, abstractmethod
 from decimal import Decimal
@@ -13,6 +14,11 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from dealio.apps.billing.entities import PaymentGatewayRequestEntity, PaymentGatewayResultEntity
 from dealio.apps.billing.enums import PaymentProviderEnum, PaymentStatusEnum
 from dealio.apps.billing.vo import BillingMessagesVO
+from dealio.apps.common.utils.network_security import (
+    UnsafeOutboundUrlError,
+    validate_public_https_url,
+)
+from dealio.apps.common.utils.sensitive_data import sanitize_mapping
 
 
 class PaymentGatewayAdapter(ABC):
@@ -26,11 +32,7 @@ class PaymentGatewayAdapter(ABC):
 
 
 class CardToCardPaymentGatewayAdapter(PaymentGatewayAdapter):
-    """Offline card-to-card payment adapter.
-
-    It does not mark payments as paid. It only exposes bank-card instructions and
-    waits for a receipt upload, then an admin manually approves/rejects it.
-    """
+    """Offline card-to-card payment adapter."""
 
     def start_payment(self, request: PaymentGatewayRequestEntity) -> PaymentGatewayResultEntity:
         authority = f"CARD-{uuid4().hex[:16].upper()}"
@@ -45,9 +47,11 @@ class CardToCardPaymentGatewayAdapter(PaymentGatewayAdapter):
                     "CARD_TO_CARD_PAYMENT_MESSAGE",
                     "Card-to-card payment created. Upload receipt for admin verification.",
                 ),
-                "card_number": os.environ.get("CARD_TO_CARD_CARD_NUMBER", "") or os.environ.get("CARD_TO_CARD_NUMBER", ""),
+                "card_number": os.environ.get("CARD_TO_CARD_CARD_NUMBER", "")
+                or os.environ.get("CARD_TO_CARD_NUMBER", ""),
                 "account_number": os.environ.get("CARD_TO_CARD_ACCOUNT_NUMBER", ""),
-                "card_holder": os.environ.get("CARD_TO_CARD_ACCOUNT_OWNER", "") or os.environ.get("CARD_TO_CARD_HOLDER", ""),
+                "card_holder": os.environ.get("CARD_TO_CARD_ACCOUNT_OWNER", "")
+                or os.environ.get("CARD_TO_CARD_HOLDER", ""),
                 "bank_name": os.environ.get("CARD_TO_CARD_BANK_NAME", ""),
                 "iban": os.environ.get("CARD_TO_CARD_IBAN", ""),
             },
@@ -60,17 +64,24 @@ class CardToCardPaymentGatewayAdapter(PaymentGatewayAdapter):
             "is_success": True,
             "transaction_id": payload.get("transaction_id") or f"CARD-{uuid4().hex[:16].upper()}",
             "authority": payload.get("authority") or payment.authority,
-            "raw_response": {"confirmed_by": str(actor.id), "payload": payload},
+            "raw_response": {
+                "confirmed_by": str(actor.id),
+                "payload": sanitize_mapping(payload),
+            },
         }
 
 
 class ManualPaymentGatewayAdapter(CardToCardPaymentGatewayAdapter):
-    """Backward compatible alias for older deployments using provider=manual."""
+    """Backward-compatible alias for deployments using provider=manual."""
 
     def start_payment(self, request: PaymentGatewayRequestEntity) -> PaymentGatewayResultEntity:
         result = super().start_payment(request)
         authority = result.authority.replace("CARD-", "MANUAL-", 1)
-        raw_response = {**result.raw_response, "provider": PaymentProviderEnum.MANUAL.value, "authority": authority}
+        raw_response = {
+            **result.raw_response,
+            "provider": PaymentProviderEnum.MANUAL.value,
+            "authority": authority,
+        }
         return PaymentGatewayResultEntity(
             authority=authority,
             payment_url=result.payment_url,
@@ -80,10 +91,7 @@ class ManualPaymentGatewayAdapter(CardToCardPaymentGatewayAdapter):
 
 
 class SandboxPaymentGatewayAdapter(PaymentGatewayAdapter):
-    """Development adapter for end-to-end checkout testing.
-
-    Enable it with PAYMENT_SANDBOX_ENABLED=true. Do not enable this provider in production.
-    """
+    """Development-only adapter for end-to-end checkout testing."""
 
     def start_payment(self, request: PaymentGatewayRequestEntity) -> PaymentGatewayResultEntity:
         authority = f"SANDBOX-{uuid4().hex[:16].upper()}"
@@ -99,7 +107,8 @@ class SandboxPaymentGatewayAdapter(PaymentGatewayAdapter):
         )
 
     def verify_payment(self, payment, actor, payload: dict) -> dict:
-        if os.environ.get("PAYMENT_SANDBOX_ENABLED", "").strip().lower() not in {"1", "true", "yes"}:
+        enabled = os.environ.get("PAYMENT_SANDBOX_ENABLED", "").strip().lower() in {"1", "true", "yes"}
+        if not enabled or getattr(settings, "IS_PROD", False):
             raise PermissionDenied("Sandbox payment is disabled.")
         is_success = payload.get("status", "succeeded") in {"succeeded", "success", "ok"}
         return {
@@ -107,32 +116,58 @@ class SandboxPaymentGatewayAdapter(PaymentGatewayAdapter):
             "transaction_id": payload.get("transaction_id") or f"SANDBOX-{uuid4().hex[:16].upper()}",
             "authority": payload.get("authority") or payment.authority,
             "failure_message": "Sandbox payment failed." if not is_success else "",
-            "raw_response": {"payload": payload},
+            "raw_response": {"payload": sanitize_mapping(payload)},
         }
 
 
 class PardakhtyarPaymentGatewayAdapter(PaymentGatewayAdapter):
-    """HTTP adapter for Pardakhtyar-like gateways.
+    """Bounded HTTPS adapter for Pardakhtyar-compatible gateways."""
 
-    Keep the exact Pardakhtyar endpoints and success codes in environment vars so
-    you can plug real merchant data later without changing domain code.
-    """
+    DEFAULT_MAX_RESPONSE_BYTES = 1024 * 1024
 
     def __init__(self):
-        self.merchant_id = (os.environ.get("PARDAKHTYAR_MERCHANT_ID") or "").strip()
-        self.request_url = (os.environ.get("PARDAKHTYAR_REQUEST_URL") or "").strip()
-        self.verify_url = (os.environ.get("PARDAKHTYAR_VERIFY_URL") or "").strip()
-        self.start_pay_base_url = (os.environ.get("PARDAKHTYAR_START_PAY_BASE_URL") or "").strip()
-        self.callback_url = (os.environ.get("PARDAKHTYAR_CALLBACK_URL") or "").strip()
-        self.timeout = float(os.environ.get("PARDAKHTYAR_HTTP_TIMEOUT_SECONDS", "12"))
+        self.merchant_id = str(getattr(settings, "PARDAKHTYAR_MERCHANT_ID", "") or "").strip()
+        self.request_url = str(getattr(settings, "PARDAKHTYAR_REQUEST_URL", "") or "").strip()
+        self.verify_url = str(getattr(settings, "PARDAKHTYAR_VERIFY_URL", "") or "").strip()
+        self.start_pay_base_url = str(getattr(settings, "PARDAKHTYAR_START_PAY_BASE_URL", "") or "").strip()
+        self.callback_url = str(getattr(settings, "PARDAKHTYAR_CALLBACK_URL", "") or "").strip()
+        self.timeout = self._bounded_float(
+            getattr(settings, "PARDAKHTYAR_HTTP_TIMEOUT_SECONDS", 12),
+            minimum=1.0,
+            maximum=30.0,
+        )
+        self.max_response_bytes = self._bounded_int(
+            getattr(settings, "PARDAKHTYAR_MAX_RESPONSE_BYTES", self.DEFAULT_MAX_RESPONSE_BYTES),
+            minimum=1024,
+            maximum=5 * 1024 * 1024,
+        )
+        self.provider_allowed_hosts = self._host_list(
+            getattr(settings, "PARDAKHTYAR_ALLOWED_HOSTS", ())
+        )
+        self.payment_allowed_hosts = self._host_list(
+            getattr(settings, "PARDAKHTYAR_PAYMENT_ALLOWED_HOSTS", ())
+        ) or self.provider_allowed_hosts
+        self.callback_allowed_hosts = self._host_list(
+            getattr(settings, "PARDAKHTYAR_CALLBACK_ALLOWED_HOSTS", ())
+        )
+        raw_success_codes = getattr(
+            settings,
+            "PARDAKHTYAR_SUCCESS_CODES",
+            "100,0,ok,success,succeeded,paid",
+        )
         self.success_codes = {
             item.strip().lower()
-            for item in os.environ.get("PARDAKHTYAR_SUCCESS_CODES", "100,0,ok,success,succeeded,paid").split(",")
+            for item in str(raw_success_codes).split(",")
             if item.strip()
         }
 
     def start_payment(self, request: PaymentGatewayRequestEntity) -> PaymentGatewayResultEntity:
         self._ensure_configured(self.request_url, self.callback_url)
+        self._validate_provider_url(self.request_url, self.provider_allowed_hosts)
+        self._validate_provider_url(self.callback_url, self.callback_allowed_hosts)
+        if self.start_pay_base_url:
+            self._validate_provider_url(self.start_pay_base_url, self.payment_allowed_hosts)
+
         payload = {
             "merchant_id": self.merchant_id,
             "amount": self._amount_as_int(request.amount),
@@ -143,39 +178,62 @@ class PardakhtyarPaymentGatewayAdapter(PaymentGatewayAdapter):
             "payment_id": str(request.payment_id),
         }
         response_payload = self._post_json(self.request_url, payload)
-        authority = self._extract_first(
-            response_payload,
-            "authority",
-            "Authority",
-            "token",
-            "Token",
-            "ref_id",
-            "RefId",
-            "track_id",
-            "tracking_code",
+        authority = self._safe_identifier(
+            self._extract_first(
+                response_payload,
+                "authority",
+                "Authority",
+                "token",
+                "Token",
+                "ref_id",
+                "RefId",
+                "track_id",
+                "tracking_code",
+            ),
+            field_name="authority",
         )
-        payment_url = self._extract_first(response_payload, "payment_url", "redirect_url", "url", "link", "gateway_url")
+        payment_url = self._extract_first(
+            response_payload,
+            "payment_url",
+            "redirect_url",
+            "url",
+            "link",
+            "gateway_url",
+        )
         if not payment_url and authority and self.start_pay_base_url:
             payment_url = f"{self.start_pay_base_url.rstrip('/')}/{authority}"
         if not authority or not payment_url:
-            raise ValidationError({"pardakhtyar": "Could not extract authority/payment_url from gateway response.", "response": response_payload})
+            raise ValidationError({"pardakhtyar": "Payment gateway returned an invalid response."})
+        try:
+            payment_url = validate_public_https_url(
+                str(payment_url),
+                allowed_hosts=self.payment_allowed_hosts,
+                resolve_dns=bool(getattr(settings, "IS_PROD", False)),
+            )
+        except UnsafeOutboundUrlError as exc:
+            raise ValidationError({"pardakhtyar": "Payment gateway returned an unsafe redirect URL."}) from exc
+
         return PaymentGatewayResultEntity(
             authority=authority,
             payment_url=payment_url,
             next_status=PaymentStatusEnum.INITIATED.value,
-            raw_response=response_payload,
+            raw_response=sanitize_mapping(response_payload),
         )
 
     def verify_payment(self, payment, actor, payload: dict) -> dict:
         self._ensure_configured(self.verify_url)
-        authority = payload.get("authority") or payload.get("Authority") or payment.authority
-        callback_status = str(payload.get("status") or payload.get("Status") or "").lower()
+        self._validate_provider_url(self.verify_url, self.provider_allowed_hosts)
+        authority = self._safe_identifier(
+            payload.get("authority") or payload.get("Authority") or payment.authority,
+            field_name="authority",
+        )
+        callback_status = str(payload.get("status") or payload.get("Status") or "").strip().lower()[:100]
         if callback_status and callback_status not in self.success_codes:
             return {
                 "is_success": False,
                 "authority": authority,
-                "failure_message": f"Gateway callback status was {callback_status}.",
-                "raw_response": {"callback_payload": payload},
+                "failure_message": "Payment gateway callback reported a failed payment.",
+                "raw_response": {"callback_payload": sanitize_mapping(payload)},
             }
 
         request_payload = {
@@ -186,57 +244,121 @@ class PardakhtyarPaymentGatewayAdapter(PaymentGatewayAdapter):
             "payment_id": str(payment.id),
         }
         response_payload = self._post_json(self.verify_url, request_payload)
-        response_code = self._extract_first(response_payload, "code", "Code", "status", "Status", "result", "Result")
-        is_success = str(response_code).strip().lower() in self.success_codes or bool(response_payload.get("is_success"))
-        transaction_id = self._extract_first(
+        response_code = self._extract_first(
             response_payload,
-            "transaction_id",
-            "ref_id",
-            "RefID",
-            "refId",
-            "track_id",
-            "tracking_code",
+            "code",
+            "Code",
+            "status",
+            "Status",
+            "result",
+            "Result",
+        )
+        is_success = (
+            str(response_code).strip().lower() in self.success_codes
+            or response_payload.get("is_success") is True
+        )
+        transaction_id = self._safe_identifier(
+            self._extract_first(
+                response_payload,
+                "transaction_id",
+                "ref_id",
+                "RefID",
+                "refId",
+                "track_id",
+                "tracking_code",
+            )
+            or payload.get("transaction_id", ""),
+            field_name="transaction_id",
+            required=False,
         )
         return {
             "is_success": is_success,
-            "transaction_id": transaction_id or payload.get("transaction_id", ""),
+            "transaction_id": transaction_id,
             "authority": authority,
             "failure_message": "Pardakhtyar verification failed." if not is_success else "",
             "raw_response": {
-                "verify_request": request_payload,
-                "verify_response": response_payload,
-                "callback_payload": payload,
+                "verify_response": sanitize_mapping(response_payload),
+                "callback_payload": sanitize_mapping(payload),
             },
         }
 
     def _callback_url(self, request: PaymentGatewayRequestEntity) -> str:
-        query = urlencode({"payment_id": str(request.payment_id), "order_number": request.order_number})
+        query = urlencode(
+            {
+                "payment_id": str(request.payment_id),
+                "order_number": request.order_number,
+            }
+        )
         separator = "&" if "?" in self.callback_url else "?"
         return f"{self.callback_url}{separator}{query}"
 
     def _ensure_configured(self, *required_urls: str) -> None:
         if not self.merchant_id:
-            raise ValidationError("PARDAKHTYAR_MERCHANT_ID is required for Pardakhtyar payments.")
+            raise ValidationError("Pardakhtyar merchant configuration is incomplete.")
         if any(not url for url in required_urls):
             raise ValidationError("Pardakhtyar endpoint settings are incomplete.")
 
+    def _validate_provider_url(self, url: str, allowed_hosts: tuple[str, ...]) -> None:
+        try:
+            validate_public_https_url(
+                url,
+                allowed_hosts=allowed_hosts,
+                resolve_dns=bool(getattr(settings, "IS_PROD", False)),
+            )
+        except UnsafeOutboundUrlError as exc:
+            raise ValidationError("Pardakhtyar endpoint configuration is unsafe.") from exc
+
     def _post_json(self, url: str, payload: dict) -> dict:
+        response = None
         try:
             response = requests.post(
                 url,
                 json=payload,
                 headers={"Accept": "application/json", "Content-Type": "application/json"},
                 timeout=self.timeout,
+                allow_redirects=False,
+                stream=True,
             )
-            try:
-                body = response.json()
-            except ValueError:
-                body = {"raw": response.text}
+            if 300 <= response.status_code < 400:
+                raise ValidationError({"pardakhtyar": "Payment gateway redirects are not accepted."})
             if response.status_code >= 400:
-                raise ValidationError({"pardakhtyar": "Gateway HTTP error.", "status_code": response.status_code, "response": body})
+                raise ValidationError(
+                    {
+                        "pardakhtyar": "Payment gateway returned an error.",
+                        "status_code": response.status_code,
+                    }
+                )
+            raw_body = self._read_bounded_response(response)
+            try:
+                body = json.loads(raw_body.decode(response.encoding or "utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                raise ValidationError({"pardakhtyar": "Payment gateway returned invalid JSON."}) from exc
+            if not isinstance(body, dict):
+                raise ValidationError({"pardakhtyar": "Payment gateway returned an invalid response."})
             return body
-        except requests.RequestException as exc:
-            raise ValidationError({"pardakhtyar": f"Gateway connection failed: {exc}"}) from exc
+        except requests.RequestException:
+            raise ValidationError({"pardakhtyar": "Payment gateway connection failed."}) from None
+        finally:
+            if response is not None:
+                response.close()
+
+    def _read_bounded_response(self, response: requests.Response) -> bytes:
+        raw_length = response.headers.get("Content-Length")
+        if raw_length:
+            try:
+                if int(raw_length) > self.max_response_bytes:
+                    raise ValidationError({"pardakhtyar": "Payment gateway response is too large."})
+            except ValueError:
+                pass
+
+        body = bytearray()
+        for chunk in response.iter_content(chunk_size=64 * 1024):
+            if not chunk:
+                continue
+            body.extend(chunk)
+            if len(body) > self.max_response_bytes:
+                raise ValidationError({"pardakhtyar": "Payment gateway response is too large."})
+        return bytes(body)
 
     @staticmethod
     def _amount_as_int(amount: Decimal) -> int:
@@ -251,20 +373,53 @@ class PardakhtyarPaymentGatewayAdapter(PaymentGatewayAdapter):
         return ""
 
     @classmethod
-    def _deep_get(cls, data, key: str):
+    def _deep_get(cls, data, key: str, depth: int = 0):
+        if depth > 10:
+            return ""
         if isinstance(data, dict):
             if key in data:
                 return data[key]
             for value in data.values():
-                found = cls._deep_get(value, key)
+                found = cls._deep_get(value, key, depth + 1)
                 if found not in (None, ""):
                     return found
         if isinstance(data, list):
-            for value in data:
-                found = cls._deep_get(value, key)
+            for value in data[:100]:
+                found = cls._deep_get(value, key, depth + 1)
                 if found not in (None, ""):
                     return found
         return ""
+
+    @staticmethod
+    def _safe_identifier(value, *, field_name: str, required: bool = True) -> str:
+        value = str(value or "").strip()
+        if not value and not required:
+            return ""
+        if not value or len(value) > 255 or any(ord(character) < 32 for character in value):
+            raise ValidationError({"pardakhtyar": f"Payment gateway returned an invalid {field_name}."})
+        return value
+
+    @staticmethod
+    def _host_list(value) -> tuple[str, ...]:
+        if isinstance(value, str):
+            value = value.split(",")
+        return tuple(str(item).strip().lower() for item in (value or ()) if str(item).strip())
+
+    @staticmethod
+    def _bounded_float(value, *, minimum: float, maximum: float) -> float:
+        try:
+            parsed = float(value)
+        except (TypeError, ValueError):
+            parsed = minimum
+        return max(minimum, min(parsed, maximum))
+
+    @staticmethod
+    def _bounded_int(value, *, minimum: int, maximum: int) -> int:
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            parsed = minimum
+        return max(minimum, min(parsed, maximum))
 
 
 class PaymentGatewayFactory:

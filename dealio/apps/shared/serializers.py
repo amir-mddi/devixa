@@ -4,6 +4,7 @@ from rest_framework import serializers
 
 from dealio.apps.shared.models import ApiKeyManagerModel, ProjectConfigModel
 from dealio.apps.shared.vo.project_config_vo import ProjectConfigSerializerMessageVO
+from dealio.apps.common.utils.network_security import UnsafeOutboundUrlError, validate_public_https_url
 
 
 class CommonSerializerField:
@@ -86,8 +87,8 @@ class BaseSerializerModel(serializers.ModelSerializer):
         for field_name in ["created_at", "updated_at", "deleted_at", "is_active"]:
             if field_name in self.fields:
                 self.fields[field_name].read_only = True
-        if request and request.method == 'POST':
-            self.fields.pop("is_active")
+        if request and request.method == "POST":
+            self.fields.pop("is_active", None)
         # if "is_active" in self.fields and request:
         #     if not getattr(request.user.role, "name", None) == UserRoleVO.ADMIN:
         #         self.fields.pop("is_active")
@@ -116,12 +117,17 @@ class BaseSerializerModel(serializers.ModelSerializer):
 
 
 class ApiKeyMngSerializer(BaseSerializerModel):
+    api_key = serializers.CharField(write_only=True, min_length=32, max_length=255)
+    masked_api_key = serializers.SerializerMethodField(read_only=True)
+
     class Meta(BaseSerializerModel.Meta):
         model = ApiKeyManagerModel
-        fields = [
-            "api_key",
-            "status"
-        ]
+        fields = ["api_key", "masked_api_key", "status"]
+
+    @staticmethod
+    def get_masked_api_key(obj):
+        value = str(obj.api_key or "")
+        return f"{value[:4]}...{value[-4:]}" if len(value) >= 12 else "***"
 
 
 class ProjectConfigSerializer(BaseSerializerModel):
@@ -154,3 +160,23 @@ class ProjectConfigSerializer(BaseSerializerModel):
         if not re.fullmatch(r"[a-zA-Z0-9_-]+", value or ""):
             raise serializers.ValidationError(ProjectConfigSerializerMessageVO.SLUG_INVALID.value)
         return value.lower()
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        url_fields = (
+            "github_url",
+            "linkedin_url",
+            "telegram_url",
+            "instagram_url",
+            "telegram_bot_url",
+            "bale_bot_url",
+        )
+        for field_name in url_fields:
+            value = str(attrs.get(field_name, "") or "").strip()
+            if not value:
+                continue
+            try:
+                attrs[field_name] = validate_public_https_url(value, resolve_dns=False)
+            except UnsafeOutboundUrlError as exc:
+                raise serializers.ValidationError({field_name: str(exc)}) from exc
+        return attrs

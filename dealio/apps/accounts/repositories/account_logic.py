@@ -1,5 +1,7 @@
 from django.contrib.auth import authenticate, get_user_model
-from django.db import transaction
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import IntegrityError, transaction
 
 from dealio.apps.accounts.dtos.password_recovery_dto import (
     PasswordRecoveryResultDTO,
@@ -74,7 +76,7 @@ class AccountLogicRepository(metaclass=Singleton):
                 error_code=AccountAuthErrorCodeVO.INVALID_CREDENTIALS,
             )
 
-        if not user.is_active:
+        if not user.is_active or getattr(user, "is_deleted", False) is True:
             return AuthResultDTO.failed(
                 error_code=AccountAuthErrorCodeVO.INACTIVE_ACCOUNT,
             )
@@ -89,13 +91,24 @@ class AccountLogicRepository(metaclass=Singleton):
         if self.postgres_adapter.email_exists(dto.email):
             return AuthResultDTO.failed(error_code=AccountAuthErrorCodeVO.EMAIL_EXISTS)
 
-        user = self.postgres_adapter.create_user_account(
-            first_name=dto.first_name,
-            last_name=dto.last_name,
-            username=dto.username,
-            email=dto.email,
-            password=dto.password,
-        )
+        try:
+            # The inner savepoint handles races between the pre-check and the
+            # database's case-insensitive uniqueness constraints.
+            with transaction.atomic():
+                user = self.postgres_adapter.create_user_account(
+                    first_name=dto.first_name,
+                    last_name=dto.last_name,
+                    username=dto.username,
+                    email=dto.email,
+                    password=dto.password,
+                )
+        except IntegrityError:
+            if self.postgres_adapter.username_exists(dto.username):
+                return AuthResultDTO.failed(error_code=AccountAuthErrorCodeVO.USERNAME_EXISTS)
+            if self.postgres_adapter.email_exists(dto.email):
+                return AuthResultDTO.failed(error_code=AccountAuthErrorCodeVO.EMAIL_EXISTS)
+            logger.exception("User registration failed because of a database integrity constraint.")
+            raise
         return AuthResultDTO.success(user=user)
 
     def send_verification_email_code(self, user: User) -> bool:
@@ -117,7 +130,7 @@ class AccountLogicRepository(metaclass=Singleton):
         user = self.postgres_adapter.fetch_user_base_email(dto.email)
         code_issued = None
 
-        if user and user.is_active:
+        if user and user.is_active and not getattr(user, "is_deleted", False) is True:
             code_issued = self.send_verification_forget_password_code(user=user)
 
         # Keep the public response account-enumeration safe.
@@ -135,12 +148,25 @@ class AccountLogicRepository(metaclass=Singleton):
                 error_code=AccountPasswordRecoveryErrorCodeVO.INVALID_OR_EXPIRED_CODE,
             )
 
-        if not user.is_active:
+        if not user.is_active or getattr(user, "is_deleted", False) is True:
             return PasswordRecoveryResultDTO.failed(
                 error_code=AccountPasswordRecoveryErrorCodeVO.INACTIVE_ACCOUNT,
             )
 
-        if not self.check_forget_password_code(user=user, code=dto.code):
+        cache_key = self.gmail_adapter.get_forget_password_verification_cache_key(str(user.id), user.email)
+        if not self.verification_code_cache.verify_code(
+            cache_key=cache_key,
+            code=dto.code,
+            consume=False,
+        ):
+            return PasswordRecoveryResultDTO.failed(
+                error_code=AccountPasswordRecoveryErrorCodeVO.INVALID_OR_EXPIRED_CODE,
+            )
+        if not self._is_valid_new_password(user=user, password=dto.new_password):
+            return PasswordRecoveryResultDTO.failed(
+                error_code=AccountPasswordRecoveryErrorCodeVO.INVALID_PASSWORD,
+            )
+        if not self.verification_code_cache.verify_code(cache_key=cache_key, code=dto.code):
             return PasswordRecoveryResultDTO.failed(
                 error_code=AccountPasswordRecoveryErrorCodeVO.INVALID_OR_EXPIRED_CODE,
             )
@@ -200,7 +226,7 @@ class AccountLogicRepository(metaclass=Singleton):
             return PhoneVerificationResultDTO.failed(
                 error_code=AccountPhoneVerificationErrorCodeVO.USER_NOT_FOUND,
             )
-        if not user.is_active:
+        if not user.is_active or getattr(user, "is_deleted", False) is True:
             return PhoneVerificationResultDTO.failed(
                 error_code=AccountPhoneVerificationErrorCodeVO.INACTIVE_ACCOUNT,
             )
@@ -233,10 +259,8 @@ class AccountLogicRepository(metaclass=Singleton):
         user = self.postgres_adapter.fetch_user_base_phone_number(dto.phone_number)
         code_issued = None
 
-        if user and user.is_active and user.phone_number_verified:
-            cache_key = AccountPasswordRecoveryCacheVO.SMS_KEY_TEMPLATE.value.format(
-                user_id=user.id,
-            )
+        if user and user.is_active and not getattr(user, "is_deleted", False) is True and user.phone_number_verified:
+            cache_key = self._sms_password_recovery_cache_key(user)
             code_issued = self._issue_and_send_sms_code(
                 phone_number=user.phone_number,
                 template_name=KavenegarVo.FORGOT_PASSWORD,
@@ -258,7 +282,7 @@ class AccountLogicRepository(metaclass=Singleton):
                 error_code=AccountPasswordRecoveryErrorCodeVO.INVALID_OR_EXPIRED_CODE,
             )
 
-        if not user.is_active:
+        if not user.is_active or getattr(user, "is_deleted", False) is True:
             return PasswordRecoveryResultDTO.failed(
                 error_code=AccountPasswordRecoveryErrorCodeVO.INACTIVE_ACCOUNT,
             )
@@ -268,13 +292,20 @@ class AccountLogicRepository(metaclass=Singleton):
                 error_code=AccountPasswordRecoveryErrorCodeVO.INVALID_OR_EXPIRED_CODE,
             )
 
-        cache_key = AccountPasswordRecoveryCacheVO.SMS_KEY_TEMPLATE.value.format(
-            user_id=user.id,
-        )
+        cache_key = self._sms_password_recovery_cache_key(user)
         if not self.verification_code_cache.verify_code(
             cache_key=cache_key,
             code=dto.code,
+            consume=False,
         ):
+            return PasswordRecoveryResultDTO.failed(
+                error_code=AccountPasswordRecoveryErrorCodeVO.INVALID_OR_EXPIRED_CODE,
+            )
+        if not self._is_valid_new_password(user=user, password=dto.new_password):
+            return PasswordRecoveryResultDTO.failed(
+                error_code=AccountPasswordRecoveryErrorCodeVO.INVALID_PASSWORD,
+            )
+        if not self.verification_code_cache.verify_code(cache_key=cache_key, code=dto.code):
             return PasswordRecoveryResultDTO.failed(
                 error_code=AccountPasswordRecoveryErrorCodeVO.INVALID_OR_EXPIRED_CODE,
             )
@@ -284,6 +315,21 @@ class AccountLogicRepository(metaclass=Singleton):
             password=dto.new_password,
         )
         return PasswordRecoveryResultDTO.success()
+
+    def change_password(self, *, user, new_password: str) -> None:
+        if not self._is_valid_new_password(user=user, password=new_password):
+            raise DjangoValidationError("New password does not meet security requirements.")
+        self.postgres_adapter.update_user_password(user=user, password=new_password)
+
+    @staticmethod
+    def _is_valid_new_password(*, user, password: str) -> bool:
+        if user.check_password(password):
+            return False
+        try:
+            validate_password(password, user=user)
+        except DjangoValidationError:
+            return False
+        return True
 
     def update_user_role(self, role_id, user) -> None:
         role = self.postgres_adapter.fetch_role_base_id(role_id)
@@ -315,14 +361,21 @@ class AccountLogicRepository(metaclass=Singleton):
     def _phone_verification_cache_key(user) -> str:
         return AccountPhoneVerificationCacheVO.KEY_TEMPLATE.value.format(
             user_id=user.id,
-            phone_number=user.phone_number,
+            identifier_fingerprint=VerificationCodeCacheAdapter.fingerprint_identifier(user.phone_number),
+        )
+
+    @staticmethod
+    def _sms_password_recovery_cache_key(user) -> str:
+        return AccountPasswordRecoveryCacheVO.SMS_KEY_TEMPLATE.value.format(
+            user_id=user.id,
+            identifier_fingerprint=VerificationCodeCacheAdapter.fingerprint_identifier(user.phone_number),
         )
 
     @staticmethod
     def _validate_phone_verification_user(user) -> AccountPhoneVerificationErrorCodeVO | None:
         if not user:
             return AccountPhoneVerificationErrorCodeVO.USER_NOT_FOUND
-        if not user.is_active:
+        if not user.is_active or getattr(user, "is_deleted", False) is True:
             return AccountPhoneVerificationErrorCodeVO.INACTIVE_ACCOUNT
         if not user.phone_number:
             return AccountPhoneVerificationErrorCodeVO.PHONE_NUMBER_REQUIRED

@@ -1,23 +1,35 @@
-import random
+import secrets
+import string
 
 from dealio.apps.core_models.constants.kavenegar import KavenegarConfig
 
 
 class RuntimeConfig(KavenegarConfig):
-    password_generator_length: int = 8
-    password_generator_rules_str: str = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ"
-    password_generator_rules_num: int = "0123456789"
+    """Runtime-safe generators used by account workflows.
 
-    def generate_random_password(self):
-        password = ""
-        for _ in range(4):
-            password += random.choice(self.password_generator_rules_str)
-            password += random.choice(self.password_generator_rules_num)
+    Security-sensitive values must come from ``secrets`` rather than the
+    deterministic pseudo-random generator from ``random``.
+    """
 
-        return password
+    password_generator_length: int = 12
+    password_generator_rules_str: str = (
+        "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ"
+    )
+    password_generator_rules_num: str = string.digits
 
-    def generate_verification_code(self):
-        verification_code = ""
-        for _ in range(6):
-            verification_code += random.choice(self.password_generator_rules_num)
-        return verification_code
+    def generate_random_password(self) -> str:
+        # Guarantee both character classes, then securely shuffle the result.
+        letters = [
+            secrets.choice(self.password_generator_rules_str)
+            for _ in range(self.password_generator_length - 3)
+        ]
+        digits = [secrets.choice(self.password_generator_rules_num) for _ in range(3)]
+        characters = letters + digits
+        secrets.SystemRandom().shuffle(characters)
+        return "".join(characters)
+
+    def generate_verification_code(self) -> str:
+        return "".join(
+            secrets.choice(self.password_generator_rules_num)
+            for _ in range(6)
+        )

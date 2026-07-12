@@ -25,7 +25,7 @@ class BotWebhookService:
     @staticmethod
     def validate_secret(*, expected_secret: str, provided_secret: str) -> bool:
         if not expected_secret:
-            return True
+            return False
         return hmac.compare_digest(provided_secret or "", expected_secret)
 
     def process(self, update: dict[str, Any]) -> bool:

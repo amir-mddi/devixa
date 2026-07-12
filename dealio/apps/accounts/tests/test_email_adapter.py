@@ -28,7 +28,7 @@ class AccountEmailAdapterTests(TestCase):
     def test_send_verification_stores_hashed_code_and_sends_email(self, _code_mock, email_mock):
         self.adapter.send_email_verification_code(self.user)
 
-        cache_key = self.adapter.get_email_verification_cache_key(self.user.id)
+        cache_key = self.adapter.get_email_verification_cache_key(self.user.id, self.user.email)
         self.assertEqual(cache.get(cache_key), self.adapter.hash_code("123456"))
         email_mock.assert_called_once()
 
@@ -39,14 +39,14 @@ class AccountEmailAdapterTests(TestCase):
         first_sent = self.adapter.send_email_verification_code(self.user)
         second_sent = self.adapter.send_email_verification_code(self.user)
 
-        cache_key = self.adapter.get_email_verification_cache_key(self.user.id)
+        cache_key = self.adapter.get_email_verification_cache_key(self.user.id, self.user.email)
         self.assertTrue(first_sent)
         self.assertFalse(second_sent)
         self.assertEqual(cache.get(cache_key), self.adapter.hash_code("123456"))
         email_mock.assert_called_once()
 
     def test_verify_email_code_marks_user_verified_and_consumes_code(self):
-        cache_key = self.adapter.get_email_verification_cache_key(self.user.id)
+        cache_key = self.adapter.get_email_verification_cache_key(self.user.id, self.user.email)
         cache.set(cache_key, self.adapter.hash_code("123456"), timeout=60)
 
         valid = self.adapter.verify_email_code(self.user, "123456")
@@ -57,7 +57,7 @@ class AccountEmailAdapterTests(TestCase):
         self.assertIsNone(cache.get(cache_key))
 
     def test_check_code_rejects_wrong_value_without_consuming_valid_code(self):
-        cache_key = self.adapter.get_email_verification_cache_key(self.user.id)
+        cache_key = self.adapter.get_email_verification_cache_key(self.user.id, self.user.email)
         cache.set(cache_key, self.adapter.hash_code("123456"), timeout=60)
 
         self.assertFalse(self.adapter.check_code(self.user, cache_key, "999999"))

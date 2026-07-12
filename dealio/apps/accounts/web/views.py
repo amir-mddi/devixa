@@ -6,11 +6,13 @@ from django.contrib import messages
 from django.contrib.auth import login as django_login, logout as django_logout
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
+from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
 from django.views.generic.edit import FormView
 
 from dealio.apps.accounts.repositories.account_logic import AccountLogicRepository
+from dealio.apps.common.helpers.decorators.rate_limit import rate_limit
 from dealio.apps.accounts.web.forms import (
     ForgotPasswordTemplateForm,
     LoginTemplateForm,
@@ -48,6 +50,7 @@ class SafeNextUrlMixin:
         return self.fallback_success_url
 
 
+@method_decorator(rate_limit(authenticated_limit=10, anonymous_limit=10, period=300), name="post")
 class LoginPageView(SafeNextUrlMixin, FormView):
     template_name = AccountWebTemplateVO.LOGIN.value
     form_class = LoginTemplateForm
@@ -70,6 +73,7 @@ class LoginPageView(SafeNextUrlMixin, FormView):
         return redirect(self.get_success_url())
 
 
+@method_decorator(rate_limit(authenticated_limit=5, anonymous_limit=5, period=3600), name="post")
 class RegisterPageView(FormView):
     template_name = AccountWebTemplateVO.REGISTER.value
     form_class = RegisterTemplateForm
@@ -91,6 +95,7 @@ class RegisterPageView(FormView):
         return redirect(self.get_success_url())
 
 
+@method_decorator(rate_limit(authenticated_limit=3, anonymous_limit=3, period=300), name="post")
 class ForgotPasswordPageView(FormView):
     template_name = AccountWebTemplateVO.FORGOT_PASSWORD.value
     form_class = ForgotPasswordTemplateForm
@@ -113,6 +118,7 @@ class ForgotPasswordPageView(FormView):
         )
 
 
+@method_decorator(rate_limit(authenticated_limit=10, anonymous_limit=10, period=300), name="post")
 class RecoverPasswordPageView(FormView):
     template_name = AccountWebTemplateVO.RECOVER_PASSWORD.value
     form_class = RecoverPasswordTemplateForm

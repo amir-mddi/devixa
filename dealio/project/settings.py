@@ -1,6 +1,9 @@
 import os
 from pathlib import Path
 from typing import ContextManager
+
+from django.core.exceptions import ImproperlyConfigured
+from corsheaders.defaults import default_headers, default_methods
 from urllib.parse import quote
 
 import sentry_sdk
@@ -14,7 +17,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 from dotenv import load_dotenv
 
 env_path = os.path.join(BASE_DIR, f"deployment/env/{os.environ.get('ENV', 'local')}.env")
-load_dotenv(dotenv_path=env_path, override=True)
+load_dotenv(dotenv_path=env_path, override=False)
 
 BOT_RUNTIME_ENV_FILE_PATH = os.environ.get("BOT_RUNTIME_ENV_FILE_PATH", env_path)
 BOT_RUNTIME_ENV_WRITE_ENABLED = os.environ.get("BOT_RUNTIME_ENV_WRITE_ENABLED", "false")
@@ -35,6 +38,11 @@ APPEND_SLASH = general_config.append_slash
 ENCRYPTION_KEY = general_config.encryption_key
 IS_PROD = general_config.env == EnvVO.production
 
+if IS_PROD and (not SECRET_KEY or SECRET_KEY.startswith('unsafe-local-')):
+    raise ImproperlyConfigured('APP_SECRET_KEY must be configured with a strong value in production.')
+if IS_PROD and not ALLOWED_HOSTS:
+    raise ImproperlyConfigured('ALLOWED_HOSTS must be configured in production.')
+
 # Public project/brand info is stored in the database after the initial bootstrap.
 # The PROJECT_* env variables are read by shared.initial_data only when ProjectConfigModel does not exist.
 PROJECT_LOGGER_NAME = general_config.project_logger_name
@@ -51,10 +59,10 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.sites',
     # packages
-    "debug_toolbar",
     'corsheaders',
     'channels',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'django_filters',
     'django_password_validators',
     'django_cryptography',
@@ -72,12 +80,14 @@ INSTALLED_APPS = [
     'dealio.apps.telegram_bot',
     'django_prometheus',
 ]
+if DEBUG:
+    INSTALLED_APPS.append("debug_toolbar")
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
-    "debug_toolbar.middleware.DebugToolbarMiddleware",
     "django_prometheus.middleware.PrometheusBeforeMiddleware",
     # "dealio.project.middleware.PrimaryAfterWriteMiddleware",
     "dealio.apps.common.helpers.middlewares.response_metrics.ResponseMetricsMiddleware",
@@ -89,6 +99,8 @@ MIDDLEWARE = [
     # "dealio.apps.common.helpers.middlewares.block_token.BlockedTokenMiddleware",
     "django_prometheus.middleware.PrometheusAfterMiddleware",
 ]
+if DEBUG:
+    MIDDLEWARE.insert(4, "debug_toolbar.middleware.DebugToolbarMiddleware")
 
 ROOT_URLCONF = 'dealio.project.urls'
 WSGI_APPLICATION = 'dealio.project.wsgi.application'
@@ -96,26 +108,30 @@ ASGI_APPLICATION = 'dealio.project.application'
 CORS_ALLOW_ALL_ORIGINS = general_config.cors_origin_allow_all
 CORS_ALLOWED_ORIGINS = general_config.cors_allowed_origins
 CORS_ALLOW_CREDENTIALS = general_config.core_allow_credential
-CORS_ALLOW_HEADERS = general_config.core_allow_headers
-CORS_ALLOW_METHODS = general_config.core_allow_methods
+CORS_ALLOW_HEADERS = general_config.core_allow_headers or list(default_headers)
+CORS_ALLOW_METHODS = general_config.core_allow_methods or list(default_methods)
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "dealio.apps.accounts.security.jwt_authentication.ActiveUserJWTAuthentication",
     ],
     "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
-    # "DEFAULT_PERMISSION_CLASSES": [
-    #     "dealio.apps.permissions.access_control.AccessLimitPermission",
-    # ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     'DEFAULT_PAGINATION_CLASS': 'dealio.apps.common.helpers.pagination.cursor_pagination.HTTPSCursorPagination',
     "PAGE_SIZE": pagination_config.page_size,
-    # "DEFAULT_THROTTLE_CLASSES": [
-    #     "rest_framework.throttling.AnonRateThrottle",
-    #     "rest_framework.throttling.UserRateThrottle",
-    # ],
-    # "DEFAULT_THROTTLE_RATES": {"anon": "100/minute", "user": "100000/minute"},
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": os.environ.get("DRF_ANON_THROTTLE_RATE", "120/minute"),
+        "user": os.environ.get("DRF_USER_THROTTLE_RATE", "1200/minute"),
+        "login": os.environ.get("DRF_LOGIN_THROTTLE_RATE", "10/minute"),
+    },
 }
 
 AUTH_USER_MODEL = 'accounts.CustomUser'
@@ -220,10 +236,10 @@ if sentry_config.use_sentry:
     sentry_sdk.init(
         dsn=sentry_config.dsn,
         integrations=[DjangoIntegration()],
-        traces_sample_rate=1.0,
-        send_default_pii=True,
+        traces_sample_rate=sentry_config.traces_sample_rate,
+        send_default_pii=sentry_config.send_default_pii,
     )
-ACCESS_TOKEN_LIFE_TIME_HOUR = jwt_config.refresh_token_lifetime_hours
+ACCESS_TOKEN_LIFE_TIME_HOUR = jwt_config.access_token_lifetime_minutes
 # JWT Configuration
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": jwt_config.access_token_lifetime,
@@ -232,6 +248,12 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": jwt_config.blacklist_after_rotation,
     "ALGORITHM": jwt_config.algorithm,
     "VERIFYING_KEY": jwt_config.verifying_key,
+    "SIGNING_KEY": SECRET_KEY,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "UPDATE_LAST_LOGIN": True,
+    # Access tokens include a password fingerprint and are rejected immediately
+    # after a password change/reset.
+    "CHECK_REVOKE_TOKEN": True,
 }
 
 # Logging configuration
@@ -261,6 +283,66 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 PERMISSIONS: ContextManager = None
 DEFAULT_PERMISSION_CLS = AccessLimitPermission
+
+# Security headers and proxy trust. Keep proxy trust opt-in and restricted.
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = os.environ.get("X_FRAME_OPTIONS", "DENY")
+SECURE_REFERRER_POLICY = os.environ.get("SECURE_REFERRER_POLICY", "same-origin")
+SECURE_CROSS_ORIGIN_OPENER_POLICY = os.environ.get(
+    "SECURE_CROSS_ORIGIN_OPENER_POLICY", "same-origin"
+)
+SECURE_SSL_REDIRECT = IS_PROD and os.environ.get("SECURE_SSL_REDIRECT", "true").lower() in {"1", "true", "yes", "on"}
+SECURE_HSTS_SECONDS = int(os.environ.get("SECURE_HSTS_SECONDS", "31536000" if IS_PROD else "0"))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = IS_PROD and os.environ.get("SECURE_HSTS_INCLUDE_SUBDOMAINS", "true").lower() in {"1", "true", "yes", "on"}
+SECURE_HSTS_PRELOAD = IS_PROD and os.environ.get("SECURE_HSTS_PRELOAD", "false").lower() in {"1", "true", "yes", "on"}
+if os.environ.get("TRUST_PROXY_SSL_HEADER", "false").lower() in {"1", "true", "yes", "on"}:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+TRUST_X_FORWARDED_FOR = os.environ.get("TRUST_X_FORWARDED_FOR", "false").lower() in {"1", "true", "yes", "on"}
+TRUSTED_PROXY_IPS = [item.strip() for item in os.environ.get("TRUSTED_PROXY_IPS", "").split(",") if item.strip()]
+PROMETHEUS_METRICS_TOKEN = os.environ.get("PROMETHEUS_METRICS_TOKEN", "")
+DATA_UPLOAD_MAX_MEMORY_SIZE = max(1024, min(
+    int(os.environ.get("DATA_UPLOAD_MAX_MEMORY_SIZE", str(10 * 1024 * 1024))),
+    20 * 1024 * 1024,
+))
+FILE_UPLOAD_MAX_MEMORY_SIZE = max(1024, min(
+    int(os.environ.get("FILE_UPLOAD_MAX_MEMORY_SIZE", str(5 * 1024 * 1024))),
+    10 * 1024 * 1024,
+))
+DATA_UPLOAD_MAX_NUMBER_FIELDS = max(20, min(
+    int(os.environ.get("DATA_UPLOAD_MAX_NUMBER_FIELDS", "300")),
+    1000,
+))
+DATA_UPLOAD_MAX_NUMBER_FILES = max(1, min(
+    int(os.environ.get("DATA_UPLOAD_MAX_NUMBER_FILES", "10")),
+    50,
+))
+PAYMENT_RECEIPT_MAX_BYTES = max(1024, min(
+    int(os.environ.get("PAYMENT_RECEIPT_MAX_BYTES", str(5 * 1024 * 1024))),
+    10 * 1024 * 1024,
+))
+PAYMENT_RECEIPT_MAX_PIXELS = max(1_000_000, min(
+    int(os.environ.get("PAYMENT_RECEIPT_MAX_PIXELS", "40000000")),
+    100_000_000,
+))
+COURSE_THUMBNAIL_MAX_BYTES = max(1024, min(
+    int(os.environ.get("COURSE_THUMBNAIL_MAX_BYTES", str(3 * 1024 * 1024))),
+    10 * 1024 * 1024,
+))
+COURSE_THUMBNAIL_MAX_PIXELS = max(1_000_000, min(
+    int(os.environ.get("COURSE_THUMBNAIL_MAX_PIXELS", "25000000")),
+    50_000_000,
+))
+VERIFICATION_CODE_MAX_ATTEMPTS = int(os.environ.get("VERIFICATION_CODE_MAX_ATTEMPTS", "5"))
+KAVENEGAR_API_KEY = os.environ.get("KAVENEGAR_API_KEY", "")
+KAVENEGAR_BASE_URL = os.environ.get("KAVENEGAR_BASE_URL", "https://api.kavenegar.com/v1").rstrip("/")
+OAUTH_ALLOWED_REDIRECT_HOSTS = [item.strip().lower() for item in os.environ.get("OAUTH_ALLOWED_REDIRECT_HOSTS", "").split(",") if item.strip()]
+CHANNEL_SYNC_ALLOWED_MEDIA_HOSTS = [
+    item.strip().lower()
+    for item in os.environ.get("CHANNEL_SYNC_ALLOWED_MEDIA_HOSTS", "").split(",")
+    if item.strip()
+]
+
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 
@@ -301,6 +383,7 @@ OAUTH_ALLOWED_REDIRECT_URIS = [
     if uri.strip()
 ]
 OAUTH_HTTP_TIMEOUT_SECONDS = int(os.getenv("OAUTH_HTTP_TIMEOUT_SECONDS", "10"))
+OAUTH_MAX_RESPONSE_BYTES = int(os.getenv("OAUTH_MAX_RESPONSE_BYTES", str(1024 * 1024)))
 OAUTH_DEFAULT_USER_ROLE_SYMBOL = os.getenv("OAUTH_DEFAULT_USER_ROLE_SYMBOL", "user")
 
 RUBIKA_BOT_TOKEN = os.environ.get("RUBIKA_BOT_TOKEN")
@@ -327,5 +410,22 @@ PARDAKHTYAR_SUCCESS_CODES = os.environ.get("PARDAKHTYAR_SUCCESS_CODES", "100,0,o
 PARDAKHTYAR_HTTP_TIMEOUT_SECONDS = os.environ.get("PARDAKHTYAR_HTTP_TIMEOUT_SECONDS", "12")
 PARDAKHTYAR_FRONTEND_SUCCESS_URL = os.environ.get("PARDAKHTYAR_FRONTEND_SUCCESS_URL", "")
 PARDAKHTYAR_FRONTEND_FAILED_URL = os.environ.get("PARDAKHTYAR_FRONTEND_FAILED_URL", "")
+PARDAKHTYAR_ALLOWED_HOSTS = [
+    item.strip() for item in os.environ.get("PARDAKHTYAR_ALLOWED_HOSTS", "").split(",") if item.strip()
+]
+PARDAKHTYAR_PAYMENT_ALLOWED_HOSTS = [
+    item.strip() for item in os.environ.get("PARDAKHTYAR_PAYMENT_ALLOWED_HOSTS", "").split(",") if item.strip()
+]
+PARDAKHTYAR_CALLBACK_ALLOWED_HOSTS = [
+    item.strip() for item in os.environ.get("PARDAKHTYAR_CALLBACK_ALLOWED_HOSTS", "").split(",") if item.strip()
+]
+PARDAKHTYAR_FRONTEND_ALLOWED_HOSTS = [
+    item.strip() for item in os.environ.get("PARDAKHTYAR_FRONTEND_ALLOWED_HOSTS", "").split(",") if item.strip()
+]
+PARDAKHTYAR_MAX_RESPONSE_BYTES = max(1024, min(
+    int(os.environ.get("PARDAKHTYAR_MAX_RESPONSE_BYTES", str(1024 * 1024))),
+    5 * 1024 * 1024,
+))
 
-KAVENEGAR_API_KEY = os.environ.get("KAVENEGAR_API_KEY", "")
+
+BOT_PROVIDER_MAX_RESPONSE_BYTES = max(1024, min(int(os.environ.get("BOT_PROVIDER_MAX_RESPONSE_BYTES", str(1024 * 1024))), 5 * 1024 * 1024))

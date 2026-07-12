@@ -105,7 +105,7 @@ class CourseReviewsAPIView(PaginatedResponseMixin, APIView):
             user=request.user,
             dto=ReviewCreateDTO(**serializer.validated_data),
         )
-        response_serializer = CourseReviewAdminSerializer(review, context={"request": request})
+        response_serializer = CourseReviewSerializer(review, context={"request": request})
         return ResponseUtil(
             data={
                 "detail": CourseMessagesVO.REVIEW_SUBMITTED,

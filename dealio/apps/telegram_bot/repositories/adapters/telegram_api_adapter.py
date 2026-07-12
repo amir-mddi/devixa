@@ -1,13 +1,18 @@
 from __future__ import annotations
 
 import json
+import os
 from typing import Any
 
 import requests
+from django.conf import settings
+
+from dealio.apps.telegram_bot.dtos.commerce_bot_dtos import BotDownloadedFileDTO
 
 from dealio.apps.telegram_bot.enums.bot_setting_enums import BotSettingProviderEnum
 from dealio.apps.telegram_bot.interfaces.bot_client_interface import BotClientInterface
 from dealio.apps.telegram_bot.repositories.logic.bot_setting_logic import BotRuntimeConfigProvider
+from dealio.apps.telegram_bot.repositories.adapters.bot_http_transport import BotProviderHttpTransport
 
 
 class TelegramApiAdapter(BotClientInterface):
@@ -50,20 +55,16 @@ class TelegramApiAdapter(BotClientInterface):
         if not self.is_configured:
             raise RuntimeError("TELEGRAM_BOT_TOKEN is required.")
 
-        response = requests.post(
-            f"{self.base_url}/{method_name}",
-            json=payload or {},
+        body = BotProviderHttpTransport.post_json(
+            url=f"{self.base_url}/{method_name}",
+            method_name=method_name,
+            payload=payload or {},
             timeout=(3.0, 15.0),
             proxies=self.proxies,
+            provider_name="Telegram",
         )
-        try:
-            body = response.json()
-        except ValueError:
-            body = {"ok": False, "description": response.text}
-
-        if not response.ok or not body.get("ok"):
-            raise RuntimeError(f"Telegram API error in {method_name}: {body}")
-
+        if body.get("ok") is not True:
+            raise RuntimeError(f"Telegram API request failed in {method_name}.")
         return body
 
     def request_multipart(
@@ -76,21 +77,17 @@ class TelegramApiAdapter(BotClientInterface):
         if not self.is_configured:
             raise RuntimeError("TELEGRAM_BOT_TOKEN is required.")
 
-        response = requests.post(
-            f"{self.base_url}/{method_name}",
+        body = BotProviderHttpTransport.post_multipart(
+            url=f"{self.base_url}/{method_name}",
+            method_name=method_name,
             data=data or {},
             files=files or {},
             timeout=(5.0, 60.0),
             proxies=self.proxies,
+            provider_name="Telegram",
         )
-        try:
-            body = response.json()
-        except ValueError:
-            body = {"ok": False, "description": response.text}
-
-        if not response.ok or not body.get("ok"):
-            raise RuntimeError(f"Telegram API error in {method_name}: {body}")
-
+        if body.get("ok") is not True:
+            raise RuntimeError(f"Telegram API request failed in {method_name}.")
         return body
 
 
@@ -108,6 +105,66 @@ class TelegramApiAdapter(BotClientInterface):
         if not file_path:
             return ""
         return f"https://api.telegram.org/file/bot{self.token}/{file_path}"
+
+    def download_file(self, file_id: str, *, filename: str = "") -> BotDownloadedFileDTO:
+        """Download a Telegram file without exposing its tokenized provider URL."""
+        body = self.get_file(file_id)
+        result = body.get("result") or {}
+        file_path = str(result.get("file_path") or "").strip()
+        path_parts = [part for part in file_path.split("/") if part]
+        if (
+            not file_path
+            or file_path.startswith(("/", "\\"))
+            or "://" in file_path
+            or any(part in {".", ".."} for part in path_parts)
+            or len(file_path) > 500
+        ):
+            raise RuntimeError("Telegram file metadata is unavailable.")
+
+        max_bytes = int(getattr(settings, "PAYMENT_RECEIPT_MAX_BYTES", 5 * 1024 * 1024))
+        provider_url = f"https://api.telegram.org/file/bot{self.token}/{file_path}"
+        response = None
+        try:
+            response = requests.get(
+                provider_url,
+                timeout=(5.0, 30.0),
+                stream=True,
+                proxies=self.proxies,
+                allow_redirects=False,
+            )
+            if response.status_code != 200:
+                raise RuntimeError("Telegram file download failed.")
+            content_length = response.headers.get("Content-Length")
+            if content_length:
+                try:
+                    if int(content_length) > max_bytes:
+                        raise RuntimeError("Telegram receipt file is too large.")
+                except ValueError:
+                    pass
+
+            chunks: list[bytes] = []
+            total = 0
+            for chunk in response.iter_content(chunk_size=64 * 1024):
+                if not chunk:
+                    continue
+                total += len(chunk)
+                if total > max_bytes:
+                    raise RuntimeError("Telegram receipt file is too large.")
+                chunks.append(chunk)
+
+            safe_filename = os.path.basename(filename or file_path).replace("\x00", "")[:180]
+            if not safe_filename:
+                safe_filename = "telegram-receipt.bin"
+            return BotDownloadedFileDTO(
+                content=b"".join(chunks),
+                filename=safe_filename,
+                content_type=(response.headers.get("Content-Type", "") or "application/octet-stream").split(";", 1)[0],
+            )
+        except requests.RequestException:
+            raise RuntimeError("Telegram file download failed.") from None
+        finally:
+            if response is not None:
+                response.close()
 
     def send_photo(self, chat_id: str | int, photo: str, *, caption: str = "") -> dict[str, Any]:
         payload: dict[str, Any] = {"chat_id": chat_id, "photo": photo}

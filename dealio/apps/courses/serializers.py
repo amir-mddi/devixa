@@ -11,6 +11,7 @@ from dealio.apps.courses.models import (
     CourseReview,
 )
 from dealio.apps.shared.serializers import BaseSerializerModel
+from dealio.apps.common.helpers.validators.security_validators import validate_course_thumbnail
 
 User = get_user_model()
 
@@ -116,8 +117,12 @@ class CourseDetailSerializer(CourseListSerializer):
 
 
 class CourseAdminSerializer(BaseSerializerModel):
+    thumbnail = serializers.ImageField(required=False, allow_null=True, validators=[validate_course_thumbnail])
     slug = serializers.SlugField(required=False, allow_blank=True)
-    instructor = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False)
+    instructor = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(is_active=True, is_deleted=False),
+        required=False,
+    )
 
     class Meta(BaseSerializerModel.Meta):
         model = Course
@@ -154,22 +159,19 @@ class CourseReviewSerializer(serializers.ModelSerializer):
         fields = ["id", "rating", "title", "comment", "user", "created_at"]
 
     def get_user(self, obj):
-        return {
-            "id": str(obj.user_id),
-            "username": getattr(obj.user, "username", ""),
-        }
+        return {"username": getattr(obj.user, "username", "")}
 
 
 class CourseReviewCreateSerializer(serializers.Serializer):
     course_id = serializers.UUIDField(write_only=True)
     rating = serializers.IntegerField(min_value=1, max_value=5)
     title = serializers.CharField(max_length=180, required=False, allow_blank=True)
-    comment = serializers.CharField(allow_blank=False)
+    comment = serializers.CharField(allow_blank=False, min_length=3, max_length=5000, trim_whitespace=True)
 
 
 class CourseReviewModerationSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=[ReviewStatusEnum.APPROVED.value, ReviewStatusEnum.REJECTED.value])
-    admin_note = serializers.CharField(required=False, allow_blank=True)
+    admin_note = serializers.CharField(required=False, allow_blank=True, max_length=2000, trim_whitespace=True)
 
 
 class CourseReviewAdminSerializer(BaseSerializerModel):

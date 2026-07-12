@@ -1,11 +1,11 @@
-from dealio.apps.common.utils.common_utils import CommonUtils
 import os
 import time
 
-from django.urls import resolve, Resolver404
-from prometheus_client import Histogram, Counter
+from django.conf import settings
+from prometheus_client import Counter, Histogram
 
 from dealio.apps.common.response_utils import CommonJsonResponse
+from dealio.apps.common.utils.common_utils import CommonUtils
 from dealio.apps.core_models.vo.common_vo import ResponseVO
 
 logger = CommonUtils.get_project_logger(__name__)
@@ -14,13 +14,21 @@ REQUEST_LATENCY = Histogram(
     "django_request_latency_seconds",
     "Response time in seconds for requests",
     ["endpoint", "method", "process_id"],
-    buckets=[0.1, 0.2, 0.5, 1, 2, 5, 10]
+    buckets=[0.1, 0.2, 0.5, 1, 2, 5, 10],
 )
 EXCEPTION_COUNT = Counter(
     "django_request_exceptions_total",
     "Total exceptions raised by endpoint",
-    ["endpoint", "method"]
+    ["endpoint", "method"],
 )
+
+
+def _endpoint_label(request) -> str:
+    """Use bounded route metadata instead of attacker-controlled raw paths."""
+    match = getattr(request, "resolver_match", None)
+    if match:
+        return match.route or match.view_name or match.url_name or "resolved"
+    return "unresolved"
 
 
 class ResponseMetricsMiddleware:
@@ -28,25 +36,27 @@ class ResponseMetricsMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        try:
-            resolve(request.path)
-        except Resolver404:
-            return CommonJsonResponse(status_code=404, status=ResponseVO.failed, message=ResponseVO.invalid_url_msg,
-                                      code=ResponseVO.invalid_url_code)
-        start_time = time.time()
-        endpoint = request.path
+        start_time = time.monotonic()
         method = request.method
         try:
             response = self.get_response(request)
             return response
-        except Exception as e:
+        except Exception:
+            endpoint = _endpoint_label(request)
             EXCEPTION_COUNT.labels(endpoint=endpoint, method=method).inc()
-            logger.error(f"Exception raised with detail: {e}")
-            if os.environ.get('ENV', 'DEV') == 'PROD':
-                return CommonJsonResponse(status_code=500, status=ResponseVO.failed,
-                                          message=ResponseVO.invalid_internal_error_msg,
-                                          code=ResponseVO.invalid_internal_error_code)
-            raise e
+            logger.exception("Unhandled request exception.")
+            if not settings.DEBUG:
+                return CommonJsonResponse(
+                    status_code=500,
+                    status=ResponseVO.failed,
+                    message=ResponseVO.invalid_internal_error_msg,
+                    code=ResponseVO.invalid_internal_error_code,
+                )
+            raise
         finally:
-            elapsed_time = time.time() - start_time
-            REQUEST_LATENCY.labels(endpoint=endpoint, method=method, process_id=os.getpid()).observe(elapsed_time)
+            endpoint = _endpoint_label(request)
+            REQUEST_LATENCY.labels(
+                endpoint=endpoint,
+                method=method,
+                process_id=os.getpid(),
+            ).observe(time.monotonic() - start_time)

@@ -1,7 +1,9 @@
 from django.conf import settings
 from django.shortcuts import redirect
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from rest_framework.parsers import FormParser, MultiPartParser
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.views import APIView
 
 from dealio.apps.billing.dtos import (
@@ -27,8 +29,13 @@ from dealio.apps.billing.serializers import (
 )
 from dealio.apps.billing.vo import BillingMessagesVO
 from dealio.apps.common.response_utils import ResponseUtil
+from dealio.apps.common.utils.common_utils import CommonUtils
+from dealio.apps.common.utils.network_security import UnsafeOutboundUrlError, validate_public_https_url
 from dealio.apps.common.utils.pagination_response_mixin import PaginatedResponseMixin
 from dealio.apps.core_models.constants.common_vo import ResponseVO
+from dealio.apps.shared.throttling import PaymentCallbackThrottle
+
+logger = CommonUtils.get_project_logger(__name__)
 
 
 class CheckoutAPIView(APIView):
@@ -164,7 +171,8 @@ class PaymentReceiptUploadAPIView(APIView):
 
 class PaymentGatewayCallbackAPIView(APIView):
     authentication_classes = []
-    permission_classes = []
+    permission_classes = [AllowAny]
+    throttle_classes = [PaymentCallbackThrottle]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -178,30 +186,68 @@ class PaymentGatewayCallbackAPIView(APIView):
 
     def _handle(self, request, provider: str):
         payload = request.query_params.dict()
-        payload.update(request.data if isinstance(request.data, dict) else {})
-        payment, verification_result = self.logic.confirm_gateway_callback(
-            PaymentGatewayCallbackDTO(provider=provider, payload=payload)
-        )
+        if isinstance(request.data, dict):
+            payload.update(request.data)
+        try:
+            payment, verification_result = self.logic.confirm_gateway_callback(
+                PaymentGatewayCallbackDTO(provider=provider, payload=payload)
+            )
+        except (NotFound, ValidationError):
+            return ResponseUtil(
+                data={"detail": "Invalid payment callback."},
+                status_code=ResponseVO.http_400,
+            )
+
         success = bool(verification_result.get("is_success"))
         redirect_url = self._redirect_url(success=success, payment=payment)
         if redirect_url:
-            return redirect(redirect_url)
-        return ResponseUtil(
+            response = redirect(redirect_url)
+            response["Cache-Control"] = "no-store"
+            return response
+        response = ResponseUtil(
             data={
                 "detail": BillingMessagesVO.GATEWAY_VERIFIED,
                 "is_success": success,
-                "payment": PaymentSerializer(payment, context={"request": request}).data,
             },
             status_code=ResponseVO.http_200,
         )
+        response["Cache-Control"] = "no-store"
+        return response
 
     @staticmethod
     def _redirect_url(success: bool, payment) -> str:
-        url = getattr(settings, "PARDAKHTYAR_FRONTEND_SUCCESS_URL", "") if success else getattr(settings, "PARDAKHTYAR_FRONTEND_FAILED_URL", "")
-        if not url:
+        configured_url = (
+            getattr(settings, "PARDAKHTYAR_FRONTEND_SUCCESS_URL", "")
+            if success
+            else getattr(settings, "PARDAKHTYAR_FRONTEND_FAILED_URL", "")
+        )
+        configured_url = str(configured_url or "").strip()
+        if not configured_url:
             return ""
-        separator = "&" if "?" in url else "?"
-        return f"{url}{separator}payment_id={payment.id}&order_number={payment.order.order_number}&status={payment.status}"
+
+        allowed_hosts = getattr(settings, "PARDAKHTYAR_FRONTEND_ALLOWED_HOSTS", ()) or ()
+        try:
+            safe_url = validate_public_https_url(
+                configured_url,
+                allowed_hosts=allowed_hosts,
+                resolve_dns=False,
+            )
+        except UnsafeOutboundUrlError:
+            logger.error("Configured payment frontend redirect URL is unsafe.")
+            return ""
+
+        parsed = urlsplit(safe_url)
+        query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+        query.update(
+            {
+                "payment_id": str(payment.id),
+                "order_number": payment.order.order_number,
+                "status": payment.status,
+            }
+        )
+        return urlunsplit(
+            (parsed.scheme, parsed.netloc, parsed.path, urlencode(query), "")
+        )
 
 
 class AdminOrdersAPIView(PaginatedResponseMixin, APIView):

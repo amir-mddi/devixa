@@ -37,7 +37,7 @@ class BotUpdateProcessLogic:
             self.runtime_repository.process_update(dto.update)
         except Exception as exc:
             if update_log:
-                self.update_log_repository.mark_error(update_log, str(exc))
+                self.update_log_repository.mark_error(update_log, exc.__class__.__name__)
             raise
 
         if update_log:

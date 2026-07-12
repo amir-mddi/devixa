@@ -1,32 +1,24 @@
-from dealio.apps.common.utils.common_utils import CommonUtils
-
-import jwt
-from django.core.cache import cache
 from django.http import JsonResponse
-
-logger = CommonUtils.get_project_logger(__name__)
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import UntypedToken
 
 
 class BlockedTokenMiddleware:
+    """Legacy middleware kept safe for deployments that still enable it.
+
+    Signature/expiry validation is delegated to SimpleJWT. The middleware does
+    not log bearer tokens and does not maintain a second plaintext-token cache.
+    """
+
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        auth_header = request.headers.get('Authorization')
-        if auth_header and 'Bearer' in auth_header:
-            token = auth_header.split("Bearer ")[1]
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header.removeprefix("Bearer ").strip()
             try:
-                jwt_sign = jwt.decode(token, options={"verify_signature": False})
-                user_id = jwt_sign.get('user_id')
-            except jwt.exceptions.DecodeError as e:
-                user_id = None
-                logger.info(f"Token:{token}")
-                logger.error(f"error occurred with detail when decoding jwt: {e}")
-            access_token = cache.get(f"mock_service_user_access_token_with_id:{user_id}", None) if user_id else None
-            if not (access_token and access_token == token):
-                # return CommonJsonResponse(status_code=403, status=ResponseVO.failed,
-                #                           message=ResponseVO.invalid_token_msg,
-                #                           code=ResponseVO.invalid_token_code)
-                return JsonResponse(data={"detail": "Token is expired"}, status=403)
-
+                UntypedToken(token)
+            except TokenError:
+                return JsonResponse({"detail": "Invalid or expired token."}, status=401)
         return self.get_response(request)

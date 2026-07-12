@@ -39,6 +39,7 @@ class BaseModelTests(TestCase):
 
         soft_deleted.refresh_from_db()
         self.assertTrue(soft_deleted.is_deleted)
+        self.assertFalse(soft_deleted.is_active)
         self.assertFalse(Access.objects.filter(pk=hard_deleted.pk).exists())
 
     def test_bulk_create_rejects_mixed_model_types(self):

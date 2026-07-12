@@ -23,17 +23,19 @@ class AccountEmailAdapter(metaclass=Singleton):
         return VerificationCodeCacheAdapter.hash_code(code)
 
     @staticmethod
-    def get_email_verification_cache_key(user_id: str) -> str:
-        return f"email_verification:{user_id}"
+    def get_email_verification_cache_key(user_id: str, email: str) -> str:
+        fingerprint = VerificationCodeCacheAdapter.fingerprint_identifier(email)
+        return f"email_verification:{user_id}:{fingerprint}"
 
     @staticmethod
-    def get_forget_password_verification_cache_key(user_id: str) -> str:
-        return f"forget_password_verification:{user_id}"
+    def get_forget_password_verification_cache_key(user_id: str, email: str) -> str:
+        fingerprint = VerificationCodeCacheAdapter.fingerprint_identifier(email)
+        return f"forget_password_verification:{user_id}:{fingerprint}"
 
     def send_email_verification_code(self, user) -> bool:
         return self._send_code_email(
             user=user,
-            cache_key=self.get_email_verification_cache_key(str(user.id)),
+            cache_key=self.get_email_verification_cache_key(str(user.id), user.email),
             subject="اعتباری سنجی ایمیل",
             template_name="emails/fa_verification_code.html",
             context_subject="کد اعتبار سنجی ایمیل شما",
@@ -42,7 +44,7 @@ class AccountEmailAdapter(metaclass=Singleton):
     def send_forget_password_verification_code(self, user) -> bool:
         return self._send_code_email(
             user=user,
-            cache_key=self.get_forget_password_verification_cache_key(str(user.id)),
+            cache_key=self.get_forget_password_verification_cache_key(str(user.id), user.email),
             subject="اعتباری سنجی رمز عبور",
             template_name="emails/fa_forgot_password.html",
             context_subject="کد اعتبار سنجی فراموشی رمز عبور",
@@ -101,9 +103,9 @@ class AccountEmailAdapter(metaclass=Singleton):
         return True
 
     def verify_email_code(self, user, code: str) -> bool:
-        cache_key = self.get_email_verification_cache_key(str(user.id))
+        cache_key = self.get_email_verification_cache_key(str(user.id), user.email)
         return self.check_code(user, cache_key, code, mark_email_verified=True)
 
     def verify_forget_password_code(self, user, code: str) -> bool:
-        cache_key = self.get_forget_password_verification_cache_key(str(user.id))
+        cache_key = self.get_forget_password_verification_cache_key(str(user.id), user.email)
         return self.check_code(user, cache_key, code)

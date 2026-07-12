@@ -114,12 +114,13 @@ class TelegramCommerceBotLogicRepository(metaclass=Singleton):
     def list_orders(self, user, limit: int = 10):
         return self.adapter.list_user_orders(user, limit=limit)
 
-    def upload_payment_receipt(self, user, *, payment_id, tracking_code: str = "", receipt_file_url: str = "", note: str = ""):
+    def upload_payment_receipt(self, user, *, payment_id, tracking_code: str = "", receipt_file=None, receipt_file_url: str = "", note: str = ""):
         return self.adapter.upload_payment_receipt(
             user=user,
             dto=TelegramPaymentReceiptDTO(
                 payment_id=payment_id,
                 tracking_code=tracking_code,
+                receipt_file=receipt_file,
                 receipt_file_url=receipt_file_url,
                 note=note,
             ),

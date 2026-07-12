@@ -6,8 +6,11 @@ from typing import Sequence
 
 import os
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.management.base import BaseCommand
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
+from django.core.management.base import BaseCommand, CommandError
 from django.utils.timezone import now
 
 from dealio.apps.accounts.models import Role
@@ -59,6 +62,8 @@ class Command(BaseCommand):
     help = DemoSeedVO.COMMAND_HELP
 
     def handle(self, *args, **options):
+        if getattr(settings, "IS_PROD", False):
+            raise CommandError("Demo course seeding is disabled in production.")
         instructor = self._get_or_create_instructor()
         categories = self._seed_categories()
         self._seed_courses(instructor=instructor, categories=categories)
@@ -82,8 +87,17 @@ class Command(BaseCommand):
             },
         )
         if created:
-            user.set_password(os.getenv("DEMO_ADMIN_PASSWORD", "Admin12345Strong!"))
-            user.save(update_fields=["password"])
+            password = os.getenv("DEMO_ADMIN_PASSWORD", "")
+            if not password:
+                user.delete(soft=False)
+                raise CommandError("DEMO_ADMIN_PASSWORD must be configured for demo seeding.")
+            try:
+                validate_password(password, user=user)
+            except ValidationError as exc:
+                user.delete(soft=False)
+                raise CommandError("DEMO_ADMIN_PASSWORD is not strong enough.") from exc
+            user.set_password(password)
+            user.save(update_fields=["password", "updated_at"])
         return user
 
     @staticmethod

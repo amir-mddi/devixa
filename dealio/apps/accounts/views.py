@@ -28,6 +28,7 @@ from dealio.apps.accounts.serializers import (
 )
 from dealio.apps.accounts.vo.password_recovery_vo import (
     AccountPasswordRecoveryApiMessageVO,
+    AccountPasswordRecoveryErrorCodeVO,
     AccountPasswordRecoveryResponseKeyVO,
 )
 from dealio.apps.accounts.vo.phone_verification_vo import (
@@ -56,16 +57,10 @@ class ChangePasswordView(BaseViewSet):
         serializer = self.serializer_class(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
 
-        user = request.user
-        current_password = serializer.validated_data["current_password"]
-        if not user.check_password(current_password):
-            return ResponseUtil(
-                custom_fields={"success": False, "message": "incorrect password provide"},
-                status_code=ResponseVO.http_400,
-            )
-
-        user.set_password(serializer.validated_data["new_password"])
-        user.save(update_fields=["password"])
+        account_logic.change_password(
+            user=request.user,
+            new_password=serializer.validated_data["new_password"],
+        )
         return ResponseUtil(
             custom_fields={"success": True, "message": "successfully changed"},
             status_code=ResponseVO.http_200,
@@ -74,6 +69,7 @@ class ChangePasswordView(BaseViewSet):
 
 @method_decorator(rate_limit(authenticated_limit=2, period=60, anonymous_limit=0), name="dispatch")
 class UsersApiView(BaseAPIView):
+    permission_classes = [IsAuthenticated]
     serializer_class = UserSerializer
     model_class = User
 
@@ -96,6 +92,23 @@ class UserViewSet(BaseViewSet):
     permission_classes = [IsAuthenticated]
     tag_name = "Users"
     serializer_class = UserSerializer
+
+    def list(self, request):
+        if not request.user.is_staff:
+            return ResponseUtil(
+                data={"detail": "Administrator access is required."},
+                status_code=ResponseVO.http_403,
+            )
+        return super().list(request)
+
+    def retrieve(self, request, pk=None):
+        if not request.user.is_staff and str(request.user.pk) != str(pk):
+            # Avoid confirming whether another user identifier exists.
+            return ResponseUtil(
+                data={"detail": "User was not found."},
+                status_code=ResponseVO.http_404,
+            )
+        return super().retrieve(request, pk=pk)
 
 
 @method_decorator(rate_limit(authenticated_limit=20, period=60, anonymous_limit=0), name="dispatch")
@@ -351,10 +364,13 @@ class GitHubOAuthLoginAPIView(BaseSocialOAuthLoginAPIView):
 
 def _password_reset_response(result):
     if not result.is_success:
+        detail = (
+            AccountPasswordRecoveryApiMessageVO.INVALID_PASSWORD.value
+            if result.error_code == AccountPasswordRecoveryErrorCodeVO.INVALID_PASSWORD
+            else AccountPasswordRecoveryApiMessageVO.INVALID_OR_EXPIRED_CODE.value
+        )
         return ResponseUtil(
-            data={
-                AccountPasswordRecoveryResponseKeyVO.DETAIL.value: AccountPasswordRecoveryApiMessageVO.INVALID_OR_EXPIRED_CODE.value,
-            },
+            data={AccountPasswordRecoveryResponseKeyVO.DETAIL.value: detail},
             status_code=ResponseVO.http_400,
         )
 

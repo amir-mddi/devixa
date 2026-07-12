@@ -9,6 +9,7 @@ class KavenegarVo:
     CREATE_ACCOUNT = "CreateAccount"
     FORGOT_PASSWORD = "ForgotPassword"
     VERIFY_PHONE_NUMBER = "VerifyPhoneNumber"
+    CONNECT_ACCOUNT = "ConnectAccount"
 
 
 class ResponseVO:

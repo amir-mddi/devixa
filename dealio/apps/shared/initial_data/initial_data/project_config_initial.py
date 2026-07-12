@@ -6,6 +6,7 @@ import re
 from django.db import OperationalError, ProgrammingError, transaction
 
 from dealio.apps.shared.models import ProjectConfigModel
+from dealio.apps.common.utils.network_security import UnsafeOutboundUrlError, validate_public_https_url
 from dealio.apps.shared.vo.project_config_vo import (
     ProjectConfigDefaultVO,
     ProjectConfigEnvNameVO,
@@ -31,6 +32,16 @@ def _slugify(value: str) -> str:
 
 def _email(local_part: ProjectConfigDefaultVO, env_name: ProjectConfigEnvNameVO, domain: str) -> str:
     return _env(env_name, f"{local_part.value}@{domain}")
+
+
+def _public_url(value: str) -> str:
+    value = _clean(value)
+    if not value:
+        return ""
+    try:
+        return validate_public_https_url(value, resolve_dns=False)
+    except UnsafeOutboundUrlError:
+        return ""
 
 
 def build_project_config_initial_data() -> dict[str, str]:
@@ -71,12 +82,12 @@ def build_project_config_initial_data() -> dict[str, str]:
             ProjectConfigEnvNameVO.PARTNERSHIP_EMAIL,
             email_domain,
         ),
-        ProjectConfigFieldNameVO.GITHUB_URL.value: _env(ProjectConfigEnvNameVO.GITHUB_URL, ProjectConfigDefaultVO.EMPTY_URL.value),
-        ProjectConfigFieldNameVO.LINKEDIN_URL.value: _env(ProjectConfigEnvNameVO.LINKEDIN_URL, ProjectConfigDefaultVO.EMPTY_URL.value),
-        ProjectConfigFieldNameVO.TELEGRAM_URL.value: _env(ProjectConfigEnvNameVO.TELEGRAM_URL, ProjectConfigDefaultVO.EMPTY_URL.value),
-        ProjectConfigFieldNameVO.INSTAGRAM_URL.value: _env(ProjectConfigEnvNameVO.INSTAGRAM_URL, ProjectConfigDefaultVO.EMPTY_URL.value),
-        ProjectConfigFieldNameVO.TELEGRAM_BOT_URL.value: _env(ProjectConfigEnvNameVO.TELEGRAM_BOT_URL, ProjectConfigDefaultVO.EMPTY_URL.value),
-        ProjectConfigFieldNameVO.BALE_BOT_URL.value: _env(ProjectConfigEnvNameVO.BALE_BOT_URL, ProjectConfigDefaultVO.EMPTY_URL.value),
+        ProjectConfigFieldNameVO.GITHUB_URL.value: _public_url(_env(ProjectConfigEnvNameVO.GITHUB_URL, ProjectConfigDefaultVO.EMPTY_URL.value)),
+        ProjectConfigFieldNameVO.LINKEDIN_URL.value: _public_url(_env(ProjectConfigEnvNameVO.LINKEDIN_URL, ProjectConfigDefaultVO.EMPTY_URL.value)),
+        ProjectConfigFieldNameVO.TELEGRAM_URL.value: _public_url(_env(ProjectConfigEnvNameVO.TELEGRAM_URL, ProjectConfigDefaultVO.EMPTY_URL.value)),
+        ProjectConfigFieldNameVO.INSTAGRAM_URL.value: _public_url(_env(ProjectConfigEnvNameVO.INSTAGRAM_URL, ProjectConfigDefaultVO.EMPTY_URL.value)),
+        ProjectConfigFieldNameVO.TELEGRAM_BOT_URL.value: _public_url(_env(ProjectConfigEnvNameVO.TELEGRAM_BOT_URL, ProjectConfigDefaultVO.EMPTY_URL.value)),
+        ProjectConfigFieldNameVO.BALE_BOT_URL.value: _public_url(_env(ProjectConfigEnvNameVO.BALE_BOT_URL, ProjectConfigDefaultVO.EMPTY_URL.value)),
         ProjectConfigFieldNameVO.PHONE.value: _env(ProjectConfigEnvNameVO.PHONE, ProjectConfigDefaultVO.PHONE.value),
         ProjectConfigFieldNameVO.ADDRESS.value: _env(ProjectConfigEnvNameVO.ADDRESS, ProjectConfigDefaultVO.ADDRESS.value),
         ProjectConfigFieldNameVO.WORKING_HOURS.value: _env(

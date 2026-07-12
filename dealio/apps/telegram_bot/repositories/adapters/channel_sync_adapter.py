@@ -7,6 +7,12 @@ from typing import Any
 from urllib.parse import urlparse
 
 import requests
+from django.conf import settings
+
+from dealio.apps.common.utils.network_security import (
+    UnsafeOutboundUrlError,
+    validate_public_https_url,
+)
 
 from dealio.apps.telegram_bot.dtos.channel_sync_dtos import ChannelMediaDTO, ChannelPostDTO
 from dealio.apps.telegram_bot.enums.bot_setting_enums import BotSettingProviderEnum
@@ -170,11 +176,42 @@ class ChannelSyncMessengerAdapter:
 
     def _download_media(self, media: ChannelMediaDTO) -> DownloadedChannelMedia | None:
         url = media.file_url
-        if not url or not url.startswith(("http://", "https://")):
+        if not url:
             return None
 
-        response = requests.get(url, timeout=(5.0, 60.0), stream=True)
+        try:
+            safe_url = validate_public_https_url(
+                url,
+                allowed_hosts=self._allowed_media_hosts(),
+                resolve_dns=True,
+            )
+        except UnsafeOutboundUrlError as exc:
+            raise RuntimeError("Channel sync media URL is not allowed.") from exc
+
+        max_download_bytes = self.max_download_bytes()
+        session = requests.Session()
+        # Do not inherit arbitrary host-level proxy environment variables for
+        # server-side downloads. Provider clients have explicit proxy settings.
+        session.trust_env = False
+        response = session.get(
+            safe_url,
+            timeout=(5.0, 60.0),
+            stream=True,
+            allow_redirects=False,
+        )
+        if 300 <= response.status_code < 400:
+            raise RuntimeError("Channel sync media redirects are not allowed.")
         response.raise_for_status()
+
+        content_length = response.headers.get("Content-Length")
+        if content_length:
+            try:
+                if int(content_length) > max_download_bytes:
+                    raise RuntimeError(
+                        f"Channel sync media is larger than {max_download_bytes} bytes."
+                    )
+            except ValueError:
+                pass
 
         chunks: list[bytes] = []
         total = 0
@@ -182,7 +219,6 @@ class ChannelSyncMessengerAdapter:
             if not chunk:
                 continue
             total += len(chunk)
-            max_download_bytes = self.max_download_bytes()
             if total > max_download_bytes:
                 raise RuntimeError(f"Channel sync media is larger than {max_download_bytes} bytes.")
             chunks.append(chunk)
@@ -190,8 +226,36 @@ class ChannelSyncMessengerAdapter:
         content = b"".join(chunks)
         content_type = response.headers.get("Content-Type", "").split(";", 1)[0].strip()
         mime_type = media.mime_type or content_type or self._mime_type_for(media.media_type)
-        filename = media.file_name or self._filename_from_url(url) or self._filename_for(media.media_type, mime_type)
+        filename = self._safe_filename(
+            media.file_name
+            or self._filename_from_url(safe_url)
+            or self._filename_for(media.media_type, mime_type)
+        )
         return DownloadedChannelMedia(content=content, filename=filename, mime_type=mime_type)
+
+    @staticmethod
+    def _allowed_media_hosts() -> tuple[str, ...]:
+        hosts = {"api.telegram.org"}
+        for provider, key in (
+            (BotSettingProviderEnum.BALE.value, "bot_base_url"),
+            (BotSettingProviderEnum.RUBIKA.value, "bot_base_url"),
+        ):
+            configured = BotRuntimeConfigProvider.get(provider, key)
+            parsed = urlparse(configured or "")
+            if parsed.hostname:
+                hosts.add(parsed.hostname)
+        hosts.update(
+            item.strip().lower()
+            for item in getattr(settings, "CHANNEL_SYNC_ALLOWED_MEDIA_HOSTS", [])
+            if item.strip()
+        )
+        return tuple(sorted(hosts))
+
+    @staticmethod
+    def _safe_filename(filename: str) -> str:
+        normalized = os.path.basename(str(filename or "")).replace("\x00", "")
+        normalized = "".join(ch for ch in normalized if ch.isalnum() or ch in "._-")
+        return (normalized[:180] or "channel-sync-media.bin")
 
     @staticmethod
     def _filename_from_url(url: str) -> str:
