@@ -18,7 +18,14 @@ from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
 
+from dealio.apps.accounts.dtos.phone_verification_dto import (
+    SendPhoneVerificationCodeDTO,
+    VerifyPhoneNumberDTO,
+)
 from dealio.apps.accounts.repositories.account_logic import AccountLogicRepository
+from dealio.apps.accounts.vo.phone_verification_vo import (
+    AccountPhoneVerificationErrorCodeVO,
+)
 from dealio.apps.common.helpers.validators.account_validators import (
     validate_english_username,
     validate_gmail_email,
@@ -153,6 +160,7 @@ class TelegramBotService:
     CALLBACK_LINK = TelegramBotCallbackVO.LINK
     CALLBACK_ACCOUNT = TelegramBotCallbackVO.ACCOUNT
     CALLBACK_VERIFY_EMAIL = TelegramBotCallbackVO.VERIFY_EMAIL
+    CALLBACK_VERIFY_PHONE = TelegramBotCallbackVO.VERIFY_PHONE
     CALLBACK_FORGOT_PASSWORD = TelegramBotCallbackVO.FORGOT_PASSWORD
     CALLBACK_CREATE_USER = TelegramBotCallbackVO.CREATE_USER
     CALLBACK_WEBAPP = TelegramBotCallbackVO.WEBAPP
@@ -196,6 +204,7 @@ class TelegramBotService:
     BTN_LINK = TelegramBotButtonTextVO.BUTTONS[LANG_EN]["link"]
     BTN_ACCOUNT = TelegramBotButtonTextVO.BUTTONS[LANG_EN]["account"]
     BTN_VERIFY_EMAIL = TelegramBotButtonTextVO.BUTTONS[LANG_EN]["verify_email"]
+    BTN_VERIFY_PHONE = TelegramBotButtonTextVO.BUTTONS[LANG_EN]["verify_phone"]
     BTN_FORGOT_PASSWORD = TelegramBotButtonTextVO.BUTTONS[LANG_EN]["forgot_password"]
     BTN_CREATE_USER = TelegramBotButtonTextVO.BUTTONS[LANG_EN]["create_user"]
     BTN_WEBAPP = TelegramBotButtonTextVO.BUTTONS[LANG_EN]["webapp"]
@@ -222,6 +231,7 @@ class TelegramBotService:
     STATE_LINK_EMAIL = TelegramBotStateVO.LINK_EMAIL
     STATE_LINK_CODE = TelegramBotStateVO.LINK_CODE
     STATE_VERIFY_EMAIL_CODE = TelegramBotStateVO.VERIFY_EMAIL_CODE
+    STATE_VERIFY_PHONE_CODE = TelegramBotStateVO.VERIFY_PHONE_CODE
     STATE_FORGOT_PASSWORD_EMAIL = TelegramBotStateVO.FORGOT_PASSWORD_EMAIL
     STATE_CREATE_USERNAME = TelegramBotStateVO.CREATE_USERNAME
     STATE_CREATE_EMAIL = TelegramBotStateVO.CREATE_EMAIL
@@ -276,6 +286,7 @@ class TelegramBotService:
         channel_sync_logic: ChannelSyncLogicRepository | None = None,
         notification_logic: BotNotificationLogicRepository | None = None,
         support_logic: BotSupportLogicRepository | None = None,
+        account_logic: AccountLogicRepository | None = None,
     ):
         self.client = client or TelegramBotClient()
         self.link_service = TelegramAccountLinkService()
@@ -283,6 +294,7 @@ class TelegramBotService:
         self.channel_sync_logic = channel_sync_logic or ChannelSyncLogicRepository()
         self.notification_logic = notification_logic or BotNotificationLogicRepository()
         self.support_logic = support_logic or BotSupportLogicRepository()
+        self.account_logic = account_logic or AccountLogicRepository()
 
     def handle_update(self, update: dict[str, Any]) -> None:
         channel_post = update.get("channel_post")
@@ -442,6 +454,10 @@ class TelegramBotService:
 
         if data == self.CALLBACK_VERIFY_EMAIL:
             self.start_verify_email_flow(profile)
+            return
+
+        if data == self.CALLBACK_VERIFY_PHONE:
+            self.start_verify_phone_flow(profile)
             return
 
         if data == self.CALLBACK_FORGOT_PASSWORD:
@@ -772,6 +788,7 @@ class TelegramBotService:
             "link": self.start_link_flow,
             "account": lambda p: self.handle_account(p, TelegramCommand(name="/account", args=[], raw_text="/account")),
             "verify_email": self.start_verify_email_flow,
+            "verify_phone": self.start_verify_phone_flow,
             "forgot_password": self.start_forgot_password_flow,
             "create_user": self.start_create_user_flow,
             "webapp": lambda p: self.handle_webapp(p, TelegramCommand(name="/webapp", args=[], raw_text="/webapp")),
@@ -1117,6 +1134,10 @@ class TelegramBotService:
 
         if action == self.STATE_VERIFY_EMAIL_CODE:
             self.handle_verify_email_code_text(profile, text)
+            return True
+
+        if action == self.STATE_VERIFY_PHONE_CODE:
+            self.handle_verify_phone_code_text(profile, text)
             return True
 
         if action == self.STATE_FORGOT_PASSWORD_EMAIL:
@@ -1661,7 +1682,7 @@ class TelegramBotService:
             return
 
         try:
-            AccountLogicRepository().send_verification_forget_password_code(user)
+            self.account_logic.send_verification_forget_password_code(user)
             follow_up = (
                 self.t(profile, "create_done_followup")
             )
@@ -1718,7 +1739,7 @@ class TelegramBotService:
             )
             return
 
-        AccountLogicRepository().send_verification_email_code(user)
+        self.account_logic.send_verification_email_code(user)
         self.set_action(profile.chat_id, self.STATE_VERIFY_EMAIL_CODE)
         self.client.send_message(
             profile.chat_id,
@@ -1745,7 +1766,7 @@ class TelegramBotService:
             )
             return
 
-        if not AccountLogicRepository().check_email_validation_code(profile.user, code):
+        if not self.account_logic.check_email_validation_code(profile.user, code):
             self.client.send_message(
                 profile.chat_id,
                 self.t(profile, "verify_invalid"),
@@ -1758,6 +1779,105 @@ class TelegramBotService:
             profile.chat_id,
             self.t(profile, "verify_success"),
             reply_markup=self.main_menu_keyboard(profile),
+        )
+
+    def start_verify_phone_flow(self, profile: TelegramProfile) -> None:
+        if not profile.user_id or not profile.is_verified:
+            self.client.send_message(
+                profile.chat_id,
+                self.t(profile, "not_linked"),
+                reply_markup=self.main_menu_keyboard(profile),
+            )
+            return
+
+        result = self.account_logic.send_phone_verification_code(
+            dto=SendPhoneVerificationCodeDTO(user_id=str(profile.user_id)),
+        )
+        if not result.is_success:
+            self._send_phone_verification_error(profile, result.error_code)
+            return
+
+        self.set_action(profile.chat_id, self.STATE_VERIFY_PHONE_CODE)
+        self.client.send_message(
+            profile.chat_id,
+            self.t(
+                profile,
+                "phone_verify_sent",
+                phone=html.escape(profile.user.phone_number or "-"),
+            ),
+            reply_markup=self.cancel_keyboard(profile),
+        )
+
+    def handle_verify_phone_code_text(self, profile: TelegramProfile, code: str) -> None:
+        code = code.strip()
+        if not code.isdigit() or len(code) != 6:
+            self.client.send_message(
+                profile.chat_id,
+                self.t(profile, "code_only"),
+                reply_markup=self.cancel_keyboard(profile),
+            )
+            return
+
+        if not profile.user_id or not profile.is_verified:
+            self.clear_action(profile.chat_id)
+            self.client.send_message(
+                profile.chat_id,
+                self.t(profile, "not_linked"),
+                reply_markup=self.main_menu_keyboard(profile),
+            )
+            return
+
+        result = self.account_logic.verify_phone_number(
+            dto=VerifyPhoneNumberDTO(
+                user_id=str(profile.user_id),
+                code=code,
+            ),
+        )
+        if not result.is_success:
+            self._send_phone_verification_error(profile, result.error_code)
+            return
+
+        self.clear_action(profile.chat_id)
+        profile.user.phone_number_verified = True
+        self.client.send_message(
+            profile.chat_id,
+            self.t(profile, "phone_verify_success"),
+            reply_markup=self.main_menu_keyboard(profile),
+        )
+
+    def _send_phone_verification_error(
+        self,
+        profile: TelegramProfile,
+        error_code: AccountPhoneVerificationErrorCodeVO | None,
+    ) -> None:
+        message_key = {
+            AccountPhoneVerificationErrorCodeVO.ALREADY_VERIFIED: "phone_verify_already",
+            AccountPhoneVerificationErrorCodeVO.PHONE_NUMBER_REQUIRED: "phone_verify_required",
+            AccountPhoneVerificationErrorCodeVO.INACTIVE_ACCOUNT: "phone_verify_inactive",
+            AccountPhoneVerificationErrorCodeVO.USER_NOT_FOUND: "not_linked",
+            AccountPhoneVerificationErrorCodeVO.INVALID_OR_EXPIRED_CODE: "phone_verify_invalid",
+        }.get(error_code, "phone_verify_invalid")
+
+        if (
+            error_code == AccountPhoneVerificationErrorCodeVO.ALREADY_VERIFIED
+            and profile.user_id
+        ):
+            profile.user.phone_number_verified = True
+
+        keep_flow_open = (
+            error_code == AccountPhoneVerificationErrorCodeVO.INVALID_OR_EXPIRED_CODE
+        )
+        if not keep_flow_open:
+            self.clear_action(profile.chat_id)
+
+        self.client.send_message(
+            profile.chat_id,
+            self.t(profile, message_key),
+            reply_markup=(
+                self.cancel_keyboard(profile)
+                if keep_flow_open
+                else self.main_menu_keyboard(profile)
+            ),
         )
 
     def handle_start(self, profile: TelegramProfile, command: TelegramCommand) -> None:
@@ -1788,6 +1908,12 @@ class TelegramBotService:
             self.handle_verify_email_code_text(profile, command.args[0])
             return
         self.start_verify_email_flow(profile)
+
+    def handle_verify_phone(self, profile: TelegramProfile, command: TelegramCommand) -> None:
+        if command.args and command.args[0].isdigit() and len(command.args[0]) == 6:
+            self.handle_verify_phone_code_text(profile, command.args[0])
+            return
+        self.start_verify_phone_flow(profile)
 
     def handle_create_user(self, profile: TelegramProfile, command: TelegramCommand) -> None:
         self.start_create_user_flow(profile)
@@ -1877,7 +2003,6 @@ class TelegramBotService:
             return
 
         user = profile.user
-        verified = self.t(profile, "yes") if user.email_verified else self.t(profile, "no")
         text = self.t(
             profile,
             "account_text",
@@ -1886,7 +2011,16 @@ class TelegramBotService:
             last_name=html.escape(user.last_name or "-"),
             email=html.escape(user.email or "-"),
             phone=html.escape(user.phone_number or "-"),
-            verified=verified,
+            email_verified=(
+                self.t(profile, "yes")
+                if user.email_verified
+                else self.t(profile, "no")
+            ),
+            phone_verified=(
+                self.t(profile, "yes")
+                if user.phone_number_verified
+                else self.t(profile, "no")
+            ),
         )
         self.client.send_message(
             profile.chat_id,
@@ -1907,7 +2041,7 @@ class TelegramBotService:
             return
 
         if user:
-            AccountLogicRepository().send_verification_forget_password_code(user)
+            self.account_logic.send_verification_forget_password_code(user)
 
         self.client.send_message(
             profile.chat_id,
@@ -4817,15 +4951,20 @@ class TelegramBotService:
                 rows.append([cls.button(profile, "bot_settings"), cls.button(profile, "admin_notification")])
                 rows.append([cls.button(profile, "discounts"), cls.button(profile, "support_queue")])
                 rows.append([cls.button(profile, "channels"), cls.button(profile, "help")])
-                rows.append([cls.button(profile, "language")])
             else:
                 rows.append([cls.button(profile, "support"), cls.button(profile, "forgot_password")])
                 rows.append([cls.button(profile, "channels"), cls.button(profile, "help")])
-                rows.append([cls.button(profile, "language")])
-            if profile and profile.user and not profile.user.email_verified:
-                rows.append([cls.button(profile, "verify_email"), cls.button(profile, "unlink")])
-            else:
-                rows.append([cls.button(profile, "language"), cls.button(profile, "unlink")])
+
+            verification_buttons: list[str] = []
+            if profile and profile.user:
+                if not profile.user.email_verified:
+                    verification_buttons.append(cls.button(profile, "verify_email"))
+                if not profile.user.phone_number_verified:
+                    verification_buttons.append(cls.button(profile, "verify_phone"))
+            if verification_buttons:
+                rows.append(verification_buttons)
+
+            rows.append([cls.button(profile, "language"), cls.button(profile, "unlink")])
             if cls.web_app_url():
                 rows.append([cls.web_app_button(profile), cls.button(profile, "help")])
         else:

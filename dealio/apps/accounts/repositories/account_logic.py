@@ -1,29 +1,47 @@
-from dealio.apps.common.utils.common_utils import CommonUtils
-from threading import Thread
-
 from django.contrib.auth import authenticate, get_user_model
 from django.db import transaction
-from django.utils.timezone import now
 
 from dealio.apps.accounts.dtos.password_recovery_dto import (
     PasswordRecoveryResultDTO,
+    ResetPasswordBySmsDTO,
     ResetPasswordDTO,
     SendPasswordRecoveryCodeDTO,
+    SendSmsPasswordRecoveryCodeDTO,
 )
-from dealio.apps.accounts.dtos.session_auth_dto import AuthResultDTO, LoginUserDTO, RegisterUserDTO
+from dealio.apps.accounts.dtos.phone_verification_dto import (
+    PhoneVerificationResultDTO,
+    SendPhoneVerificationCodeDTO,
+    VerifyPhoneNumberDTO,
+)
+from dealio.apps.accounts.dtos.session_auth_dto import (
+    AuthResultDTO,
+    LoginUserDTO,
+    RegisterUserDTO,
+)
 from dealio.apps.accounts.repositories.adapters.email_adapter import AccountEmailAdapter
-from dealio.apps.accounts.repositories.adapters.kavenegar_adapter import KavenegarSmsAdapter
 from dealio.apps.accounts.repositories.adapters.postgres_adapter import PostgresAdapter
-from dealio.apps.accounts.repositories.adapters.redis_adapter import RedisAdapter
+from dealio.apps.accounts.repositories.adapters.verification_code_cache_adapter import (
+    VerificationCodeCacheAdapter,
+)
 from dealio.apps.accounts.vo.auth_vo import (
     AccountAuthErrorCodeVO,
-    AccountSmsFallbackVO,
-    AccountUserFieldVO,
     AccountUserLookupVO,
 )
-from dealio.apps.accounts.vo.password_recovery_vo import AccountPasswordRecoveryErrorCodeVO
+from dealio.apps.accounts.vo.password_recovery_vo import (
+    AccountPasswordRecoveryCacheVO,
+    AccountPasswordRecoveryErrorCodeVO,
+)
+from dealio.apps.accounts.vo.phone_verification_vo import (
+    AccountPhoneVerificationCacheVO,
+    AccountPhoneVerificationErrorCodeVO,
+)
 from dealio.apps.common.helpers.metaclasses.singleton import Singleton
+from dealio.apps.common.utils.common_utils import CommonUtils
+from dealio.apps.core_models.dtos.sms_providers.kavenegar_params_dto import (
+    KavenegarTemplateSmsDTO,
+)
 from dealio.apps.core_models.vo.common_vo import KavenegarVo
+from dealio.apps.shared.repositories.logic import SharedApplicationLogic
 
 logger = CommonUtils.get_project_logger(__name__)
 User = get_user_model()
@@ -32,9 +50,9 @@ User = get_user_model()
 class AccountLogicRepository(metaclass=Singleton):
     def __init__(self):
         self.postgres_adapter = PostgresAdapter()
-        self.redis_adapter = RedisAdapter()
-        self.kavenegar_sms = KavenegarSmsAdapter()
         self.gmail_adapter = AccountEmailAdapter()
+        self.verification_code_cache = VerificationCodeCacheAdapter()
+        self.shared_logic = SharedApplicationLogic()
 
     def authenticate_user_by_identifier(self, request, dto: LoginUserDTO) -> AuthResultDTO:
         username = dto.identifier.strip()
@@ -79,16 +97,16 @@ class AccountLogicRepository(metaclass=Singleton):
         )
         return AuthResultDTO.success(user=user)
 
-    def send_verification_email_code(self, user: User):
+    def send_verification_email_code(self, user: User) -> None:
         self.gmail_adapter.send_email_verification_code(user)
 
-    def send_verification_forget_password_code(self, user: User):
+    def send_verification_forget_password_code(self, user: User) -> None:
         self.gmail_adapter.send_forget_password_verification_code(user)
 
-    def check_email_validation_code(self, user: User, code: str):
+    def check_email_validation_code(self, user: User, code: str) -> bool:
         return self.gmail_adapter.verify_email_code(user, code)
 
-    def check_forget_password_code(self, user: User, code: str):
+    def check_forget_password_code(self, user: User, code: str) -> bool:
         return self.gmail_adapter.verify_forget_password_code(user, code)
 
     def send_forget_password_code_by_email(
@@ -124,86 +142,145 @@ class AccountLogicRepository(metaclass=Singleton):
                 error_code=AccountPasswordRecoveryErrorCodeVO.INVALID_OR_EXPIRED_CODE,
             )
 
-        user.set_password(dto.new_password)
-        user.save(update_fields=[AccountUserFieldVO.PASSWORD.value])
-
+        self.postgres_adapter.update_user_password(
+            user=user,
+            password=dto.new_password,
+        )
         return PasswordRecoveryResultDTO.success()
 
-    def update_user_role(self, id, user):
-        role = self.postgres_adapter.fetch_role_base_id(id)
+    def send_phone_verification_code(
+        self,
+        dto: SendPhoneVerificationCodeDTO,
+    ) -> PhoneVerificationResultDTO:
+        user = self.postgres_adapter.fetch_user_base_id(dto.user_id)
+        validation_error = self._validate_phone_verification_user(user)
+        if validation_error:
+            return PhoneVerificationResultDTO.failed(error_code=validation_error)
+
+        cache_key = AccountPhoneVerificationCacheVO.KEY_TEMPLATE.value.format(
+            user_id=user.id,
+            phone_number=user.phone_number,
+        )
+        self._issue_and_send_sms_code(
+            phone_number=user.phone_number,
+            template_name=KavenegarVo.VERIFY_PHONE_NUMBER,
+            cache_key=cache_key,
+        )
+        return PhoneVerificationResultDTO.success()
+
+    @transaction.atomic
+    def verify_phone_number(
+        self,
+        dto: VerifyPhoneNumberDTO,
+    ) -> PhoneVerificationResultDTO:
+        user = self.postgres_adapter.fetch_user_base_id(dto.user_id)
+        validation_error = self._validate_phone_verification_user(user)
+        if validation_error:
+            return PhoneVerificationResultDTO.failed(error_code=validation_error)
+
+        cache_key = AccountPhoneVerificationCacheVO.KEY_TEMPLATE.value.format(
+            user_id=user.id,
+            phone_number=user.phone_number,
+        )
+        if not self.verification_code_cache.verify_code(
+            cache_key=cache_key,
+            code=dto.code,
+        ):
+            return PhoneVerificationResultDTO.failed(
+                error_code=AccountPhoneVerificationErrorCodeVO.INVALID_OR_EXPIRED_CODE,
+            )
+
+        self.postgres_adapter.mark_phone_number_verified(user=user)
+        return PhoneVerificationResultDTO.success()
+
+    def send_forget_password_code_by_sms(
+        self,
+        dto: SendSmsPasswordRecoveryCodeDTO,
+    ) -> PasswordRecoveryResultDTO:
+        user = self.postgres_adapter.fetch_user_base_phone_number(dto.phone_number)
+
+        if user and user.is_active and user.phone_number_verified:
+            cache_key = AccountPasswordRecoveryCacheVO.SMS_KEY_TEMPLATE.value.format(
+                user_id=user.id,
+            )
+            self._issue_and_send_sms_code(
+                phone_number=user.phone_number,
+                template_name=KavenegarVo.FORGOT_PASSWORD,
+                cache_key=cache_key,
+            )
+
+        # Do not reveal whether an account exists for the submitted phone number.
+        return PasswordRecoveryResultDTO.success()
+
+    @transaction.atomic
+    def reset_forget_password_by_sms(
+        self,
+        dto: ResetPasswordBySmsDTO,
+    ) -> PasswordRecoveryResultDTO:
+        user = self.postgres_adapter.fetch_user_base_phone_number(dto.phone_number)
+
+        if not user:
+            return PasswordRecoveryResultDTO.failed(
+                error_code=AccountPasswordRecoveryErrorCodeVO.INVALID_OR_EXPIRED_CODE,
+            )
+
+        if not user.is_active:
+            return PasswordRecoveryResultDTO.failed(
+                error_code=AccountPasswordRecoveryErrorCodeVO.INACTIVE_ACCOUNT,
+            )
+
+        if not user.phone_number_verified:
+            return PasswordRecoveryResultDTO.failed(
+                error_code=AccountPasswordRecoveryErrorCodeVO.INVALID_OR_EXPIRED_CODE,
+            )
+
+        cache_key = AccountPasswordRecoveryCacheVO.SMS_KEY_TEMPLATE.value.format(
+            user_id=user.id,
+        )
+        if not self.verification_code_cache.verify_code(
+            cache_key=cache_key,
+            code=dto.code,
+        ):
+            return PasswordRecoveryResultDTO.failed(
+                error_code=AccountPasswordRecoveryErrorCodeVO.INVALID_OR_EXPIRED_CODE,
+            )
+
+        self.postgres_adapter.update_user_password(
+            user=user,
+            password=dto.new_password,
+        )
+        return PasswordRecoveryResultDTO.success()
+
+    def update_user_role(self, role_id, user) -> None:
+        role = self.postgres_adapter.fetch_role_base_id(role_id)
         user.role = role
-        user.save()
+        user.save(update_fields=["role"])
 
-    def update_user_verification(self, verification_code, phone_number):
-        user = self.postgres_adapter.fetch_user_base_phone_number(phone_number)
-        user.verification_code = verification_code
-        user.created_verified = now()
-        user.save()
-
-    def send_sms_kavenegar(self, recipient_phone_number, template_name, first_value=None, second_value=None):
-        self.kavenegar_sms.send_sms(
-            receptor=recipient_phone_number,
-            value_first=first_value,
-            value_second=second_value,
-            template=template_name
+    def _issue_and_send_sms_code(
+        self,
+        *,
+        phone_number: str,
+        template_name: str,
+        cache_key: str,
+    ) -> None:
+        code = self.verification_code_cache.issue_code(cache_key=cache_key)
+        self.shared_logic.send_sms(
+            KavenegarTemplateSmsDTO(
+                recipient_phone_number=phone_number,
+                template_name=template_name,
+                token=code,
+                token2=str(self.verification_code_cache.EXPIRATION_MINUTES),
+            )
         )
 
-    def send_change_password_in_separate_thread(self, phone_number, password, username):
-        try:
-            thread = Thread(
-                target=self.send_sms_kavenegar,
-                args=(
-                    phone_number,
-                    KavenegarVo.change_password,
-                    password,
-                    username,
-                )
-            )
-            thread.start()
-        except Exception as e:
-            logger.info("Exception while sending sms kavenegar: ", str(e))
-
-    def send_sms_recovery_password_in_separate_thread(self, phone_number, password, username):
-        try:
-            thread = Thread(
-                target=self.send_sms_kavenegar,
-                args=(
-                    phone_number,
-                    KavenegarVo.password_recovery,
-                    password,
-                    username,
-                )
-            )
-            thread.start()
-        except Exception as e:
-            logger.info("Exception while sending sms kavenegar: ", str(e))
-
-    def send_sms_create_user_in_separate_thread(self, phone_number, password, username):
-        try:
-            thread = Thread(
-                target=self.send_sms_kavenegar,
-                args=(
-                    phone_number,
-                    KavenegarVo.create_account,
-                    password,
-                    username,
-                )
-            )
-            thread.start()
-        except Exception as e:
-            logger.info("Exception while sending sms kavenegar: ", str(e))
-
-    def send_sms_verification_code_in_separate_thread(self, phone_number, verification_code):
-        try:
-            thread = Thread(
-                target=self.send_sms_kavenegar,
-                args=(
-                    phone_number,
-                    KavenegarVo.create_account,
-                    verification_code,
-                    AccountSmsFallbackVO.VERIFICATION_CODE_USERNAME.value,
-                )
-            )
-            thread.start()
-        except Exception as e:
-            logger.info("Exception while sending sms kavenegar: ", str(e))
+    @staticmethod
+    def _validate_phone_verification_user(user) -> AccountPhoneVerificationErrorCodeVO | None:
+        if not user:
+            return AccountPhoneVerificationErrorCodeVO.USER_NOT_FOUND
+        if not user.is_active:
+            return AccountPhoneVerificationErrorCodeVO.INACTIVE_ACCOUNT
+        if not user.phone_number:
+            return AccountPhoneVerificationErrorCodeVO.PHONE_NUMBER_REQUIRED
+        if user.phone_number_verified:
+            return AccountPhoneVerificationErrorCodeVO.ALREADY_VERIFIED
+        return None

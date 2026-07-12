@@ -1,12 +1,23 @@
-# users/validators.py
-
 import re
+
 from rest_framework import serializers
 
 
 IRAN_MOBILE_PATTERN = r"^(09\d{9}|\+989\d{9}|989\d{9})$"
 PERSIAN_TEXT_PATTERN = r"^[\u0600-\u06FF\s‌]+$"
 USERNAME_PATTERN = r"^[A-Za-z][A-Za-z0-9_.-]*$"
+
+
+def normalize_iranian_phone_number(value: str) -> str:
+    normalized_value = value.strip()
+
+    if normalized_value.startswith("+98"):
+        return f"0{normalized_value[3:]}"
+
+    if normalized_value.startswith("98"):
+        return f"0{normalized_value[2:]}"
+
+    return normalized_value
 
 
 def validate_iranian_phone_number(value):
@@ -20,7 +31,7 @@ def validate_iranian_phone_number(value):
             "Phone number must be a valid Iranian mobile number."
         )
 
-    return value
+    return normalize_iranian_phone_number(value)
 
 
 def validate_gmail_email(value):

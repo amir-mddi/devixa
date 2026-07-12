@@ -15,12 +15,16 @@ User = get_user_model()
 
 class PostgresAdapter(metaclass=Singleton):
     @staticmethod
-    def fetch_role_base_id(id):
-        return Role.objects.get(id=id)
+    def fetch_role_base_id(role_id):
+        return Role.objects.get(id=role_id)
 
     @staticmethod
-    def fetch_user_base_phone_number(phone_number):
-        return User.objects.get(phone_number=phone_number)
+    def fetch_user_base_id(user_id):
+        return User.objects.filter(id=user_id).first()
+
+    @staticmethod
+    def fetch_user_base_phone_number(phone_number: str):
+        return User.objects.filter(phone_number=phone_number).first()
 
     @staticmethod
     def fetch_user_base_email(email: str):
@@ -67,3 +71,13 @@ class PostgresAdapter(metaclass=Singleton):
                 AccountUserFieldVO.ROLE.value: self.get_or_create_default_user_role(),
             }
         )
+
+    @staticmethod
+    def update_user_password(*, user, password: str) -> None:
+        user.set_password(password)
+        user.save(update_fields=[AccountUserFieldVO.PASSWORD.value])
+
+    @staticmethod
+    def mark_phone_number_verified(*, user) -> None:
+        user.phone_number_verified = True
+        user.save(update_fields=["phone_number_verified"])

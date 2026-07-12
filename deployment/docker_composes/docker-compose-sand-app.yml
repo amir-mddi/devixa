@@ -50,48 +50,6 @@ services:
       retries: 5
       start_period: 30s
 
-  celery_worker:
-    <<:
-      - *dealio-service
-      - *after-bootstrap
-    container_name: dealio_celery_worker_service
-    command:
-      - celery
-      - -A
-      - dealio.project
-      - worker
-      - --loglevel=info
-      - --queues=high_priority
-      - --prefetch-multiplier=1
-
-  celery_beat:
-    <<:
-      - *dealio-service
-      - *after-bootstrap
-    container_name: dealio_celery_beat_service
-    command:
-      - celery
-      - -A
-      - dealio.project
-      - beat
-      - --scheduler=django_celery_beat.schedulers:DatabaseScheduler
-      - --max-interval=5
-      - --loglevel=info
-
-  flower:
-    <<:
-      - *dealio-service
-      - *after-bootstrap
-    container_name: dealio_monitoring_flower_service
-    command:
-      - celery
-      - -A
-      - dealio.project
-      - flower
-      - --port=5556
-    ports:
-      - "5556:5556"
-
   telegram_bot:
     <<:
       - *dealio-service

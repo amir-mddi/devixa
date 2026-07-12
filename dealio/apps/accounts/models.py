@@ -46,6 +46,22 @@ class CustomUser(BaseModel, AbstractUser):
     phone_number_verified = models.BooleanField(default=False)
     is_service_user = models.BooleanField(default=False)
 
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            previous_phone_number = (
+                type(self).objects
+                .filter(pk=self.pk)
+                .values_list("phone_number", flat=True)
+                .first()
+            )
+            if previous_phone_number != self.phone_number:
+                self.phone_number_verified = False
+                update_fields = kwargs.get("update_fields")
+                if update_fields is not None:
+                    kwargs["update_fields"] = set(update_fields) | {"phone_number_verified"}
+
+        super().save(*args, **kwargs)
+
     # def save(self, *args, **kwargs):
     #     try:
     #         role = Role.objects.get(symbol="user")

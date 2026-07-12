@@ -1,63 +1,75 @@
-import time
-from audioop import alaw2lin
-
 from django.contrib.auth import get_user_model
 from django.utils.decorators import method_decorator
-from drf_spectacular.utils import extend_schema, OpenApiResponse, extend_schema_view
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.views import APIView
 
-from dealio.apps.accounts.dtos.password_recovery_dto import ResetPasswordDTO, SendPasswordRecoveryCodeDTO
-from dealio.apps.accounts.serializers import ChangePasswordSerializer, UserSerializer, VerifyCodeSerializer, \
-    ForgotPasswordSendCodeSerializer, ForgotPasswordVerifyCodeSerializer, SocialOAuthLoginSerializer
-from dealio.apps.common.response_utils import ResponseUtil
-from dealio.apps.shared.views import BaseViewSet, BaseAPIView
-from .models import Role
-from ..common.helpers.decorators.rate_limit import rate_limit
+from dealio.apps.accounts.dtos.password_recovery_dto import (
+    ResetPasswordBySmsDTO,
+    ResetPasswordDTO,
+    SendPasswordRecoveryCodeDTO,
+    SendSmsPasswordRecoveryCodeDTO,
+)
+from dealio.apps.accounts.dtos.phone_verification_dto import (
+    SendPhoneVerificationCodeDTO,
+    VerifyPhoneNumberDTO,
+)
+from dealio.apps.accounts.repositories.account_logic import AccountLogicRepository
+from dealio.apps.accounts.repositories.oauth_service import OAuthProviderError, SocialOAuthService
+from dealio.apps.accounts.serializers import (
+    ChangePasswordSerializer,
+    ForgotPasswordSendCodeSerializer,
+    ForgotPasswordSmsSendCodeSerializer,
+    ForgotPasswordSmsVerifyCodeSerializer,
+    ForgotPasswordVerifyCodeSerializer,
+    PhoneVerificationCodeSerializer,
+    SocialOAuthLoginSerializer,
+    UserSerializer,
+    VerifyCodeSerializer,
+)
 from dealio.apps.accounts.vo.password_recovery_vo import (
     AccountPasswordRecoveryApiMessageVO,
     AccountPasswordRecoveryResponseKeyVO,
 )
-from ..core_models.constants.common_vo import ResponseVO
-from ..shared.repositories.logic import SharedApplicationLogic
-from ..shared.serializers import ListResponseSerializer, BaseResponseSerializer
+from dealio.apps.accounts.vo.phone_verification_vo import (
+    AccountPhoneVerificationApiMessageVO,
+    AccountPhoneVerificationErrorCodeVO,
+)
+from dealio.apps.common.helpers.decorators.rate_limit import rate_limit
+from dealio.apps.common.response_utils import ResponseUtil
+from dealio.apps.common.utils.common_utils import CommonUtils
+from dealio.apps.core_models.constants.common_vo import ResponseVO
+from dealio.apps.shared.views import BaseAPIView, BaseViewSet
 
 User = get_user_model()
-from dealio.apps.accounts.repositories.account_logic import AccountLogicRepository
-from dealio.apps.accounts.repositories.oauth_service import OAuthProviderError, SocialOAuthService
-
-shared_logic = SharedApplicationLogic()
 account_logic = AccountLogicRepository()
-from dealio.apps.common.utils.common_utils import CommonUtils
-
 logger = CommonUtils.get_project_logger(__name__)
 
 
 class ChangePasswordView(BaseViewSet):
     model_clz = User
-    http_method_names = ['post']
+    http_method_names = ["post"]
     serializer_class = ChangePasswordSerializer
     permission_classes = [IsAuthenticated]
     tag_name = "Account"
 
     def create(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data, context={"request": request})
-        if serializer.is_valid():
-            user = request.user
-            if user.check_password(request.data.get('currentPassword')):
-                password = request.data.get('newPassword')
-                user.set_password(password)
-                user.save()
-                account_logic.send_change_password_in_separate_thread(user.phone_number, password, user.username)
-                return ResponseUtil(custom_fields={'success': True, 'message': 'successfully changed'},
-                                    status_code=ResponseVO.http_200)
-            else:
-                return ResponseUtil(custom_fields={"success": False, "message": "incorrect password provide"},
-                                    status_code=ResponseVO.http_400)
-        else:
-            return ResponseUtil(custom_fields={"success": False, "message": str(serializer.errors)},
-                                status_code=ResponseVO.http_400)
+        serializer.is_valid(raise_exception=True)
+
+        user = request.user
+        current_password = serializer.validated_data["current_password"]
+        if not user.check_password(current_password):
+            return ResponseUtil(
+                custom_fields={"success": False, "message": "incorrect password provide"},
+                status_code=ResponseVO.http_400,
+            )
+
+        user.set_password(serializer.validated_data["new_password"])
+        user.save(update_fields=["password"])
+        return ResponseUtil(
+            custom_fields={"success": True, "message": "successfully changed"},
+            status_code=ResponseVO.http_200,
+        )
 
 
 @method_decorator(rate_limit(authenticated_limit=2, period=60, anonymous_limit=0), name="dispatch")
@@ -66,15 +78,11 @@ class UsersApiView(BaseAPIView):
     model_class = User
 
     def post(self, request):
-        data = request.data
-
         serializer = self.serializer_class(
-            data=data,
+            data=request.data,
             context={"request": request},
         )
         serializer.is_valid(raise_exception=True)
-        # account_logic.send_verification_forget_password_code(user=instance)
-        # response_data = self.serializer_class(instance).data
 
         return ResponseUtil(
             data={"ok": True},
@@ -84,7 +92,7 @@ class UsersApiView(BaseAPIView):
 
 class UserViewSet(BaseViewSet):
     model_clz = User
-    http_method_names = ['get']
+    http_method_names = ["get"]
     permission_classes = [IsAuthenticated]
     tag_name = "Users"
     serializer_class = UserSerializer
@@ -104,10 +112,10 @@ class SendEmailVerificationCodeAPIView(BaseAPIView):
                 status_code=ResponseVO.http_400,
             )
 
-        AccountLogicRepository().send_verification_email_code(user)
+        account_logic.send_verification_email_code(user)
 
         return ResponseUtil(
-            {"detail": "Verification code sent successfully."},
+            data={"detail": "Verification code sent successfully."},
             status_code=ResponseVO.http_200,
         )
 
@@ -119,10 +127,10 @@ class VerifyEmailCodeAPIView(BaseAPIView):
     serializer_class = VerifyCodeSerializer
 
     def post(self, request):
-        serializer = VerifyCodeSerializer(data=request.data)
+        serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        is_valid = AccountLogicRepository().check_email_validation_code(
+        is_valid = account_logic.check_email_validation_code(
             user=request.user,
             code=serializer.validated_data["code"],
         )
@@ -134,7 +142,56 @@ class VerifyEmailCodeAPIView(BaseAPIView):
             )
 
         return ResponseUtil(
-            {"detail": "Email verified successfully."},
+            data={"detail": "Email verified successfully."},
+            status_code=ResponseVO.http_200,
+        )
+
+
+@method_decorator(rate_limit(authenticated_limit=5, period=300, anonymous_limit=0), name="dispatch")
+class SendPhoneVerificationCodeAPIView(BaseAPIView):
+    permission_classes = [IsAuthenticated]
+    tag_name = "Manage-Account"
+
+    def post(self, request):
+        result = account_logic.send_phone_verification_code(
+            dto=SendPhoneVerificationCodeDTO(user_id=str(request.user.id)),
+        )
+        if not result.is_success:
+            return ResponseUtil(
+                data={"detail": _phone_verification_error_message(result.error_code)},
+                status_code=ResponseVO.http_400,
+            )
+
+        return ResponseUtil(
+            data={"detail": AccountPhoneVerificationApiMessageVO.CODE_SENT.value},
+            status_code=ResponseVO.http_200,
+        )
+
+
+@method_decorator(rate_limit(authenticated_limit=10, period=300, anonymous_limit=0), name="dispatch")
+class VerifyPhoneCodeAPIView(BaseAPIView):
+    permission_classes = [IsAuthenticated]
+    tag_name = "Manage-Account"
+    serializer_class = PhoneVerificationCodeSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        result = account_logic.verify_phone_number(
+            dto=VerifyPhoneNumberDTO(
+                user_id=str(request.user.id),
+                code=serializer.validated_data["code"],
+            ),
+        )
+        if not result.is_success:
+            return ResponseUtil(
+                data={"detail": _phone_verification_error_message(result.error_code)},
+                status_code=ResponseVO.http_400,
+            )
+
+        return ResponseUtil(
+            data={"detail": AccountPhoneVerificationApiMessageVO.VERIFIED.value},
             status_code=ResponseVO.http_200,
         )
 
@@ -147,10 +204,10 @@ class SendForgotPasswordCodeAPIView(BaseAPIView):
     tag_name = "Manage-Account"
 
     def post(self, request):
-        serializer = ForgotPasswordSendCodeSerializer(data=request.data)
+        serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        AccountLogicRepository().send_forget_password_code_by_email(
+        account_logic.send_forget_password_code_by_email(
             dto=SendPasswordRecoveryCodeDTO(
                 email=serializer.validated_data["email"],
             ),
@@ -172,10 +229,10 @@ class VerifyForgotPasswordCodeAPIView(BaseAPIView):
     tag_name = "Manage-Account"
 
     def post(self, request):
-        serializer = ForgotPasswordVerifyCodeSerializer(data=request.data)
+        serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        result = AccountLogicRepository().reset_forget_password_by_email(
+        result = account_logic.reset_forget_password_by_email(
             dto=ResetPasswordDTO(
                 email=serializer.validated_data["email"],
                 code=serializer.validated_data["code"],
@@ -183,20 +240,54 @@ class VerifyForgotPasswordCodeAPIView(BaseAPIView):
             ),
         )
 
-        if not result.is_success:
-            return ResponseUtil(
-                data={
-                    AccountPasswordRecoveryResponseKeyVO.DETAIL.value: AccountPasswordRecoveryApiMessageVO.INVALID_OR_EXPIRED_CODE.value,
-                },
-                status_code=ResponseVO.http_400,
-            )
+        return _password_reset_response(result)
+
+
+@method_decorator(rate_limit(authenticated_limit=5, anonymous_limit=2, period=300), name="dispatch")
+class SendForgotPasswordSmsCodeAPIView(BaseAPIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    serializer_class = ForgotPasswordSmsSendCodeSerializer
+    tag_name = "Manage-Account"
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        account_logic.send_forget_password_code_by_sms(
+            dto=SendSmsPasswordRecoveryCodeDTO(
+                phone_number=serializer.validated_data["phone_number"],
+            ),
+        )
 
         return ResponseUtil(
             data={
-                AccountPasswordRecoveryResponseKeyVO.DETAIL.value: AccountPasswordRecoveryApiMessageVO.PASSWORD_RESET_SUCCESS.value,
+                AccountPasswordRecoveryResponseKeyVO.DETAIL.value: AccountPasswordRecoveryApiMessageVO.SMS_CODE_SENT.value,
             },
             status_code=ResponseVO.http_200,
         )
+
+
+@method_decorator(rate_limit(authenticated_limit=10, anonymous_limit=10, period=300), name="dispatch")
+class VerifyForgotPasswordSmsCodeAPIView(BaseAPIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    serializer_class = ForgotPasswordSmsVerifyCodeSerializer
+    tag_name = "Manage-Account"
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        result = account_logic.reset_forget_password_by_sms(
+            dto=ResetPasswordBySmsDTO(
+                phone_number=serializer.validated_data["phone_number"],
+                code=serializer.validated_data["code"],
+                new_password=serializer.validated_data["new_password"],
+            ),
+        )
+
+        return _password_reset_response(result)
 
 
 @method_decorator(rate_limit(authenticated_limit=10, anonymous_limit=10, period=300), name="dispatch")
@@ -246,3 +337,34 @@ class GoogleOAuthLoginAPIView(BaseSocialOAuthLoginAPIView):
 
 class GitHubOAuthLoginAPIView(BaseSocialOAuthLoginAPIView):
     provider = "github"
+
+
+def _password_reset_response(result):
+    if not result.is_success:
+        return ResponseUtil(
+            data={
+                AccountPasswordRecoveryResponseKeyVO.DETAIL.value: AccountPasswordRecoveryApiMessageVO.INVALID_OR_EXPIRED_CODE.value,
+            },
+            status_code=ResponseVO.http_400,
+        )
+
+    return ResponseUtil(
+        data={
+            AccountPasswordRecoveryResponseKeyVO.DETAIL.value: AccountPasswordRecoveryApiMessageVO.PASSWORD_RESET_SUCCESS.value,
+        },
+        status_code=ResponseVO.http_200,
+    )
+
+
+def _phone_verification_error_message(error_code):
+    messages = {
+        AccountPhoneVerificationErrorCodeVO.USER_NOT_FOUND: AccountPhoneVerificationApiMessageVO.USER_NOT_FOUND.value,
+        AccountPhoneVerificationErrorCodeVO.INACTIVE_ACCOUNT: AccountPhoneVerificationApiMessageVO.INACTIVE_ACCOUNT.value,
+        AccountPhoneVerificationErrorCodeVO.PHONE_NUMBER_REQUIRED: AccountPhoneVerificationApiMessageVO.PHONE_NUMBER_REQUIRED.value,
+        AccountPhoneVerificationErrorCodeVO.ALREADY_VERIFIED: AccountPhoneVerificationApiMessageVO.ALREADY_VERIFIED.value,
+        AccountPhoneVerificationErrorCodeVO.INVALID_OR_EXPIRED_CODE: AccountPhoneVerificationApiMessageVO.INVALID_OR_EXPIRED_CODE.value,
+    }
+    return messages.get(
+        error_code,
+        AccountPhoneVerificationApiMessageVO.INVALID_OR_EXPIRED_CODE.value,
+    )

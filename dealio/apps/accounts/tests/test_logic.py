@@ -2,11 +2,22 @@ from unittest.mock import MagicMock, patch
 
 from django.test import TestCase
 
-from dealio.apps.accounts.dtos.password_recovery_dto import ResetPasswordDTO, SendPasswordRecoveryCodeDTO
+from dealio.apps.accounts.dtos.password_recovery_dto import (
+    ResetPasswordBySmsDTO,
+    ResetPasswordDTO,
+    SendPasswordRecoveryCodeDTO,
+    SendSmsPasswordRecoveryCodeDTO,
+)
+from dealio.apps.accounts.dtos.phone_verification_dto import (
+    SendPhoneVerificationCodeDTO,
+    VerifyPhoneNumberDTO,
+)
 from dealio.apps.accounts.dtos.session_auth_dto import LoginUserDTO, RegisterUserDTO
 from dealio.apps.accounts.repositories.account_logic import AccountLogicRepository
 from dealio.apps.accounts.vo.auth_vo import AccountAuthErrorCodeVO
 from dealio.apps.accounts.vo.password_recovery_vo import AccountPasswordRecoveryErrorCodeVO
+from dealio.apps.accounts.vo.phone_verification_vo import AccountPhoneVerificationErrorCodeVO
+from dealio.apps.core_models.vo.common_vo import KavenegarVo
 from dealio.tests.factories import UserFactory
 from dealio.tests.mixins import IsolatedServiceTestMixin
 
@@ -17,6 +28,9 @@ class AccountLogicRepositoryTests(IsolatedServiceTestMixin, TestCase):
         self.repository = AccountLogicRepository()
         self.repository.postgres_adapter = MagicMock()
         self.repository.gmail_adapter = MagicMock()
+        self.repository.verification_code_cache = MagicMock()
+        self.repository.verification_code_cache.EXPIRATION_MINUTES = 5
+        self.repository.shared_logic = MagicMock()
 
     @patch("dealio.apps.accounts.repositories.account_logic.authenticate")
     def test_authenticates_email_by_resolving_username(self, authenticate_mock):
@@ -90,8 +104,9 @@ class AccountLogicRepositoryTests(IsolatedServiceTestMixin, TestCase):
 
         self.assertFalse(result.is_success)
         self.assertEqual(result.error_code, AccountPasswordRecoveryErrorCodeVO.INVALID_OR_EXPIRED_CODE)
+        self.repository.postgres_adapter.update_user_password.assert_not_called()
 
-    def test_reset_password_updates_hash_after_valid_code(self):
+    def test_reset_password_delegates_update_after_valid_email_code(self):
         user = UserFactory.create()
         self.repository.postgres_adapter.fetch_user_base_email.return_value = user
         self.repository.gmail_adapter.verify_forget_password_code.return_value = True
@@ -100,6 +115,133 @@ class AccountLogicRepositoryTests(IsolatedServiceTestMixin, TestCase):
             ResetPasswordDTO(email=user.email, code="123456", new_password="NewStrongPass123!")
         )
 
-        user.refresh_from_db()
         self.assertTrue(result.is_success)
-        self.assertTrue(user.check_password("NewStrongPass123!"))
+        self.repository.postgres_adapter.update_user_password.assert_called_once_with(
+            user=user,
+            password="NewStrongPass123!",
+        )
+
+    def test_send_phone_verification_rejects_user_without_phone_number(self):
+        user = MagicMock(is_active=True, phone_number=None, phone_number_verified=False)
+        self.repository.postgres_adapter.fetch_user_base_id.return_value = user
+
+        result = self.repository.send_phone_verification_code(
+            SendPhoneVerificationCodeDTO(user_id="user-id")
+        )
+
+        self.assertFalse(result.is_success)
+        self.assertEqual(result.error_code, AccountPhoneVerificationErrorCodeVO.PHONE_NUMBER_REQUIRED)
+        self.repository.shared_logic.send_sms.assert_not_called()
+
+    def test_send_phone_verification_uses_shared_sms_logic(self):
+        user = MagicMock(
+            id="user-id",
+            is_active=True,
+            phone_number="09121234567",
+            phone_number_verified=False,
+        )
+        self.repository.postgres_adapter.fetch_user_base_id.return_value = user
+        self.repository.verification_code_cache.issue_code.return_value = "123456"
+
+        result = self.repository.send_phone_verification_code(
+            SendPhoneVerificationCodeDTO(user_id="user-id")
+        )
+
+        self.assertTrue(result.is_success)
+        self.repository.shared_logic.send_sms.assert_called_once()
+        sms_dto = self.repository.shared_logic.send_sms.call_args.args[0]
+        self.assertEqual(sms_dto.recipient_phone_number, "09121234567")
+        self.assertEqual(sms_dto.template_name, KavenegarVo.VERIFY_PHONE_NUMBER)
+        self.assertEqual(sms_dto.token, "123456")
+        self.assertEqual(sms_dto.token2, "5")
+
+    def test_verify_phone_number_marks_user_verified_and_consumes_code(self):
+        user = MagicMock(
+            id="user-id",
+            is_active=True,
+            phone_number="09121234567",
+            phone_number_verified=False,
+        )
+        self.repository.postgres_adapter.fetch_user_base_id.return_value = user
+        self.repository.verification_code_cache.verify_code.return_value = True
+
+        result = self.repository.verify_phone_number(
+            VerifyPhoneNumberDTO(user_id="user-id", code="123456")
+        )
+
+        self.assertTrue(result.is_success)
+        self.repository.verification_code_cache.verify_code.assert_called_once_with(
+            cache_key="phone_verification:user-id:09121234567",
+            code="123456",
+        )
+        self.repository.postgres_adapter.mark_phone_number_verified.assert_called_once_with(user=user)
+
+    def test_forgot_password_sms_send_is_non_enumerating(self):
+        self.repository.postgres_adapter.fetch_user_base_phone_number.return_value = None
+
+        result = self.repository.send_forget_password_code_by_sms(
+            SendSmsPasswordRecoveryCodeDTO(phone_number="09121234567")
+        )
+
+        self.assertTrue(result.is_success)
+        self.repository.shared_logic.send_sms.assert_not_called()
+
+
+    def test_forgot_password_sms_does_not_send_for_unverified_phone(self):
+        user = MagicMock(
+            id="user-id",
+            is_active=True,
+            phone_number="09121234567",
+            phone_number_verified=False,
+        )
+        self.repository.postgres_adapter.fetch_user_base_phone_number.return_value = user
+
+        result = self.repository.send_forget_password_code_by_sms(
+            SendSmsPasswordRecoveryCodeDTO(phone_number="09121234567")
+        )
+
+        self.assertTrue(result.is_success)
+        self.repository.shared_logic.send_sms.assert_not_called()
+
+    def test_forgot_password_sms_uses_password_template(self):
+        user = MagicMock(
+            id="user-id",
+            is_active=True,
+            phone_number="09121234567",
+            phone_number_verified=True,
+        )
+        self.repository.postgres_adapter.fetch_user_base_phone_number.return_value = user
+        self.repository.verification_code_cache.issue_code.return_value = "654321"
+
+        result = self.repository.send_forget_password_code_by_sms(
+            SendSmsPasswordRecoveryCodeDTO(phone_number="09121234567")
+        )
+
+        self.assertTrue(result.is_success)
+        sms_dto = self.repository.shared_logic.send_sms.call_args.args[0]
+        self.assertEqual(sms_dto.template_name, KavenegarVo.FORGOT_PASSWORD)
+        self.assertEqual(sms_dto.token, "654321")
+
+    def test_reset_password_by_sms_delegates_update_after_valid_code(self):
+        user = MagicMock(
+            id="user-id",
+            is_active=True,
+            phone_number="09121234567",
+            phone_number_verified=True,
+        )
+        self.repository.postgres_adapter.fetch_user_base_phone_number.return_value = user
+        self.repository.verification_code_cache.verify_code.return_value = True
+
+        result = self.repository.reset_forget_password_by_sms(
+            ResetPasswordBySmsDTO(
+                phone_number="09121234567",
+                code="123456",
+                new_password="NewStrongPass123!",
+            )
+        )
+
+        self.assertTrue(result.is_success)
+        self.repository.postgres_adapter.update_user_password.assert_called_once_with(
+            user=user,
+            password="NewStrongPass123!",
+        )

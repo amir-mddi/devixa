@@ -14,6 +14,7 @@ class TelegramBotCallbackVO:
     LINK = "menu:link"
     ACCOUNT = "menu:account"
     VERIFY_EMAIL = "menu:verify_email"
+    VERIFY_PHONE = "menu:verify_phone"
     FORGOT_PASSWORD = "menu:forgot_password"
     CREATE_USER = "menu:create_user"
     WEBAPP = "menu:webapp"
@@ -52,6 +53,7 @@ class TelegramBotStateVO:
     LINK_EMAIL = "link_email"
     LINK_CODE = "link_code"
     VERIFY_EMAIL_CODE = "verify_email_code"
+    VERIFY_PHONE_CODE = "verify_phone_code"
     FORGOT_PASSWORD_EMAIL = "forgot_password_email"
     CREATE_USERNAME = "create_user_username"
     CREATE_EMAIL = "create_user_email"
@@ -97,6 +99,7 @@ class TelegramBotButtonKeyVO:
     LINK = "link"
     ACCOUNT = "account"
     VERIFY_EMAIL = "verify_email"
+    VERIFY_PHONE = "verify_phone"
     FORGOT_PASSWORD = "forgot_password"
     CREATE_USER = "create_user"
     WEBAPP = "webapp"
@@ -133,6 +136,7 @@ class TelegramBotButtonTextVO:
             TelegramBotButtonKeyVO.LINK: "🔗 Link account",
             TelegramBotButtonKeyVO.ACCOUNT: "👤 My account",
             TelegramBotButtonKeyVO.VERIFY_EMAIL: "✅ Verify email",
+            TelegramBotButtonKeyVO.VERIFY_PHONE: "📱 Verify phone",
             TelegramBotButtonKeyVO.FORGOT_PASSWORD: "🔐 Forgot password",
             TelegramBotButtonKeyVO.CREATE_USER: "➕ Create user",
             TelegramBotButtonKeyVO.WEBAPP: "🌐 Open app",
@@ -161,6 +165,7 @@ class TelegramBotButtonTextVO:
             TelegramBotButtonKeyVO.LINK: "🔗 اتصال حساب",
             TelegramBotButtonKeyVO.ACCOUNT: "👤 حساب من",
             TelegramBotButtonKeyVO.VERIFY_EMAIL: "✅ تأیید ایمیل",
+            TelegramBotButtonKeyVO.VERIFY_PHONE: "📱 تأیید موبایل",
             TelegramBotButtonKeyVO.FORGOT_PASSWORD: "🔐 فراموشی رمز عبور",
             TelegramBotButtonKeyVO.CREATE_USER: "➕ ساخت کاربر",
             TelegramBotButtonKeyVO.WEBAPP: "🌐 باز کردن برنامه",
@@ -201,6 +206,7 @@ class TelegramBotAliasVO:
         TelegramBotButtonKeyVO.LINK: {"link account", "اتصال حساب"},
         TelegramBotButtonKeyVO.ACCOUNT: {"my account", "account", "حساب من"},
         TelegramBotButtonKeyVO.VERIFY_EMAIL: {"verify email", "email verification", "تایید ایمیل", "تأیید ایمیل"},
+        TelegramBotButtonKeyVO.VERIFY_PHONE: {"verify phone", "phone verification", "verify mobile", "تایید موبایل", "تأیید موبایل", "تایید شماره موبایل", "تأیید شماره موبایل"},
         TelegramBotButtonKeyVO.FORGOT_PASSWORD: {"forgot password", "فراموشی رمز عبور"},
         TelegramBotButtonKeyVO.CREATE_USER: {"create user", "ساخت کاربر"},
         TelegramBotButtonKeyVO.WEBAPP: {"open app", "web app", "باز کردن برنامه"},
@@ -354,6 +360,12 @@ class TelegramBotMessageTextVO:
             "verify_sent": "I sent a 6-digit email verification code to your linked email. Send the code here.",
             "verify_success": "✅ Email verified successfully.",
             "verify_invalid": "Invalid or expired verification code. Try again or request a new code.",
+            "phone_verify_already": "Your phone number is already verified.",
+            "phone_verify_required": "No phone number is registered for this account. Add a phone number in the app first.",
+            "phone_verify_inactive": "This account is inactive and its phone number cannot be verified.",
+            "phone_verify_sent": "I sent a 6-digit SMS verification code to <code>{phone}</code>. Send the code here.",
+            "phone_verify_success": "✅ Phone number verified successfully.",
+            "phone_verify_invalid": "Invalid or expired phone verification code. Try again or request a new code.",
             "forgot_prompt": "Send your account email address, and I will send a password recovery code if it exists.",
             "forgot_sent": "If this account exists, a password recovery code has been sent to the account email.\n\nFor security, do not send your new password in Telegram. Use the app/API reset form with the code.",
             "unlink_ask": "Are you sure you want to unlink this Telegram account?",
@@ -557,7 +569,7 @@ class TelegramBotMessageTextVO:
             "create_confirm_text": "Please confirm this new user:\n\nUsername: <code>{username}</code>\nEmail: <code>{email}</code>\nPhone: <code>{phone}</code>\nFirst name: <code>{first_name}</code>\nLast name: <code>{last_name}</code>\n\nNo password will be sent in Telegram. The user will set their password by email reset code.",
             "yes": "yes",
             "no": "no",
-            "account_text": "<b>Your account</b>\nUsername: <code>{username}</code>\nFirst name: <code>{first_name}</code>\nLast name: <code>{last_name}</code>\nEmail: <code>{email}</code>\nPhone: <code>{phone}</code>\nEmail verified: <code>{verified}</code>",
+            "account_text": "<b>Your account</b>\nUsername: <code>{username}</code>\nFirst name: <code>{first_name}</code>\nLast name: <code>{last_name}</code>\nEmail: <code>{email}</code>\nPhone: <code>{phone}</code>\nEmail verified: <code>{email_verified}</code>\nPhone verified: <code>{phone_verified}</code>",
             "courses_heading": "<b>📚 Courses</b>",
             "course_list_item": "\n<b>{index}. {title}</b>{rating}\n{description}\nPrice: <code>{price}</code>",
             "view_course_button": "🔎 {title}",
@@ -614,7 +626,7 @@ class TelegramBotMessageTextVO:
             "archive_button": "🗄 Archive",
             "public_view_button": "👁 Public view",
             "all_courses_button": "📋 All courses",
-            "help_text": "<b>Available actions</b>\nUse the bottom keyboard buttons instead of typing commands.\n\n🔗 <b>Link account</b> - connect your app account\n👤 <b>My account</b> - show linked account\n✅ <b>Verify email</b> - send and confirm email verification code\n🔐 <b>Forgot password</b> - send a recovery code\n➕ <b>Create user</b> - admin only, create an app user\n🌐 <b>Open app</b> - open the configured web app\n🌍 <b>Language</b> - change bot language\n🚪 <b>Unlink</b> - remove the Telegram link",
+            "help_text": "<b>Available actions</b>\nUse the bottom keyboard buttons instead of typing commands.\n\n🔗 <b>Link account</b> - connect your app account\n👤 <b>My account</b> - show linked account\n✅ <b>Verify email</b> - send and confirm email verification code\n📱 <b>Verify phone</b> - send and confirm SMS verification code\n🔐 <b>Forgot password</b> - send a recovery code\n➕ <b>Create user</b> - admin only, create an app user\n🌐 <b>Open app</b> - open the configured web app\n🌍 <b>Language</b> - change bot language\n🚪 <b>Unlink</b> - remove the account link",
             "placeholder_language": "Language / زبان",
             "placeholder_main_menu": "Choose an action",
             "placeholder_cancel": "Send the requested value or cancel",
@@ -641,6 +653,12 @@ class TelegramBotMessageTextVO:
             "verify_sent": "کد ۶ رقمی تأیید ایمیل به ایمیل متصل‌شده ارسال شد. کد را همین‌جا بفرستید.",
             "verify_success": "✅ ایمیل با موفقیت تأیید شد.",
             "verify_invalid": "کد تأیید نامعتبر است یا منقضی شده. دوباره تلاش کنید یا کد جدید بگیرید.",
+            "phone_verify_already": "شماره موبایل شما قبلاً تأیید شده است.",
+            "phone_verify_required": "برای این حساب شماره موبایلی ثبت نشده است. ابتدا شماره موبایل را در برنامه ثبت کنید.",
+            "phone_verify_inactive": "این حساب غیرفعال است و امکان تأیید شماره موبایل آن وجود ندارد.",
+            "phone_verify_sent": "کد ۶ رقمی تأیید موبایل به <code>{phone}</code> پیامک شد. کد را همین‌جا ارسال کنید.",
+            "phone_verify_success": "✅ شماره موبایل با موفقیت تأیید شد.",
+            "phone_verify_invalid": "کد تأیید موبایل نامعتبر است یا منقضی شده. دوباره تلاش کنید یا کد جدید بگیرید.",
             "forgot_prompt": "ایمیل حساب خود را ارسال کنید تا در صورت وجود حساب، کد بازیابی رمز عبور ارسال شود.",
             "forgot_sent": "اگر این حساب وجود داشته باشد، کد بازیابی رمز عبور به ایمیل حساب ارسال شد.\n\nبرای امنیت، رمز جدید خود را در تلگرام ارسال نکنید. از فرم تغییر رمز برنامه/API با همین کد استفاده کنید.",
             "unlink_ask": "آیا مطمئن هستید که می‌خواهید اتصال تلگرام را حذف کنید؟",
@@ -844,7 +862,7 @@ class TelegramBotMessageTextVO:
             "create_confirm_text": "لطفاً اطلاعات کاربر جدید را تأیید کنید:\n\nنام کاربری: <code>{username}</code>\nایمیل: <code>{email}</code>\nموبایل: <code>{phone}</code>\nنام: <code>{first_name}</code>\nنام خانوادگی: <code>{last_name}</code>\n\nهیچ رمزی در تلگرام ارسال نمی‌شود. کاربر رمز خود را با کد ایمیلی تنظیم می‌کند.",
             "yes": "بله",
             "no": "خیر",
-            "account_text": "<b>حساب شما</b>\nنام کاربری: <code>{username}</code>\nنام: <code>{first_name}</code>\nنام خانوادگی: <code>{last_name}</code>\nایمیل: <code>{email}</code>\nموبایل: <code>{phone}</code>\nتأیید ایمیل: <code>{verified}</code>",
+            "account_text": "<b>حساب شما</b>\nنام کاربری: <code>{username}</code>\nنام: <code>{first_name}</code>\nنام خانوادگی: <code>{last_name}</code>\nایمیل: <code>{email}</code>\nموبایل: <code>{phone}</code>\nتأیید ایمیل: <code>{email_verified}</code>\nتأیید موبایل: <code>{phone_verified}</code>",
             "courses_heading": "<b>📚 دوره‌ها</b>",
             "course_list_item": "\n<b>{index}. {title}</b>{rating}\n{description}\nقیمت: <code>{price}</code>",
             "view_course_button": "🔎 {title}",
@@ -901,7 +919,7 @@ class TelegramBotMessageTextVO:
             "archive_button": "🗄 آرشیو",
             "public_view_button": "👁 نمایش عمومی",
             "all_courses_button": "📋 همه دوره‌ها",
-            "help_text": "<b>گزینه‌های موجود</b>\nاز دکمه‌های پایین استفاده کنید و نیازی به تایپ دستور نیست.\n\n🔗 <b>اتصال حساب</b> - اتصال حساب برنامه به تلگرام\n👤 <b>حساب من</b> - نمایش اطلاعات حساب متصل‌شده\n✅ <b>تأیید ایمیل</b> - ارسال و بررسی کد تأیید ایمیل\n🔐 <b>فراموشی رمز عبور</b> - ارسال کد بازیابی رمز عبور\n➕ <b>ساخت کاربر</b> - فقط برای ادمین\n🌐 <b>باز کردن برنامه</b> - باز کردن برنامه وب\n🌍 <b>زبان</b> - تغییر زبان ربات\n🚪 <b>قطع اتصال</b> - حذف اتصال تلگرام",
+            "help_text": "<b>گزینه‌های موجود</b>\nاز دکمه‌های پایین استفاده کنید و نیازی به تایپ دستور نیست.\n\n🔗 <b>اتصال حساب</b> - اتصال حساب برنامه به پیام‌رسان\n👤 <b>حساب من</b> - نمایش اطلاعات حساب متصل‌شده\n✅ <b>تأیید ایمیل</b> - ارسال و بررسی کد تأیید ایمیل\n📱 <b>تأیید موبایل</b> - ارسال و بررسی کد پیامکی\n🔐 <b>فراموشی رمز عبور</b> - ارسال کد بازیابی رمز عبور\n➕ <b>ساخت کاربر</b> - فقط برای ادمین\n🌐 <b>باز کردن برنامه</b> - باز کردن برنامه وب\n🌍 <b>زبان</b> - تغییر زبان ربات\n🚪 <b>قطع اتصال</b> - حذف اتصال حساب",
             "placeholder_language": "Language / زبان",
             "placeholder_main_menu": "یک گزینه را انتخاب کنید",
             "placeholder_cancel": "مقدار خواسته‌شده را ارسال کنید یا لغو کنید",
@@ -930,14 +948,14 @@ class TelegramBotProfileVO:
         TelegramBotLanguageVO.FA: (
             "سلام! به ربات {project_name} خوش آمدید. 👋\n\n"
             "با این ربات می‌توانید دوره‌ها را ببینید، خرید و ثبت‌نام انجام دهید، "
-            "سفارش‌ها و دوره‌های خود را پیگیری کنید، دیدگاه ثبت کنید، حساب را متصل کنید "
-            "و اگر مدیر باشید کاربران و دیدگاه‌ها را مدیریت کنید.\n\n"
+            "سفارش‌ها و دوره‌های خود را پیگیری کنید، دیدگاه ثبت کنید، حساب را متصل کنید، "
+            "ایمیل و شماره موبایل را تأیید کنید و اگر مدیر باشید کاربران و دیدگاه‌ها را مدیریت کنید.\n\n"
             "برای شروع، دکمه Start را بزنید."
         ),
         TelegramBotLanguageVO.EN: (
             "Welcome to {project_name} bot. 👋\n\n"
             "Use this bot to browse and buy courses, track orders and enrollments, "
-            "submit reviews, link your account, verify email, recover password, "
+            "submit reviews, link your account, verify email and phone, recover password, "
             "and manage users/reviews if you are an admin.\n\n"
             "Tap Start to begin."
         ),
@@ -968,6 +986,7 @@ class TelegramBotProfileVO:
             {"command": "payment_queue", "description": "بررسی پرداخت‌ها - فقط ادمین"},
             {"command": "account", "description": "نمایش حساب من"},
             {"command": "verify_email", "description": "تأیید ایمیل"},
+            {"command": "verify_phone", "description": "تأیید شماره موبایل"},
             {"command": "forgot_password", "description": "بازیابی رمز عبور"},
             {"command": "language", "description": "تغییر زبان"},
             {"command": "help", "description": "راهنما"},
@@ -984,6 +1003,7 @@ class TelegramBotProfileVO:
             {"command": "payment_queue", "description": "Payment queue - admin only"},
             {"command": "account", "description": "Show my account"},
             {"command": "verify_email", "description": "Verify email"},
+            {"command": "verify_phone", "description": "Verify phone number"},
             {"command": "forgot_password", "description": "Recover password"},
             {"command": "language", "description": "Change language"},
             {"command": "help", "description": "Help"},

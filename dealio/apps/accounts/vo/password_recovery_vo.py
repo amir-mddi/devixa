@@ -10,7 +10,8 @@ class AccountPasswordRecoveryErrorCodeVO(StrEnum):
 
 
 class AccountPasswordRecoveryCacheVO(StrEnum):
-    KEY_TEMPLATE = "password_recovery:{user_id}"
+    EMAIL_KEY_TEMPLATE = "forget_password_verification:{user_id}"
+    SMS_KEY_TEMPLATE = "sms_password_recovery:{user_id}"
 
 
 class AccountPasswordRecoveryEmailVO(StrEnum):
@@ -37,6 +38,7 @@ class AccountPasswordRecoveryCodeVO(IntEnum):
 
 class AccountPasswordRecoveryApiMessageVO(StrEnum):
     CODE_SENT = "اگر این ایمیل وجود داشته باشد، کد بازیابی رمز عبور ارسال شد."
+    SMS_CODE_SENT = "اگر این شماره موبایل وجود داشته باشد، کد بازیابی رمز عبور ارسال شد."
     INVALID_OR_EXPIRED_CODE = "کد بازیابی نامعتبر است یا منقضی شده است."
     PASSWORD_RESET_SUCCESS = "رمز عبور با موفقیت تغییر کرد."
 

@@ -6,12 +6,9 @@ class CommonVO:
 
 
 class KavenegarVo:
-    password_recovery = "passwordRecovery"
-    create_account = "createAccount"
-    alert = "alert"
-    change_password = "ChangePassword"
-    validation_identifier = "ValidationIdentifier"
-    verification_code = "VerificationCode"
+    CREATE_ACCOUNT = "CreateAccount"
+    FORGOT_PASSWORD = "ForgotPassword"
+    VERIFY_PHONE_NUMBER = "VerifyPhoneNumber"
 
 
 class ResponseVO:

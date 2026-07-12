@@ -1,24 +1,26 @@
-import hashlib
-import secrets
-from datetime import datetime, timedelta
+from datetime import datetime
 
-from dealio.apps.common.email_service import send_html_email, send_html_email_async
-from dealio.apps.common.project_config import get_project_name
+from dealio.apps.accounts.repositories.adapters.verification_code_cache_adapter import (
+    VerificationCodeCacheAdapter,
+)
+from dealio.apps.common.email_service import send_html_email_async
 from dealio.apps.common.helpers.metaclasses.singleton import Singleton
-from django.core.cache import cache
+from dealio.apps.common.project_config import get_project_name
 
 
 class AccountEmailAdapter(metaclass=Singleton):
-    VERIFICATION_CODE_EXPIRATION_MINUTES = 5
+    VERIFICATION_CODE_EXPIRATION_MINUTES = VerificationCodeCacheAdapter.EXPIRATION_MINUTES
 
+    def __init__(self):
+        self.verification_code_cache = VerificationCodeCacheAdapter()
 
     @staticmethod
     def generate_verification_code() -> str:
-        return str(secrets.randbelow(900000) + 100000)
+        return VerificationCodeCacheAdapter.generate_code()
 
     @staticmethod
     def hash_code(code: str) -> str:
-        return hashlib.sha256(code.encode("utf-8")).hexdigest()
+        return VerificationCodeCacheAdapter.hash_code(code)
 
     @staticmethod
     def get_email_verification_cache_key(user_id: str) -> str:
@@ -30,11 +32,9 @@ class AccountEmailAdapter(metaclass=Singleton):
 
     def send_email_verification_code(self, user) -> None:
         code = self.generate_verification_code()
-
-        cache.set(
-            self.get_email_verification_cache_key(str(user.id)),
-            self.hash_code(code),
-            timeout=timedelta(minutes=self.VERIFICATION_CODE_EXPIRATION_MINUTES).total_seconds(),
+        self.verification_code_cache.store_code(
+            cache_key=self.get_email_verification_cache_key(str(user.id)),
+            code=code,
         )
 
         send_html_email_async(
@@ -53,10 +53,9 @@ class AccountEmailAdapter(metaclass=Singleton):
 
     def send_forget_password_verification_code(self, user) -> None:
         code = self.generate_verification_code()
-        cache.set(
-            self.get_forget_password_verification_cache_key(str(user.id)),
-            self.hash_code(code),
-            timeout=timedelta(minutes=self.VERIFICATION_CODE_EXPIRATION_MINUTES).total_seconds(),
+        self.verification_code_cache.store_code(
+            cache_key=self.get_forget_password_verification_cache_key(str(user.id)),
+            code=code,
         )
 
         send_html_email_async(
@@ -73,16 +72,20 @@ class AccountEmailAdapter(metaclass=Singleton):
             recipient_list=[user.email],
         )
 
-    def check_code(self, user, cache_key, code, *, mark_email_verified: bool = False):
-        saved_code_hash = cache.get(cache_key)
-
-        if not saved_code_hash:
+    def check_code(
+        self,
+        user,
+        cache_key: str,
+        code: str,
+        *,
+        mark_email_verified: bool = False,
+    ) -> bool:
+        is_valid = self.verification_code_cache.verify_code(
+            cache_key=cache_key,
+            code=code,
+        )
+        if not is_valid:
             return False
-
-        if saved_code_hash != self.hash_code(code):
-            return False
-
-        cache.delete(cache_key)
 
         if mark_email_verified:
             user.email_verified = True

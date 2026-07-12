@@ -18,6 +18,18 @@ class ResetPasswordDTO:
 
 
 @dataclass(frozen=True, slots=True)
+class SendSmsPasswordRecoveryCodeDTO:
+    phone_number: str
+
+
+@dataclass(frozen=True, slots=True)
+class ResetPasswordBySmsDTO:
+    phone_number: str
+    code: str
+    new_password: str
+
+
+@dataclass(frozen=True, slots=True)
 class PasswordRecoveryResultDTO:
     is_success: bool
     error_code: AccountPasswordRecoveryErrorCodeVO | None = None

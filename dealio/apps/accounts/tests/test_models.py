@@ -50,3 +50,15 @@ class AccountModelTests(TestCase):
         )
 
         self.assertEqual(str(social), "github:42")
+    def test_changing_phone_number_resets_verification_status(self):
+        user = UserFactory.create(
+            phone_number="09121234567",
+            phone_number_verified=True,
+        )
+
+        user.phone_number = "09121234568"
+        user.save(update_fields=["phone_number"])
+
+        user.refresh_from_db()
+        self.assertFalse(user.phone_number_verified)
+

@@ -1,12 +1,15 @@
-from dealio.apps.common.utils.common_utils import CommonUtils
+import json
+
 from dealio.apps.common.helpers.metaclasses.singleton import Singleton
+from dealio.apps.common.utils.common_utils import CommonUtils
+from dealio.apps.core_models.dtos.sms_providers.kavenegar_params_dto import KavenegarTemplateSmsDTO
 from dealio.apps.shared.dtos.metric_data import MetricDataDto
 from dealio.apps.shared.dtos.project_config_dto import ProjectConfigDTO
 from dealio.apps.shared.initial_data.initial_data.project_config_initial import initialize_project_config
+from dealio.apps.shared.repositories.adapters.kavenegar_adapter import KavenegarSmsService
 # from dealio.apps.shared.repositories.adapters.kafka_adapter import KafkaProducerAdapter
 from dealio.apps.shared.repositories.adapters.metric_provider_adapter import MetricProviderAdapter
 from dealio.apps.shared.repositories.adapters.postgres_adapter import PostgresAdapter
-import json
 
 # from dealio.apps.shared.repositories.adapters.rabbitmq_adapter import RabbitMQProducerAdapter
 
@@ -18,11 +21,15 @@ class SharedApplicationLogic(metaclass=Singleton):
     def __init__(self):
         self.postgres_adapter = PostgresAdapter()
         self.metric_provider_adapter = MetricProviderAdapter()
+        self.sms_provider = KavenegarSmsService()
         # self.kafka_adapter = KafkaProducerAdapter()
         # self.rabbitmq_adapter = RabbitMQProducerAdapter()
 
     def push_notification_into_kafka(self, message: json, kafka_topic: str = "notification"):
         self.kafka_adapter.commit(message=message, topic=kafka_topic)
+
+    def send_sms(self, data_dto: KavenegarTemplateSmsDTO):
+        return self.sms_provider.send_in_thread(data_dto)
 
     def push_notification_into_rabbitmq(self, message: str, queue_name: str = "notification"):
         self.rabbitmq_adapter.commit(message=message, queue_name=queue_name)
