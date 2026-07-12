@@ -1,65 +1,176 @@
-version: '3'
+x-dealio-service: &dealio-service
+  image: ${IMAGE_NAME}
+  env_file:
+    - ${PROJECT_ENV_FILE}
+  environment:
+    VERSION: ${VERSION:-unknown}
+    PORT: ${PORT:-8077}
+  volumes:
+    - /mnt/data/backend_web/media:/app/dealio/apps/media
+    - /mnt/data/backend_web/static:/app/deployment/staticfiles
+    - /mnt/data/backend_web/postgresql_backup:/app/postgresql_backup
+  networks:
+    - backend
+  restart: unless-stopped
+  init: true
+  stop_grace_period: 30s
+
+x-after-bootstrap: &after-bootstrap
+  depends_on:
+    dealio_init:
+      condition: service_completed_successfully
 
 services:
+  dealio_init:
+    <<: *dealio-service
+    container_name: dealio_init
+    restart: "no"
+    command:
+      - /app/deployment/entrypoints/bootstrap.sh
+
   dealio_backend:
-    image: $IMAGE_NAME
-    env_file:
-      - $PROJECT_ENV_FILE
-    volumes:
-      - /mnt/data/backend_web/media:/app/dealio/apps/media
+    <<:
+      - *dealio-service
+      - *after-bootstrap
+    container_name: dealio_application
     ports:
       - "8077:8077"
-    restart: always
-    environment:
-      - VERSION=$VERSION
-    networks:
-      - backend
-    container_name: dealio_application
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import socket; socket.create_connection(('127.0.0.1', 8077), 2).close()"
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   celery_worker:
-    image: $IMAGE_NAME
-    command: celery -A dealio.project worker -l info -Q high_priority --prefetch-multiplier=1 --loglevel=info
-    env_file:
-      - $PROJECT_ENV_FILE
-    environment:
-      - VERSION=$VERSION
-    volumes:
-      - /mnt/data/backend_web/media:/app/dealio/apps/media
-    restart: always
-    networks:
-      - backend
+    <<:
+      - *dealio-service
+      - *after-bootstrap
     container_name: dealio_celery_worker_service
-
+    command:
+      - celery
+      - -A
+      - dealio.project
+      - worker
+      - --loglevel=info
+      - --queues=high_priority
+      - --prefetch-multiplier=1
 
   celery_beat:
-    image: $IMAGE_NAME
-    command: celery -A dealio.project beat --scheduler django_celery_beat.schedulers:DatabaseScheduler --max-interval=1 --loglevel=info
-
-    env_file:
-      - $PROJECT_ENV_FILE
-    environment:
-      - VERSION=$VERSION
-    volumes:
-      - /mnt/data/backend_web/media:/app/dealio/apps/media
-    restart: always
-    networks:
-      - backend
+    <<:
+      - *dealio-service
+      - *after-bootstrap
     container_name: dealio_celery_beat_service
-
+    command:
+      - celery
+      - -A
+      - dealio.project
+      - beat
+      - --scheduler=django_celery_beat.schedulers:DatabaseScheduler
+      - --max-interval=5
+      - --loglevel=info
 
   flower:
-    image: $IMAGE_NAME
-    command: celery -A dealio flower
-    env_file:
-      - $PROJECT_ENV_FILE
+    <<:
+      - *dealio-service
+      - *after-bootstrap
+    container_name: dealio_monitoring_flower_service
+    command:
+      - celery
+      - -A
+      - dealio.project
+      - flower
+      - --port=5556
     ports:
       - "5556:5556"
-    restart: always
-    networks:
-      - backend
-    container_name: dealio_monitoring_flower_service
 
+  telegram_bot:
+    <<:
+      - *dealio-service
+      - *after-bootstrap
+    container_name: dealio_telegram_bot
+    profiles:
+      - bots
+      - telegram
+    command:
+      - python
+      - -m
+      - dealio.project.manage
+      - telegram_polling
+      - --timeout
+      - "30"
+      - --sleep
+      - "2"
 
+  bale_bot:
+    <<:
+      - *dealio-service
+      - *after-bootstrap
+    container_name: dealio_bale_bot
+    profiles:
+      - bots
+      - bale
+    command:
+      - python
+      - -m
+      - dealio.project.manage
+      - bale_polling
+      - --timeout
+      - "30"
+      - --limit
+      - "50"
+      - --sleep
+      - "2"
+
+  rubika_bot:
+    <<:
+      - *dealio-service
+      - *after-bootstrap
+    container_name: dealio_rubika_bot
+    profiles:
+      - bots
+      - rubika
+    command:
+      - python
+      - -m
+      - dealio.project.manage
+      - rubika_polling
+      - --limit
+      - "50"
+      - --sleep
+      - "2"
+
+  # Run this instead of normal Telegram/Bale polling when those bot tokens are
+  # dedicated to channel synchronization. Never run both update consumers for
+  # the same token at the same time.
+  channel_sync:
+    <<:
+      - *dealio-service
+      - *after-bootstrap
+    container_name: dealio_channel_sync
+    profiles:
+      - channel-sync
+    command:
+      - python
+      - -m
+      - dealio.project.manage
+      - channel_sync_polling
+      - --provider
+      - all
+      - --telegram-timeout
+      - "5"
+      - --bale-timeout
+      - "5"
+      - --bale-limit
+      - "50"
+      - --sleep
+      - "2"
 
 networks:
   backend:

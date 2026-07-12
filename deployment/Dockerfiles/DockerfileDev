@@ -1,12 +1,12 @@
 FROM docker.arvancloud.ir/python:3.11
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-
-ENV PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/
-ENV PIP_TRUSTED_HOST=mirrors.aliyun.com
-ENV PIP_DEFAULT_TIMEOUT=100
-ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/ \
+    PIP_TRUSTED_HOST=mirrors.aliyun.com \
+    PIP_DEFAULT_TIMEOUT=100 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus_multiproc
 
 WORKDIR /app
 
@@ -17,15 +17,11 @@ RUN python -m pip install --upgrade pip setuptools wheel && \
 
 COPY . /app/
 
-COPY deployment/entrypoints/entrypoint.sh /app/entrypoint.sh
+RUN sed -i 's/\r$//g' /app/deployment/entrypoints/*.sh && \
+    chmod +x /app/deployment/entrypoints/*.sh && \
+    mkdir -p "$PROMETHEUS_MULTIPROC_DIR" && \
+    chmod 777 "$PROMETHEUS_MULTIPROC_DIR"
 
-RUN sed -i 's/\r$//g' /app/entrypoint.sh && \
-    chmod +x /app/entrypoint.sh
-
-ENV PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus_multiproc
-
-RUN mkdir -p "$PROMETHEUS_MULTIPROC_DIR" && chmod 777 "$PROMETHEUS_MULTIPROC_DIR"
-
-ENTRYPOINT ["/app/entrypoint.sh"]
+ENTRYPOINT ["/app/deployment/entrypoints/entrypoint.sh"]
 
 CMD ["sh", "-c", "gunicorn -w ${WORKERS:-$(( $(nproc) + 1 ))} -k gthread --threads ${THREADS:-6} dealio.project.wsgi:application -b 0.0.0.0:${PORT:-8077}"]
