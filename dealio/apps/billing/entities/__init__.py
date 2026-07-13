@@ -1,3 +1,4 @@
+from .basket_entities import BasketSummaryEntity
 from .billing_entities import (
     PaymentGatewayRequestEntity,
     PaymentGatewayResultEntity,
@@ -5,6 +6,7 @@ from .billing_entities import (
 )
 
 __all__ = [
+    "BasketSummaryEntity",
     "PaymentGatewayRequestEntity",
     "PaymentGatewayResultEntity",
     "PaymentGatewayVerificationEntity",

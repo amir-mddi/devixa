@@ -1,0 +1,15 @@
+<div class="admin-row-actions">
+    <a class="admin-button admin-button--ghost admin-button--sm" href="{% url 'admin_panel:user_edit' item.id %}">ویرایش</a>
+    <form method="post" action="{% url 'admin_panel:user_toggle' item.id %}" onsubmit="return confirm('وضعیت این کاربر تغییر کند؟')">
+        {% csrf_token %}
+        <button class="admin-button {% if item.is_active %}admin-button--danger{% else %}admin-button--success{% endif %} admin-button--sm">
+            {% if item.is_active %}غیرفعال{% else %}فعال{% endif %}
+        </button>
+    </form>
+    {% if item.id != request.user.id %}
+        <form method="post" action="{% url 'admin_panel:user_delete' item.id %}" onsubmit="return confirm('این کاربر به‌صورت نرم حذف شود؟')">
+            {% csrf_token %}
+            <button class="admin-button admin-button--danger admin-button--sm" type="submit">حذف</button>
+        </form>
+    {% endif %}
+</div>

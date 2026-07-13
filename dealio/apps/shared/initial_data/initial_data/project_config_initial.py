@@ -88,6 +88,7 @@ def build_project_config_initial_data() -> dict[str, str]:
         ProjectConfigFieldNameVO.INSTAGRAM_URL.value: _public_url(_env(ProjectConfigEnvNameVO.INSTAGRAM_URL, ProjectConfigDefaultVO.EMPTY_URL.value)),
         ProjectConfigFieldNameVO.TELEGRAM_BOT_URL.value: _public_url(_env(ProjectConfigEnvNameVO.TELEGRAM_BOT_URL, ProjectConfigDefaultVO.EMPTY_URL.value)),
         ProjectConfigFieldNameVO.BALE_BOT_URL.value: _public_url(_env(ProjectConfigEnvNameVO.BALE_BOT_URL, ProjectConfigDefaultVO.EMPTY_URL.value)),
+        ProjectConfigFieldNameVO.RUBIKA_BOT_URL.value: _public_url(_env(ProjectConfigEnvNameVO.RUBIKA_BOT_URL, ProjectConfigDefaultVO.EMPTY_URL.value)),
         ProjectConfigFieldNameVO.PHONE.value: _env(ProjectConfigEnvNameVO.PHONE, ProjectConfigDefaultVO.PHONE.value),
         ProjectConfigFieldNameVO.ADDRESS.value: _env(ProjectConfigEnvNameVO.ADDRESS, ProjectConfigDefaultVO.ADDRESS.value),
         ProjectConfigFieldNameVO.WORKING_HOURS.value: _env(

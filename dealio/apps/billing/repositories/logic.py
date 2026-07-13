@@ -13,7 +13,7 @@ from dealio.apps.billing.dtos import (
     PaymentStartDTO,
 )
 from dealio.apps.billing.entities import PaymentGatewayRequestEntity
-from dealio.apps.billing.enums import PaymentProviderEnum, PaymentStatusEnum
+from dealio.apps.billing.enums import OrderStatusEnum, PaymentProviderEnum, PaymentStatusEnum
 from dealio.apps.billing.repositories.adapters.payment_gateway_adapter import PaymentGatewayFactory
 from dealio.apps.billing.repositories.adapters.postgres_adapter import BillingPostgresAdapter
 from dealio.apps.common.helpers.metaclasses.singleton import Singleton
@@ -94,6 +94,15 @@ class BillingLogicRepository(metaclass=Singleton):
         self._validate_receipt_upload(dto)
         payment = self.postgres_adapter.get_payment_for_user(payment_id=dto.payment_id, user=user)
         return self.postgres_adapter.upload_receipt(user=user, payment=payment, dto=dto)
+
+    @staticmethod
+    def can_upload_receipt(payment) -> bool:
+        return bool(
+            payment
+            and payment.provider in {PaymentProviderEnum.CARD_TO_CARD.value, PaymentProviderEnum.MANUAL.value}
+            and payment.order.status != OrderStatusEnum.PAID.value
+            and payment.status != PaymentStatusEnum.PENDING_VERIFICATION.value
+        )
 
     def review_receipt(self, actor, dto: PaymentReceiptReviewDTO):
         receipt = self.postgres_adapter.get_receipt_for_admin(dto.receipt_id)

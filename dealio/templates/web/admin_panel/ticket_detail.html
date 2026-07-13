@@ -1,0 +1,14 @@
+{% extends "web/admin_panel/base.html" %}
+{% block admin_title %}تیکت {{ ticket.id }}{% endblock %}
+{% block admin_content %}
+<header class="admin-page-header admin-page-header--actions"><div><a class="admin-back-link" href="{% url 'admin_panel:tickets' %}">بازگشت به تیکت‌ها</a><h1>{{ ticket.subject|default:"بدون عنوان" }}</h1><p>شماره تیکت #{{ ticket.id }} · {{ ticket.provider }}</p></div><span class="admin-status admin-status--{{ ticket.status }}">{{ ticket.get_status_display }}</span></header>
+<section class="admin-grid admin-grid--ticket">
+<article class="admin-card admin-conversation">
+    {% for item in ticket.messages.all %}<div class="admin-message {% if item.sender_type == 'admin' %}is-admin{% else %}is-user{% endif %}"><div class="admin-message__meta"><strong>{% if item.sender_type == 'admin' %}مدیر{% else %}کاربر{% endif %}</strong><span>{{ item.created_at|date:"Y/m/d H:i" }}</span></div><p>{{ item.message|linebreaksbr }}</p></div>{% empty %}<div class="admin-empty">پیامی وجود ندارد.</div>{% endfor %}
+</article>
+<aside class="admin-card admin-ticket-side">
+    <div class="admin-detail-list"><div><span>کاربر</span><strong>{{ ticket.user.get_full_name|default:ticket.user.username|default:ticket.profile.username|default:"نامشخص" }}</strong></div><div><span>ایمیل</span><strong dir="ltr">{{ ticket.user.email|default:"-" }}</strong></div><div><span>پیام‌رسان</span><strong>{{ ticket.provider }}</strong></div><div><span>ایجاد</span><strong>{{ ticket.created_at|date:"Y/m/d H:i" }}</strong></div></div>
+    {% if ticket.status != 'closed' %}<form method="post" action="{% url 'admin_panel:ticket_reply' ticket.id %}" class="admin-form">{% csrf_token %}{{ reply_form.as_p }}<button class="admin-button admin-button--primary" type="submit">ارسال پاسخ</button></form><form method="post" action="{% url 'admin_panel:ticket_close' ticket.id %}" class="admin-inline-form" onsubmit="return confirm('این تیکت بسته شود؟')">{% csrf_token %}<button class="admin-button admin-button--danger admin-button--block" type="submit">بستن تیکت</button></form>{% else %}<div class="admin-note">این تیکت بسته شده است.</div>{% endif %}
+</aside>
+</section>
+{% endblock %}

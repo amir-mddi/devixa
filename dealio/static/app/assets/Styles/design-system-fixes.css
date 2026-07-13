@@ -1100,3 +1100,39 @@ body{
         transition:none !important;
     }
 }
+
+/* Basket entry and reusable course purchase actions */
+.nav-basket{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:44px;padding-inline:13px;border:1px solid var(--border-soft);border-radius:14px;background:var(--bg-card);color:var(--text-primary);font-size:13px;font-weight:800;text-decoration:none;transition:transform .2s,border-color .2s,background .2s}.nav-basket:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--accent) 48%,var(--border-soft));background:var(--accent-soft)}.nav-basket__count{position:absolute;inset-inline-start:-6px;inset-block-start:-7px;display:grid;place-items:center;min-width:21px;height:21px;padding-inline:5px;border:2px solid var(--bg-page);border-radius:999px;background:#ef4444;color:#fff;font-size:10px;line-height:1}.course-card__actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;width:100%}.course-card__basket-form{display:block;min-width:0}.course-card__actions .course-card__button{width:100%;min-width:0;height:44px;margin:0;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding-inline:10px;border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:800;text-decoration:none}.course-card__button--details{background:var(--bg-surface-strong)!important;color:var(--text-primary)!important;border:1px solid var(--border-soft)!important}.course-card__button--basket{background:linear-gradient(135deg,var(--accent),var(--secondary))!important;color:var(--text-on-accent)!important}.course-purchase-form{margin:0}.course-purchase-form .Registration{border:0;font:inherit;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px}.Enroll_btn .course-purchase-form{display:flex;align-items:center}
+@media(max-width:980px){.nav-basket__label{display:none}.nav-basket{width:42px;padding:0}.course-card__actions{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.course-card__actions{grid-template-columns:1fr}.course-card__actions .course-card__button{height:43px}.Enroll_btn{gap:12px}.Enroll_btn .course-purchase-form,.Enroll_btn .Registration{width:100%}}
+
+
+/* Keep compact action labels inside their boxes without wrapping. */
+[data-fit-text]{
+    min-width:0;
+    overflow:hidden;
+    flex-wrap:nowrap !important;
+    white-space:nowrap !important;
+    word-break:normal !important;
+    overflow-wrap:normal !important;
+}
+
+[data-fit-text] [data-fit-text-label]{
+    display:inline-block;
+    min-width:0;
+    max-width:100%;
+    flex:0 1 auto;
+    white-space:nowrap !important;
+    word-break:normal !important;
+    overflow-wrap:normal !important;
+    line-height:1.2;
+}
+
+[data-fit-text] > :is(i,svg){
+    flex:0 0 auto;
+}
+
+.course-card__actions .course-card__button{
+    gap:clamp(3px,.55vw,6px);
+    padding-inline:clamp(5px,.9vw,10px);
+}

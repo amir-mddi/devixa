@@ -1,0 +1,88 @@
+{% extends "web/pages/base.html" %}
+{% load project_tags billing_web_tags %}
+
+{% block title %}ثبت رسید پرداخت | {{ project.display_name }}{% endblock %}
+{% block page_styles %}<link rel="stylesheet" href="{% project_static 'Styles/basket.css' %}">{% endblock %}
+
+{% block content %}
+<main class="commerce-page">
+    <div class="commerce-container commerce-container--narrow">
+        <nav class="commerce-steps" aria-label="مراحل خرید">
+            <span><b>۱</b> سبد خرید</span><span><b>۲</b> روش پرداخت</span><span class="is-active"><b>۳</b> ثبت رسید</span>
+        </nav>
+
+        <header class="commerce-heading">
+            <div><p class="commerce-eyebrow">پرداخت {{ payment.payment_number }}</p><h1>{% if payment_succeeded %}پرداخت تأیید شد{% elif payment_pending %}رسید در حال بررسی است{% else %}انتقال وجه و ثبت رسید{% endif %}</h1><p>وضعیت: <span class="commerce-status {{ payment.status|status_class }}">{{ payment.status|payment_status_label }}</span></p></div>
+            <a href="{% url 'accounts_web:profile' %}#billing" class="commerce-button commerce-button--ghost">سوابق پرداخت</a>
+        </header>
+
+        {% if payment_succeeded %}
+            <section class="payment-result is-success"><i class="fa-solid fa-circle-check"></i><div><h2>ثبت‌نام شما فعال شد</h2><p>پرداخت تأیید و دوره‌های این سفارش به پنل کاربری شما اضافه شدند.</p></div><a href="{% url 'accounts_web:profile' %}#courses" class="commerce-button commerce-button--primary">مشاهده دوره‌های من</a></section>
+        {% elif payment_pending %}
+            <section class="payment-result is-pending"><i class="fa-solid fa-hourglass-half"></i><div><h2>رسید دریافت شد</h2><p>مدیر رسید را بررسی می‌کند. نتیجه در همین صفحه و بخش صورتحساب پنل کاربری نمایش داده می‌شود.</p></div></section>
+        {% endif %}
+
+        <div class="receipt-layout">
+            <section class="receipt-main">
+                {% if not payment_succeeded and not payment_pending %}
+                    {% if not bank_info_configured %}<div class="commerce-alert commerce-alert--warning"><i class="fa-solid fa-triangle-exclamation"></i><div><strong>اطلاعات حساب هنوز تنظیم نشده است</strong><p>پیش از انتقال وجه با پشتیبانی تماس بگیرید. مدیر باید اطلاعات کارت‌به‌کارت را در متغیرهای محیطی پروژه تنظیم کند.</p></div><a href="{% url 'pages_web:contact_us' %}">تماس با پشتیبانی</a></div>{% endif %}
+                    <article class="bank-card-panel">
+                        <div class="bank-card-panel__header"><div><p>اطلاعات مقصد</p><h2>{{ bank_info.bank_name|default:"حساب مجموعه" }}</h2></div><i class="fa-solid fa-building-columns"></i></div>
+                        <div class="bank-account-grid">
+                            <div class="bank-account-field is-wide"><span>شماره کارت</span><strong dir="ltr" data-copy-value="{{ bank_info.card_number }}">{{ bank_info.card_number|group_card_number }}</strong><button type="button" data-copy-button data-copy="{{ bank_info.card_number }}"><i class="fa-regular fa-copy"></i>کپی</button></div>
+                            <div><span>نام صاحب حساب</span><strong>{{ bank_info.card_holder|default:"ثبت نشده" }}</strong></div>
+                            <div><span>شماره حساب</span><strong dir="ltr">{{ bank_info.account_number|default:"ثبت نشده" }}</strong></div>
+                            <div><span>شماره شبا</span><strong dir="ltr">{{ bank_info.iban|default:"ثبت نشده" }}</strong></div>
+                            <div><span>مبلغ انتقال</span><strong>{{ payment.amount|billing_money:payment.currency }}</strong></div>
+                        </div>
+                        {% if bank_info.message %}<p class="bank-card-panel__note"><i class="fa-solid fa-circle-info"></i>{{ bank_info.message }}</p>{% endif %}
+                    </article>
+                {% endif %}
+
+                {% if can_upload_receipt %}
+                    <article class="receipt-form-card">
+                        <div class="receipt-form-card__header"><div><p class="commerce-eyebrow">پس از انتقال</p><h2>تصویر رسید را بارگذاری کنید</h2></div><span>JPG / PNG / PDF</span></div>
+                        <form method="post" enctype="multipart/form-data" action="{% url 'billing_web:upload_receipt' payment_id=payment.id %}" class="receipt-form" data-receipt-form>
+                            {% csrf_token %}
+                            {% for error in receipt_form.non_field_errors %}<p class="commerce-field-error commerce-field-error--block">{{ error }}</p>{% endfor %}
+                            <label class="receipt-dropzone" for="{{ receipt_form.receipt_file.id_for_label }}">
+                                {{ receipt_form.receipt_file }}
+                                <span class="receipt-dropzone__icon"><i class="fa-solid fa-cloud-arrow-up"></i></span>
+                                <strong>تصویر یا PDF رسید را انتخاب کنید</strong>
+                                <small data-receipt-file-name>حداکثر حجم مجاز ۵ مگابایت</small>
+                            </label>
+                            {% for error in receipt_form.receipt_file.errors %}<p class="commerce-field-error">{{ error }}</p>{% endfor %}
+                            <div class="receipt-preview" data-receipt-preview hidden><img alt="پیش‌نمایش رسید" data-receipt-preview-image><div><i class="fa-solid fa-file-lines"></i><span data-receipt-preview-name></span></div></div>
+                            <div class="receipt-form__grid">
+                                <div><label for="{{ receipt_form.tracking_code.id_for_label }}">کد رهگیری</label>{{ receipt_form.tracking_code }}{% for error in receipt_form.tracking_code.errors %}<p class="commerce-field-error">{{ error }}</p>{% endfor %}</div>
+                                <div><label for="{{ receipt_form.payer_card_last4.id_for_label }}">۴ رقم آخر کارت</label>{{ receipt_form.payer_card_last4 }}{% for error in receipt_form.payer_card_last4.errors %}<p class="commerce-field-error">{{ error }}</p>{% endfor %}</div>
+                                <div><label for="{{ receipt_form.paid_amount.id_for_label }}">مبلغ پرداخت‌شده</label>{{ receipt_form.paid_amount }}{% for error in receipt_form.paid_amount.errors %}<p class="commerce-field-error">{{ error }}</p>{% endfor %}</div>
+                                <div class="is-wide"><label for="{{ receipt_form.note.id_for_label }}">توضیحات</label>{{ receipt_form.note }}{% for error in receipt_form.note.errors %}<p class="commerce-field-error">{{ error }}</p>{% endfor %}</div>
+                            </div>
+                            <button type="submit" class="commerce-button commerce-button--primary">ثبت رسید برای بررسی <i class="fa-solid fa-paper-plane"></i></button>
+                        </form>
+                    </article>
+                {% endif %}
+
+                {% if receipts %}
+                    <section class="receipt-history"><div class="receipt-history__heading"><h2>رسیدهای ثبت‌شده</h2><span>{{ receipts|length }} رسید</span></div>
+                        {% for receipt in receipts %}
+                            <article><div><strong>{{ receipt.created_at|date:"Y/m/d H:i" }}</strong><span class="commerce-status {{ receipt.status|status_class }}">{{ receipt.status|receipt_status_label }}</span></div><dl><div><dt>کد رهگیری</dt><dd dir="ltr">{{ receipt.tracking_code|default:"-" }}</dd></div><div><dt>۴ رقم کارت</dt><dd dir="ltr">{{ receipt.payer_card_last4|default:"-" }}</dd></div><div><dt>مبلغ</dt><dd>{{ receipt.paid_amount|billing_money:payment.currency }}</dd></div></dl>{% if receipt.admin_note %}<p><b>پاسخ مدیر:</b> {{ receipt.admin_note }}</p>{% endif %}</article>
+                        {% endfor %}
+                    </section>
+                {% endif %}
+            </section>
+
+            <aside class="order-summary receipt-order-summary">
+                <div class="order-summary__title"><div><p class="commerce-eyebrow">{{ payment.order.order_number }}</p><h2>دوره‌های سفارش</h2></div><i class="fa-solid fa-bag-shopping"></i></div>
+                <div class="checkout-mini-items">{% for item in order_items %}<div><span>{{ item.course_title }}</span><strong>{{ item.total_price|billing_money:payment.currency }}</strong></div>{% endfor %}</div>
+                <dl class="order-summary__rows"><div><dt>جمع دوره‌ها</dt><dd>{{ payment.order.subtotal_amount|billing_money:payment.currency }}</dd></div><div class="is-discount"><dt>تخفیف</dt><dd>- {{ payment.order.discount_amount|billing_money:payment.currency }}</dd></div></dl>
+                <div class="order-summary__total"><span>مبلغ پرداخت</span><strong>{{ payment.amount|billing_money:payment.currency }}</strong></div>
+                <p class="order-summary__secure"><i class="fa-solid fa-user-shield"></i>رسید فقط برای مدیران مجاز قابل مشاهده است.</p>
+            </aside>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block page_scripts %}<script src="{% project_static 'js/basket.js' %}"></script>{% endblock %}

@@ -138,3 +138,13 @@
     --text:var(--text-primary);
     --border:var(--border-soft);
 }
+
+:root{
+    --card-grid-min:280px;
+    --card-grid-max:420px;
+    --card-grid-gap:24px;
+    --card-padding-compact:clamp(16px,2vw,24px);
+    --card-media-compact:clamp(140px,13vw,190px);
+    --card-button-height:46px;
+    --brand-accent-2:#7c3aed;
+}

@@ -23,6 +23,7 @@ class ProjectConfigDTO:
     instagram_url: str
     telegram_bot_url: str
     bale_bot_url: str
+    rubika_bot_url: str
     phone: str
     address: str
     working_hours: str
@@ -56,6 +57,7 @@ class ProjectConfigDTO:
             instagram_url=instance.instagram_url,
             telegram_bot_url=instance.telegram_bot_url,
             bale_bot_url=instance.bale_bot_url,
+            rubika_bot_url=instance.rubika_bot_url,
             phone=instance.phone,
             address=instance.address,
             working_hours=instance.working_hours,

@@ -27,7 +27,13 @@ class ApiKeyManagerModelAdmin(admin.ModelAdmin):
 
 @admin.register(ProjectConfigModel)
 class ProjectConfigModelAdmin(admin.ModelAdmin):
-    list_display = ("display_name", "slug", "contact_email", "support_email", "is_active")
+    list_display = (
+        "display_name",
+        "slug",
+        "contact_email",
+        "support_email",
+        "is_active",
+    )
     search_fields = ("name", "display_name", "slug", "contact_email", "support_email")
     fieldsets = (
         (
@@ -68,6 +74,7 @@ class ProjectConfigModelAdmin(admin.ModelAdmin):
                     "instagram_url",
                     "telegram_bot_url",
                     "bale_bot_url",
+                    "rubika_bot_url",
                 )
             },
         ),

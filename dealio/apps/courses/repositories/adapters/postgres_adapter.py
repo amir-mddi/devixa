@@ -111,10 +111,12 @@ class CoursePostgresAdapter(metaclass=Singleton):
             if Decimal(str(dto.price)) < Decimal("0"):
                 raise ValidationError("Course price can not be negative.")
             updates["price"] = Decimal(str(dto.price))
-        if dto.category_id is not None:
-            category = CourseCategory.objects.filter(id=dto.category_id, is_deleted=False).first()
-            if not category:
-                raise NotFound("Course category not found.")
+        if "category_id" in getattr(dto, "model_fields_set", set()):
+            category = None
+            if dto.category_id is not None:
+                category = CourseCategory.objects.filter(id=dto.category_id, is_deleted=False).first()
+                if not category:
+                    raise NotFound("Course category not found.")
             updates["category"] = category
         if "title" in updates and updates["title"] != course.title:
             updates["slug"] = self.unique_slug_for_model(Course, updates["title"], instance_id=course.id, max_length=200)
@@ -310,6 +312,14 @@ class CoursePostgresAdapter(metaclass=Singleton):
             CourseEnrollment.objects.select_related("course", "course__category", "course__instructor")
             .filter(user=user, is_deleted=False)
             .order_by("-enrolled_at")
+        )
+
+    @staticmethod
+    def list_user_reviews(user):
+        return (
+            CourseReview.objects.select_related("course")
+            .filter(user=user, is_deleted=False)
+            .order_by("-created_at")
         )
 
     def create_or_update_review(self, user, dto):

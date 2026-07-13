@@ -1,0 +1,104 @@
+{% extends "web/admin_panel/base.html" %}
+
+{% block admin_title %}تنظیمات ربات‌ها{% endblock %}
+
+{% block admin_content %}
+<header class="admin-page-header admin-page-header--actions">
+    <div>
+        <span class="admin-eyebrow">تنظیمات Runtime</span>
+        <h1>تنظیمات ربات‌ها و همگام‌سازی</h1>
+        <p>مقادیر ذخیره‌شده در دیتابیس بر تنظیمات محیطی اولویت دارند. اطلاعات محرمانه هرگز به‌صورت خام نمایش داده نمی‌شوند.</p>
+    </div>
+</header>
+
+<nav class="admin-provider-tabs" aria-label="انتخاب بخش تنظیمات">
+    {% for provider, label in provider_choices %}
+        <a href="{% url 'admin_panel:bot_settings' %}?provider={{ provider }}"
+           class="admin-provider-tab {% if selected_provider == provider %}is-active{% endif %}">
+            {{ label }}
+        </a>
+    {% endfor %}
+</nav>
+
+<section class="admin-card admin-settings-panel">
+    <div class="admin-card__header">
+        <div>
+            <span class="admin-eyebrow">{{ selected_provider }}</span>
+            <h2>پیکربندی {{ selected_provider }}</h2>
+        </div>
+        <span class="admin-status admin-status--published">ذخیره امن در دیتابیس</span>
+    </div>
+
+    {% if form.non_field_errors %}
+        <div class="admin-form-error">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <form method="post" action="{% url 'admin_panel:bot_settings' %}?provider={{ selected_provider }}" class="admin-form">
+        {% csrf_token %}
+        <div class="admin-settings-grid">
+            {% for row in setting_rows %}
+                <article class="admin-setting-item">
+                    <div class="admin-setting-item__heading">
+                        <div>
+                            <label for="{{ row.field.id_for_label }}">{{ row.field.label }}</label>
+                            <code>{{ row.setting.env_name }}</code>
+                        </div>
+                        <div class="admin-setting-badges">
+                            {% if row.setting.required %}<span>الزامی</span>{% endif %}
+                            <span class="is-source">{{ row.setting.source }}</span>
+                        </div>
+                    </div>
+
+                    <div class="admin-setting-control">
+                        {{ row.field }}
+                        {% if row.field.errors %}<div class="admin-field-error">{{ row.field.errors }}</div>{% endif %}
+                        {% if row.field.help_text %}<small>{{ row.field.help_text }}</small>{% endif %}
+                    </div>
+
+                    <div class="admin-setting-item__footer">
+                        <span>
+                            {% if row.setting.is_configured %}
+                                <i class="fa-solid fa-circle-check"></i> تنظیم شده
+                            {% else %}
+                                <i class="fa-regular fa-circle"></i> بدون مقدار
+                            {% endif %}
+                        </span>
+                        {% if row.setting.source == 'database' %}
+                            <button type="submit"
+                                    class="admin-link-button admin-link-button--danger"
+                                    form="reset-setting-{{ row.setting.key }}">
+                                بازگشت به env/default
+                            </button>
+                        {% endif %}
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+
+        <div class="admin-form-actions">
+            <button type="submit" class="admin-button admin-button--primary">
+                <i class="fa-solid fa-floppy-disk"></i>
+                ذخیره تنظیمات
+            </button>
+        </div>
+    </form>
+
+    {% for row in setting_rows %}
+        {% if row.setting.source == 'database' %}
+            <form id="reset-setting-{{ row.setting.key }}"
+                  method="post"
+                  action="{% url 'admin_panel:bot_setting_delete' selected_provider row.setting.key %}">
+                {% csrf_token %}
+            </form>
+        {% endif %}
+    {% endfor %}
+</section>
+
+<section class="admin-card admin-security-note">
+    <i class="fa-solid fa-shield-halved"></i>
+    <div>
+        <h2>نکات امنیتی</h2>
+        <p>توکن‌ها و secretها رمزگذاری می‌شوند. مقدار ستاره‌دار به معنی حفظ secret فعلی است. برای حذف override دیتابیس از گزینه «بازگشت به env/default» استفاده کنید.</p>
+    </div>
+</section>
+{% endblock %}

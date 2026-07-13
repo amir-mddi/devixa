@@ -17,7 +17,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 from dotenv import load_dotenv
 
 env_path = os.path.join(BASE_DIR, f"deployment/env/{os.environ.get('ENV', 'local')}.env")
-load_dotenv(dotenv_path=env_path, override=False)
+load_dotenv(dotenv_path=env_path, override=True)
 
 BOT_RUNTIME_ENV_FILE_PATH = os.environ.get("BOT_RUNTIME_ENV_FILE_PATH", env_path)
 BOT_RUNTIME_ENV_WRITE_ENABLED = os.environ.get("BOT_RUNTIME_ENV_WRITE_ENABLED", "false")
@@ -78,6 +78,7 @@ INSTALLED_APPS = [
     'dealio.apps.courses',
     'dealio.apps.billing',
     'dealio.apps.telegram_bot',
+    'dealio.apps.admin_panel',
     'django_prometheus',
 ]
 if DEBUG:
@@ -186,6 +187,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'dealio.apps.common.context_processors.project_context',
+                'dealio.apps.billing.web.context_processors.basket_context',
             ],
         },
     },

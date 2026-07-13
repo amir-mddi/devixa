@@ -1,0 +1,16 @@
+{% extends "web/admin_panel/base.html" %}
+{% block admin_title %}مدیریت تیکت‌ها{% endblock %}
+{% block admin_content %}
+<header class="admin-page-header admin-page-header--actions"><div><span class="admin-eyebrow">پشتیبانی</span><h1>تیکت‌های کاربران</h1><p>تیکت‌های وب، تلگرام، بله و روبیکا را در یک صف مدیریت کنید.</p></div></header>
+<form method="get" class="admin-filter-bar">
+    <input type="search" name="search" value="{{ filters.search }}" placeholder="جست‌وجوی عنوان، کاربر یا پیام...">
+    <select name="status"><option value="">همه وضعیت‌ها</option>{% for value,label in ticket_statuses %}<option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    <select name="provider"><option value="">همه پیام‌رسان‌ها</option>{% for value,label in providers %}<option value="{{ value }}" {% if filters.provider == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    <button class="admin-button admin-button--primary">اعمال فیلتر</button>
+</form>
+<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>تیکت</th><th>کاربر</th><th>کانال</th><th>پیام‌ها</th><th>وضعیت</th><th>آخرین فعالیت</th><th></th></tr></thead><tbody>
+{% for ticket in tickets_page %}<tr><td><strong>{{ ticket.subject|default:"بدون عنوان" }}</strong><small>#{{ ticket.id }}</small></td><td>{{ ticket.user.get_full_name|default:ticket.user.username|default:ticket.profile.username|default:"کاربر مهمان" }}</td><td><span class="admin-chip">{{ ticket.provider }}</span></td><td>{{ ticket.message_count }}</td><td><span class="admin-status admin-status--{{ ticket.status }}">{{ ticket.get_status_display }}</span></td><td>{{ ticket.last_message_at|date:"Y/m/d H:i" }}</td><td><a class="admin-button admin-button--ghost admin-button--sm" href="{% url 'admin_panel:ticket_detail' ticket.id %}">باز کردن</a></td></tr>
+{% empty %}<tr><td colspan="7"><div class="admin-empty">تیکتی مطابق فیلترها پیدا نشد.</div></td></tr>{% endfor %}
+</tbody></table></div>
+{% include "web/admin_panel/_pagination.html" with page_obj=tickets_page %}
+{% endblock %}

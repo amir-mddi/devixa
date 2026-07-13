@@ -1,0 +1,474 @@
+{% extends "web/pages/base.html" %}
+{% load project_tags account_profile_tags %}
+
+{% block title %}پنل کاربری | {{ project.display_name }}{% endblock %}
+
+{% block page_styles_after %}
+    <link rel="stylesheet" href="{% project_static 'Styles/profile.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="profile-page" data-profile-page data-active-section="{{ active_section|default:'overview' }}">
+    <section class="profile-shell">
+        <header class="profile-hero profile-surface">
+            <div class="profile-hero__identity">
+                <div class="profile-avatar profile-avatar--large" data-profile-avatar>
+                    {% if profile.profile_photo_url %}
+                        <img src="{{ profile.profile_photo_url }}" alt="تصویر پروفایل {{ profile.full_name }}" data-profile-preview>
+                    {% else %}
+                        <span data-profile-fallback>{{ profile.initials }}</span>
+                        <img src="" alt="پیش‌نمایش تصویر پروفایل" data-profile-preview hidden>
+                    {% endif %}
+                </div>
+                <div class="profile-hero__copy">
+                    <p class="profile-eyebrow">حساب کاربری</p>
+                    <h1>{{ profile.full_name }}</h1>
+                    <p class="profile-username" dir="ltr">@{{ profile.username }}</p>
+                    <div class="profile-verification-summary" aria-label="وضعیت تأیید اطلاعات تماس">
+                        <span class="profile-status-chip {% if profile.email_verified %}is-success{% else %}is-warning{% endif %}">
+                            <i class="fa-solid {% if profile.email_verified %}fa-circle-check{% else %}fa-circle-exclamation{% endif %}" aria-hidden="true"></i>
+                            ایمیل {% if profile.email_verified %}تأیید شده{% else %}تأیید نشده{% endif %}
+                        </span>
+                        <span class="profile-status-chip {% if profile.phone_number_verified %}is-success{% else %}is-warning{% endif %}">
+                            <i class="fa-solid {% if profile.phone_number_verified %}fa-circle-check{% else %}fa-circle-exclamation{% endif %}" aria-hidden="true"></i>
+                            موبایل {% if profile.phone_number_verified %}تأیید شده{% else %}تأیید نشده{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="profile-hero__meta">
+                <div>
+                    <span>عضویت از</span>
+                    <strong>{{ profile.date_joined|date:"Y/m/d"|default:"—" }}</strong>
+                </div>
+                <div>
+                    <span>آخرین ورود</span>
+                    <strong>{{ profile.last_login|date:"Y/m/d H:i"|default:"—" }}</strong>
+                </div>
+            </div>
+        </header>
+
+        <div class="profile-layout">
+            <aside class="profile-sidebar profile-surface" aria-label="منوی پنل کاربری">
+                <nav class="profile-nav" data-profile-nav>
+                    <a href="#overview" data-profile-target="overview" data-mobile-label="نمای کلی">
+                        <i class="fa-solid fa-chart-pie" aria-hidden="true"></i><span>نمای کلی</span>
+                    </a>
+                    <a href="#profile" data-profile-target="profile" data-mobile-label="پروفایل">
+                        <i class="fa-regular fa-user" aria-hidden="true"></i><span>اطلاعات پروفایل</span>
+                    </a>
+                    <a href="#contact" data-profile-target="contact" data-mobile-label="تماس">
+                        <i class="fa-regular fa-envelope" aria-hidden="true"></i><span>اطلاعات تماس</span>
+                    </a>
+                    <a href="#courses" data-profile-target="courses" data-mobile-label="دوره‌ها">
+                        <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i><span>دوره‌های من</span>
+                        <span class="profile-nav__count">{{ dashboard.enrollments|length }}</span>
+                    </a>
+                    <a href="#billing" data-profile-target="billing" data-mobile-label="مالی">
+                        <i class="fa-regular fa-credit-card" aria-hidden="true"></i><span>سوابق مالی</span>
+                        <span class="profile-nav__count">{{ dashboard.orders|length }}</span>
+                    </a>
+                    <a href="#tickets" data-profile-target="tickets" data-mobile-label="تیکت‌ها">
+                        <i class="fa-regular fa-comments" aria-hidden="true"></i><span>تیکت‌های پشتیبانی</span>
+                        <span class="profile-nav__count">{{ dashboard.tickets|length }}</span>
+                    </a>
+                </nav>
+            </aside>
+
+            <section class="profile-content">
+                <section id="overview" class="profile-panel" data-profile-panel="overview" tabindex="-1">
+                    <div class="profile-panel__header">
+                        <div><p class="profile-eyebrow">خلاصه حساب</p><h2>نمای کلی</h2></div>
+                    </div>
+                    <div class="profile-stats">
+                        <article class="profile-stat-card profile-surface">
+                            <span class="profile-stat-card__icon"><i class="fa-solid fa-graduation-cap"></i></span>
+                            <div><strong>{{ dashboard.enrollments|length }}</strong><span>دوره ثبت‌نام‌شده</span></div>
+                        </article>
+                        <article class="profile-stat-card profile-surface">
+                            <span class="profile-stat-card__icon"><i class="fa-solid fa-file-invoice"></i></span>
+                            <div><strong>{{ dashboard.orders|length }}</strong><span>سفارش ثبت‌شده</span></div>
+                        </article>
+                        <article class="profile-stat-card profile-surface">
+                            <span class="profile-stat-card__icon"><i class="fa-solid fa-headset"></i></span>
+                            <div><strong>{{ dashboard.tickets|length }}</strong><span>تیکت پشتیبانی</span></div>
+                        </article>
+                    </div>
+
+                    <div class="profile-overview-grid">
+                        <article class="profile-surface profile-overview-card">
+                            <div class="profile-card-heading">
+                                <div><p class="profile-eyebrow">امنیت حساب</p><h3>وضعیت راه‌های ارتباطی</h3></div>
+                                <a href="#contact" data-profile-target="contact" class="profile-text-link">مدیریت</a>
+                            </div>
+                            <div class="profile-contact-summary">
+                                <div>
+                                    <span class="profile-contact-summary__icon"><i class="fa-regular fa-envelope"></i></span>
+                                    <div><span>ایمیل</span><strong dir="ltr">{{ profile.email|default:"ثبت نشده" }}</strong></div>
+                                    <span class="profile-mini-state {% if profile.email_verified %}is-success{% else %}is-warning{% endif %}">{% if profile.email_verified %}تأییدشده{% else %}نیازمند تأیید{% endif %}</span>
+                                </div>
+                                <div>
+                                    <span class="profile-contact-summary__icon"><i class="fa-solid fa-mobile-screen-button"></i></span>
+                                    <div><span>شماره موبایل</span><strong dir="ltr">{{ profile.phone_number|default:"ثبت نشده" }}</strong></div>
+                                    <span class="profile-mini-state {% if profile.phone_number_verified %}is-success{% else %}is-warning{% endif %}">{% if profile.phone_number_verified %}تأییدشده{% else %}نیازمند تأیید{% endif %}</span>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="profile-surface profile-overview-card">
+                            <div class="profile-card-heading">
+                                <div><p class="profile-eyebrow">پیام‌رسان‌ها</p><h3>حساب‌های متصل</h3></div>
+                            </div>
+                            {% if dashboard.messenger_profiles %}
+                                <div class="profile-messenger-list">
+                                    {% for messenger in dashboard.messenger_profiles %}
+                                        <div class="profile-messenger-item">
+                                            <span class="profile-messenger-item__icon"><i class="fa-regular fa-paper-plane"></i></span>
+                                            <div>
+                                                <strong>{{ messenger.messenger_provider|profile_provider_label }}</strong>
+                                                <span dir="ltr">{% if messenger.username %}@{{ messenger.username }}{% else %}{{ messenger.chat_id }}{% endif %}</span>
+                                            </div>
+                                            <div class="profile-messenger-item__actions">
+                                                <span class="profile-mini-state {% if messenger.is_active %}is-success{% else %}is-muted{% endif %}">{% if messenger.is_active %}فعال{% else %}غیرفعال{% endif %}</span>
+                                                <form method="post" action="{% url 'accounts_web:profile_messenger_disconnect' profile_id=messenger.id %}" data-confirm="آیا از قطع اتصال این پیام‌رسان مطمئن هستید؟">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="profile-button profile-button--danger profile-button--compact">قطع اتصال</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="profile-empty-state profile-empty-state--compact">
+                                    <i class="fa-regular fa-paper-plane" aria-hidden="true"></i>
+                                    <p>هنوز پیام‌رسانی به این حساب متصل نشده است.</p>
+                                </div>
+                            {% endif %}
+                        </article>
+                    </div>
+                </section>
+
+                <section id="profile" class="profile-panel" data-profile-panel="profile" tabindex="-1">
+                    <div class="profile-panel__header">
+                        <div><p class="profile-eyebrow">ویرایش حساب</p><h2>اطلاعات پروفایل</h2></div>
+                        <p>نام، نام کاربری و تصویر نمایشی خود را مدیریت کنید.</p>
+                    </div>
+                    <form method="post" enctype="multipart/form-data" action="{% url 'accounts_web:profile_edit' %}" class="profile-form profile-surface">
+                        {% csrf_token %}
+                        {% if profile_form.non_field_errors %}<div class="profile-form-errors">{{ profile_form.non_field_errors }}</div>{% endif %}
+                        <div class="profile-photo-editor">
+                            <div class="profile-avatar profile-avatar--editor">
+                                {% if profile.profile_photo_url %}
+                                    <img src="{{ profile.profile_photo_url }}" alt="تصویر فعلی پروفایل" data-profile-preview>
+                                {% else %}
+                                    <span data-profile-fallback>{{ profile.initials }}</span>
+                                    <img src="" alt="پیش‌نمایش تصویر پروفایل" data-profile-preview hidden>
+                                {% endif %}
+                            </div>
+                            <div class="profile-photo-editor__actions">
+                                <label for="{{ profile_form.profile_photo.id_for_label }}" class="profile-button profile-button--secondary">
+                                    <i class="fa-regular fa-image"></i> انتخاب تصویر
+                                </label>
+                                {{ profile_form.profile_photo }}
+                                <p>فرمت JPG، PNG یا WebP تا حداکثر ۳ مگابایت.</p>
+                                {% if profile_form.profile_photo.errors %}<div class="profile-field-error">{{ profile_form.profile_photo.errors|join:" " }}</div>{% endif %}
+                                {% if profile.profile_photo_url %}
+                                    <label class="profile-check-row">{{ profile_form.remove_profile_photo }} <span>حذف تصویر فعلی</span></label>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="profile-form-grid">
+                            <div class="profile-field">
+                                <label for="{{ profile_form.first_name.id_for_label }}">نام</label>
+                                {{ profile_form.first_name }}
+                                {% if profile_form.first_name.errors %}<div class="profile-field-error">{{ profile_form.first_name.errors|join:" " }}</div>{% endif %}
+                            </div>
+                            <div class="profile-field">
+                                <label for="{{ profile_form.last_name.id_for_label }}">نام خانوادگی</label>
+                                {{ profile_form.last_name }}
+                                {% if profile_form.last_name.errors %}<div class="profile-field-error">{{ profile_form.last_name.errors|join:" " }}</div>{% endif %}
+                            </div>
+                            <div class="profile-field profile-field--wide">
+                                <label for="{{ profile_form.username.id_for_label }}">نام کاربری</label>
+                                {{ profile_form.username }}
+                                <small>نام کاربری با حرف انگلیسی شروع شود.</small>
+                                {% if profile_form.username.errors %}<div class="profile-field-error">{{ profile_form.username.errors|join:" " }}</div>{% endif %}
+                            </div>
+                        </div>
+                        <div class="profile-form__actions"><button type="submit" class="profile-button profile-button--primary">ذخیره تغییرات</button></div>
+                    </form>
+                </section>
+
+                <section id="contact" class="profile-panel" data-profile-panel="contact" tabindex="-1">
+                    <div class="profile-panel__header">
+                        <div><p class="profile-eyebrow">احراز اطلاعات</p><h2>ایمیل و شماره موبایل</h2></div>
+                        <p>با تغییر ایمیل یا شماره موبایل، وضعیت تأیید آن مورد بازنشانی می‌شود.</p>
+                    </div>
+                    <form method="post" action="{% url 'accounts_web:profile_contact' %}" class="profile-form profile-surface">
+                        {% csrf_token %}
+                        <div class="profile-form-grid">
+                            <div class="profile-field">
+                                <label for="{{ contact_form.email.id_for_label }}">ایمیل</label>
+                                {{ contact_form.email }}
+                                {% if contact_form.email.errors %}<div class="profile-field-error">{{ contact_form.email.errors|join:" " }}</div>{% endif %}
+                            </div>
+                            <div class="profile-field">
+                                <label for="{{ contact_form.phone_number.id_for_label }}">شماره موبایل</label>
+                                {{ contact_form.phone_number }}
+                                {% if contact_form.phone_number.errors %}<div class="profile-field-error">{{ contact_form.phone_number.errors|join:" " }}</div>{% endif %}
+                            </div>
+                        </div>
+                        <div class="profile-form__actions"><button type="submit" class="profile-button profile-button--primary">ذخیره اطلاعات تماس</button></div>
+                    </form>
+
+                    <div class="profile-verification-grid">
+                        <article class="profile-surface profile-verification-card">
+                            <div class="profile-card-heading">
+                                <div><p class="profile-eyebrow">ایمیل</p><h3>تأیید ایمیل</h3></div>
+                                <span class="profile-status-chip {% if profile.email_verified %}is-success{% else %}is-warning{% endif %}">{% if profile.email_verified %}تأییدشده{% else %}تأییدنشده{% endif %}</span>
+                            </div>
+                            <p dir="ltr" class="profile-verification-card__identifier">{{ profile.email|default:"ایمیلی ثبت نشده است" }}</p>
+                            {% if not profile.email_verified %}
+                                <div class="profile-inline-actions">
+                                    <form method="post" action="{% url 'accounts_web:profile_email_send' %}">{% csrf_token %}<button class="profile-button profile-button--secondary" type="submit">ارسال کد</button></form>
+                                    <form method="post" action="{% url 'accounts_web:profile_email_verify' %}" class="profile-code-form">
+                                        {% csrf_token %}{{ email_code_form.code }}<button class="profile-button profile-button--primary" type="submit">تأیید کد</button>
+                                        {% if email_code_form.code.errors %}<div class="profile-field-error">{{ email_code_form.code.errors|join:" " }}</div>{% endif %}
+                                    </form>
+                                </div>
+                            {% else %}
+                                <p class="profile-success-note"><i class="fa-solid fa-shield-halved"></i> ایمیل این حساب معتبر است.</p>
+                            {% endif %}
+                        </article>
+
+                        <article class="profile-surface profile-verification-card">
+                            <div class="profile-card-heading">
+                                <div><p class="profile-eyebrow">شماره موبایل</p><h3>تأیید موبایل</h3></div>
+                                <span class="profile-status-chip {% if profile.phone_number_verified %}is-success{% else %}is-warning{% endif %}">{% if profile.phone_number_verified %}تأییدشده{% else %}تأییدنشده{% endif %}</span>
+                            </div>
+                            <p dir="ltr" class="profile-verification-card__identifier">{{ profile.phone_number|default:"شماره‌ای ثبت نشده است" }}</p>
+                            {% if not profile.phone_number_verified %}
+                                <div class="profile-inline-actions">
+                                    <form method="post" action="{% url 'accounts_web:profile_phone_send' %}">{% csrf_token %}<button class="profile-button profile-button--secondary" type="submit">ارسال کد پیامکی</button></form>
+                                    <form method="post" action="{% url 'accounts_web:profile_phone_verify' %}" class="profile-code-form">
+                                        {% csrf_token %}{{ phone_code_form.code }}<button class="profile-button profile-button--primary" type="submit">تأیید کد</button>
+                                        {% if phone_code_form.code.errors %}<div class="profile-field-error">{{ phone_code_form.code.errors|join:" " }}</div>{% endif %}
+                                    </form>
+                                </div>
+                            {% else %}
+                                <p class="profile-success-note"><i class="fa-solid fa-shield-halved"></i> شماره موبایل این حساب معتبر است.</p>
+                            {% endif %}
+                        </article>
+                    </div>
+                </section>
+
+                <section id="courses" class="profile-panel" data-profile-panel="courses" tabindex="-1">
+                    <div class="profile-panel__header">
+                        <div><p class="profile-eyebrow">مسیر یادگیری</p><h2>دوره‌های ثبت‌نام‌شده</h2></div>
+                        <a href="{% url 'courses_web:course_list' %}" class="profile-button profile-button--secondary">مشاهده همه دوره‌ها</a>
+                    </div>
+                    {% if dashboard.enrollments %}
+                        <div class="profile-course-grid">
+                            {% for enrollment in dashboard.enrollments %}
+                                {% with review=dashboard.reviews_by_course_id|dict_get:enrollment.course_id %}
+                                <article class="profile-course-card profile-surface">
+                                    <div class="profile-course-card__media">
+                                        {% if enrollment.course.thumbnail %}<img src="{{ enrollment.course.thumbnail.url }}" alt="{{ enrollment.course.title }}">{% else %}<span><i class="fa-solid fa-code"></i></span>{% endif %}
+                                    </div>
+                                    <div class="profile-course-card__body">
+                                        <div class="profile-card-heading">
+                                            <h3>{{ enrollment.course.title }}</h3>
+                                            <span class="profile-status-chip {{ enrollment.status|profile_status_class }}">{{ enrollment.status|profile_status_label:"enrollment" }}</span>
+                                        </div>
+                                        <p>{{ enrollment.course.short_description|default:enrollment.course.description|truncatechars:150 }}</p>
+                                        <dl class="profile-detail-list">
+                                            <div><dt>تاریخ ثبت‌نام</dt><dd>{{ enrollment.enrolled_at|date:"Y/m/d" }}</dd></div>
+                                            {% if enrollment.source_order_number %}<div><dt>شماره سفارش</dt><dd dir="ltr">{{ enrollment.source_order_number }}</dd></div>{% endif %}
+                                        </dl>
+                                        <div class="profile-course-card__actions">
+                                            <a href="{% url 'courses_web:course_detail' slug=enrollment.course.slug %}" class="profile-button profile-button--primary">جزئیات دوره</a>
+                                            {% if enrollment.status == 'active' %}
+                                                <details class="profile-review-form">
+                                                    <summary>{% if review %}ویرایش دیدگاه{% else %}ثبت دیدگاه{% endif %}</summary>
+                                                    <form method="post" action="{% url 'accounts_web:profile_course_review' course_id=enrollment.course_id %}">
+                                                        {% csrf_token %}
+                                                        <label>امتیاز
+                                                            <select name="rating" required>
+                                                                {% for value in "54321" %}<option value="{{ value }}" {% if review and review.rating|stringformat:"s" == value %}selected{% endif %}>{{ value }} از ۵</option>{% endfor %}
+                                                            </select>
+                                                        </label>
+                                                        <label>عنوان<input type="text" name="title" maxlength="180" value="{{ review.title|default:'' }}" placeholder="عنوان کوتاه (اختیاری)"></label>
+                                                        <label>متن دیدگاه<textarea name="comment" rows="4" maxlength="5000" required placeholder="تجربه خود از دوره را بنویسید">{{ review.comment|default:'' }}</textarea></label>
+                                                        {% if review %}<span class="profile-mini-state {{ review.status|profile_status_class }}">{{ review.status|profile_status_label:"review" }}</span>{% endif %}
+                                                        <button class="profile-button profile-button--primary" type="submit">ثبت دیدگاه</button>
+                                                    </form>
+                                                </details>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </article>
+                                {% endwith %}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="profile-empty-state profile-surface"><i class="fa-solid fa-graduation-cap"></i><h3>هنوز دوره‌ای ثبت‌نام نکرده‌اید</h3><p>از کاتالوگ دوره‌ها، مسیر مناسب خود را انتخاب کنید.</p><a href="{% url 'courses_web:course_list' %}" class="profile-button profile-button--primary">مشاهده دوره‌ها</a></div>
+                    {% endif %}
+                </section>
+
+                <section id="billing" class="profile-panel" data-profile-panel="billing" tabindex="-1">
+                    <div class="profile-panel__header">
+                        <div><p class="profile-eyebrow">تراکنش‌ها</p><h2>سوابق سفارش و پرداخت</h2></div>
+                    </div>
+                    <div class="profile-billing-stack">
+                        <article class="profile-surface profile-history-card">
+                            <div class="profile-card-heading"><h3>سفارش‌ها</h3><span>{{ dashboard.orders|length }} مورد</span></div>
+                            {% if dashboard.orders %}
+                                <div class="profile-table-wrap">
+                                    <table class="profile-table">
+                                        <thead><tr><th>شماره سفارش</th><th>دوره</th><th>مبلغ</th><th>وضعیت</th><th>تاریخ</th></tr></thead>
+                                        <tbody>
+                                        {% for order in dashboard.orders %}
+                                            <tr>
+                                                <td data-label="شماره سفارش" dir="ltr">{{ order.order_number }}</td>
+                                                <td data-label="دوره"><div class="profile-table__items">{% for item in order.items.all %}<a href="{% url 'courses_web:course_detail' slug=item.course.slug %}">{{ item.course_title }}</a>{% if not forloop.last %}<span>،</span>{% endif %}{% endfor %}</div></td>
+                                                <td data-label="مبلغ">{{ order.total_amount|profile_money:order.currency }}</td>
+                                                <td data-label="وضعیت"><span class="profile-status-chip {{ order.status|profile_status_class }}">{{ order.status|profile_status_label:"order" }}</span></td>
+                                                <td data-label="تاریخ">{{ order.created_at|date:"Y/m/d H:i" }}</td>
+                                            </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}<div class="profile-empty-state profile-empty-state--compact"><p>سفارشی ثبت نشده است.</p></div>{% endif %}
+                        </article>
+
+                        <article class="profile-surface profile-history-card">
+                            <div class="profile-card-heading"><h3>پرداخت‌ها</h3><span>{{ dashboard.payments|length }} مورد</span></div>
+                            {% if dashboard.payments %}
+                                <div class="profile-table-wrap">
+                                    <table class="profile-table">
+                                        <thead><tr><th>شماره پرداخت</th><th>درگاه</th><th>مبلغ</th><th>وضعیت</th><th>رسید و جزئیات</th><th>تاریخ</th></tr></thead>
+                                        <tbody>
+                                        {% for payment in dashboard.payments %}
+                                            <tr>
+                                                <td data-label="شماره پرداخت" dir="ltr">{{ payment.payment_number }}</td>
+                                                <td data-label="درگاه">{{ payment.provider|profile_provider_label }}</td>
+                                                <td data-label="مبلغ">{{ payment.amount|profile_money:payment.currency }}</td>
+                                                <td data-label="وضعیت"><span class="profile-status-chip {{ payment.status|profile_status_class }}">{{ payment.status|profile_status_label:"payment" }}</span></td>
+                                                <td data-label="رسید و جزئیات">
+                                                    {% with receipt_form=receipt_upload_forms|dict_get:payment.id %}
+                                                        <details class="profile-payment-details" {% if receipt_form.errors %}open{% endif %}>
+                                                            <summary>
+                                                                <span>{{ payment.receipts.all|length }} رسید</span>
+                                                                <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                                            </summary>
+                                                            <div class="profile-payment-details__body">
+                                                                {% if payment.failure_message %}
+                                                                    <div class="profile-payment-warning">{{ payment.failure_message }}</div>
+                                                                {% endif %}
+
+                                                                {% if payment.receipts.all %}
+                                                                    <div class="profile-receipt-list">
+                                                                        {% for receipt in payment.receipts.all %}
+                                                                            <article class="profile-receipt-item">
+                                                                                <div>
+                                                                                    <strong>رسید {{ forloop.counter }}</strong>
+                                                                                    <span>{{ receipt.created_at|date:"Y/m/d H:i" }}</span>
+                                                                                </div>
+                                                                                <span class="profile-status-chip {{ receipt.status|profile_status_class }}">{{ receipt.status|profile_status_label:"receipt" }}</span>
+                                                                                {% if receipt.tracking_code %}<p><b>کد رهگیری:</b> <span dir="ltr">{{ receipt.tracking_code }}</span></p>{% endif %}
+                                                                                {% if receipt.payer_card_last4 %}<p><b>۴ رقم آخر کارت:</b> <span dir="ltr">{{ receipt.payer_card_last4 }}</span></p>{% endif %}
+                                                                                {% if receipt.admin_note %}<p class="profile-receipt-item__note"><b>پاسخ بررسی:</b> {{ receipt.admin_note }}</p>{% endif %}
+                                                                                {% if receipt.receipt_file %}
+                                                                                    <a href="{{ receipt.receipt_file.url }}" target="_blank" rel="noopener" class="profile-text-link">مشاهده فایل رسید</a>
+                                                                                {% elif receipt.receipt_file_url %}
+                                                                                    <a href="{{ receipt.receipt_file_url }}" target="_blank" rel="noopener noreferrer" class="profile-text-link">مشاهده رسید</a>
+                                                                                {% endif %}
+                                                                            </article>
+                                                                        {% endfor %}
+                                                                    </div>
+                                                                {% endif %}
+
+                                                                {% if receipt_form %}
+                                                                    <form method="post" enctype="multipart/form-data" action="{% url 'accounts_web:profile_payment_receipt' payment_id=payment.id %}" class="profile-receipt-form">
+                                                                        {% csrf_token %}
+                                                                        {% if receipt_form.non_field_errors %}<div class="profile-form-errors">{{ receipt_form.non_field_errors }}</div>{% endif %}
+                                                                        <div class="profile-field profile-field--wide">
+                                                                            <label for="{{ receipt_form.receipt_file.id_for_label }}">فایل رسید</label>
+                                                                            {{ receipt_form.receipt_file }}
+                                                                            <small>JPG، PNG یا PDF تا ۵ مگابایت</small>
+                                                                            {% if receipt_form.receipt_file.errors %}<div class="profile-field-error">{{ receipt_form.receipt_file.errors|join:" " }}</div>{% endif %}
+                                                                        </div>
+                                                                        <div class="profile-receipt-form__grid">
+                                                                            <div class="profile-field"><label for="{{ receipt_form.tracking_code.id_for_label }}">کد رهگیری</label>{{ receipt_form.tracking_code }}{% if receipt_form.tracking_code.errors %}<div class="profile-field-error">{{ receipt_form.tracking_code.errors|join:" " }}</div>{% endif %}</div>
+                                                                            <div class="profile-field"><label for="{{ receipt_form.payer_card_last4.id_for_label }}">۴ رقم آخر کارت</label>{{ receipt_form.payer_card_last4 }}{% if receipt_form.payer_card_last4.errors %}<div class="profile-field-error">{{ receipt_form.payer_card_last4.errors|join:" " }}</div>{% endif %}</div>
+                                                                            <div class="profile-field"><label for="{{ receipt_form.paid_amount.id_for_label }}">مبلغ پرداخت‌شده</label>{{ receipt_form.paid_amount }}{% if receipt_form.paid_amount.errors %}<div class="profile-field-error">{{ receipt_form.paid_amount.errors|join:" " }}</div>{% endif %}</div>
+                                                                            <div class="profile-field profile-field--wide"><label for="{{ receipt_form.note.id_for_label }}">توضیحات</label>{{ receipt_form.note }}{% if receipt_form.note.errors %}<div class="profile-field-error">{{ receipt_form.note.errors|join:" " }}</div>{% endif %}</div>
+                                                                        </div>
+                                                                        <button type="submit" class="profile-button profile-button--primary">ثبت رسید برای بررسی</button>
+                                                                    </form>
+                                                                {% endif %}
+                                                            </div>
+                                                        </details>
+                                                    {% endwith %}
+                                                </td>
+                                                <td data-label="تاریخ">{{ payment.created_at|date:"Y/m/d H:i" }}</td>
+                                            </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}<div class="profile-empty-state profile-empty-state--compact"><p>پرداختی ثبت نشده است.</p></div>{% endif %}
+                        </article>
+                    </div>
+                </section>
+
+                <section id="tickets" class="profile-panel" data-profile-panel="tickets" tabindex="-1">
+                    <div class="profile-panel__header">
+                        <div><p class="profile-eyebrow">پشتیبانی</p><h2>تیکت‌های من</h2></div>
+                    </div>
+                    <div class="profile-ticket-layout">
+                        <form method="post" action="{% url 'accounts_web:profile_ticket_create' %}" class="profile-form profile-surface profile-ticket-create">
+                            {% csrf_token %}
+                            <div class="profile-card-heading"><h3>ثبت تیکت جدید</h3></div>
+                            <div class="profile-field"><label for="{{ ticket_form.subject.id_for_label }}">موضوع</label>{{ ticket_form.subject }}{% if ticket_form.subject.errors %}<div class="profile-field-error">{{ ticket_form.subject.errors|join:" " }}</div>{% endif %}</div>
+                            <div class="profile-field"><label for="{{ ticket_form.message.id_for_label }}">پیام</label>{{ ticket_form.message }}{% if ticket_form.message.errors %}<div class="profile-field-error">{{ ticket_form.message.errors|join:" " }}</div>{% endif %}</div>
+                            <button type="submit" class="profile-button profile-button--primary">ارسال تیکت</button>
+                        </form>
+
+                        <div class="profile-ticket-list">
+                            {% for ticket in dashboard.tickets %}
+                                <details class="profile-ticket profile-surface" {% if forloop.first %}open{% endif %}>
+                                    <summary>
+                                        <div><strong>{{ ticket.subject|default:"درخواست پشتیبانی" }}</strong><span>#{{ ticket.id }} · {{ ticket.provider|profile_provider_label }} · {{ ticket.last_message_at|date:"Y/m/d H:i" }}</span></div>
+                                        <span class="profile-status-chip {{ ticket.status|profile_status_class }}">{{ ticket.status|profile_status_label:"ticket" }}</span>
+                                    </summary>
+                                    <div class="profile-ticket__conversation">
+                                        {% for ticket_message in ticket.messages.all %}
+                                            <article class="profile-ticket-message {% if ticket_message.sender_type == 'user' %}is-user{% else %}is-support{% endif %}">
+                                                <header><strong>{{ ticket_message.sender_type|support_sender_label }}</strong><time>{{ ticket_message.created_at|date:"Y/m/d H:i" }}</time></header>
+                                                <p>{{ ticket_message.message|linebreaksbr }}</p>
+                                            </article>
+                                        {% endfor %}
+                                    </div>
+                                    {% if ticket.status != 'closed' %}
+                                        <form method="post" action="{% url 'accounts_web:profile_ticket_reply' ticket_id=ticket.id %}" class="profile-ticket-reply">
+                                            {% csrf_token %}<textarea name="message" rows="3" maxlength="2500" required placeholder="پاسخ خود را بنویسید"></textarea><button type="submit" class="profile-button profile-button--primary">ارسال پاسخ</button>
+                                        </form>
+                                    {% else %}<p class="profile-closed-note"><i class="fa-solid fa-lock"></i> این تیکت بسته شده است.</p>{% endif %}
+                                </details>
+                            {% empty %}
+                                <div class="profile-empty-state profile-surface"><i class="fa-regular fa-comments"></i><h3>هنوز تیکتی ندارید</h3><p>در صورت نیاز، درخواست خود را از فرم مقابل ارسال کنید.</p></div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </section>
+            </section>
+        </div>
+    </section>
+</main>
+{% endblock %}
+
+{% block page_scripts %}
+    <script src="{% project_static 'js/profile.js' %}"></script>
+{% endblock %}

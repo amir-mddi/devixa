@@ -9,6 +9,9 @@ from dealio.apps.common.helpers.validators.account_validators import (
     validate_iranian_phone_number,
     validate_persian_text,
 )
+from dealio.apps.common.helpers.validators.security_validators import (
+    validate_profile_photo,
+)
 from dealio.apps.shared.serializers import BaseSerializerModel
 
 User = get_user_model()
@@ -16,6 +19,9 @@ User = get_user_model()
 
 class UserSerializer(BaseSerializerModel):
     role = serializers.SerializerMethodField()
+    profile_photo = serializers.ImageField(
+        required=False, allow_null=True, validators=[validate_profile_photo]
+    )
 
     def validate_phone_number(self, value):
         return validate_iranian_phone_number(value)
@@ -64,6 +70,7 @@ class UserSerializer(BaseSerializerModel):
             "is_staff",
             "date_joined",
             "phone_number",
+            "profile_photo",
             "first_name",
             "last_name",
             "role",
@@ -82,15 +89,23 @@ class UserSerializer(BaseSerializerModel):
 
 
 class ChangePasswordSerializer(serializers.Serializer):
-    current_password = serializers.CharField(write_only=True, required=True, trim_whitespace=False)
-    new_password = serializers.CharField(write_only=True, required=True, trim_whitespace=False)
+    current_password = serializers.CharField(
+        write_only=True, required=True, trim_whitespace=False
+    )
+    new_password = serializers.CharField(
+        write_only=True, required=True, trim_whitespace=False
+    )
 
     def validate(self, attrs):
         user = self.context["request"].user
         if not user.check_password(attrs["current_password"]):
-            raise serializers.ValidationError({"current_password": "Current password is incorrect."})
+            raise serializers.ValidationError(
+                {"current_password": "Current password is incorrect."}
+            )
         if user.check_password(attrs["new_password"]):
-            raise serializers.ValidationError({"new_password": "New password must be different."})
+            raise serializers.ValidationError(
+                {"new_password": "New password must be different."}
+            )
         validate_password(attrs["new_password"], user=user)
         return attrs
 
@@ -153,10 +168,16 @@ class ForgotPasswordSmsVerifyCodeSerializer(SixDigitCodeSerializer):
 
 
 class SocialOAuthLoginSerializer(serializers.Serializer):
-    code = serializers.CharField(write_only=True, required=True, trim_whitespace=True, max_length=2048)
+    code = serializers.CharField(
+        write_only=True, required=True, trim_whitespace=True, max_length=2048
+    )
     redirect_uri = serializers.URLField(write_only=True, required=True, max_length=1000)
 
     def to_internal_value(self, data):
-        if isinstance(data, dict) and "redirectUri" in data and "redirect_uri" not in data:
+        if (
+            isinstance(data, dict)
+            and "redirectUri" in data
+            and "redirect_uri" not in data
+        ):
             data = {**data, "redirect_uri": data["redirectUri"]}
         return super().to_internal_value(data)

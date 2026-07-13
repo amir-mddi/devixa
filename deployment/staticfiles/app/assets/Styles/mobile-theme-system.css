@@ -878,3 +878,576 @@ body:not(.light-theme){
     color:var(--primary) !important;
     border-color:color-mix(in srgb,var(--primary) 22%,transparent) !important;
 }
+
+
+/* Compact card density and brand styling refinements */
+:where(.brand-text,.project-name,.brand-highlight){
+    color:var(--accent);
+    font-weight:800;
+    unicode-bidi:isolate;
+    direction:ltr;
+    white-space:nowrap;
+    display:inline-block;
+}
+
+@supports (-webkit-background-clip:text){
+    :where(.brand-text,.project-name,.brand-highlight){
+        background:linear-gradient(135deg,var(--accent),var(--brand-accent-2,var(--secondary)));
+        -webkit-background-clip:text;
+        background-clip:text;
+        color:transparent;
+    }
+}
+
+.brand-text--glow{
+    text-shadow:0 8px 28px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.navbar .logo .project-name,
+.footer .logo .project-name{
+    max-width:none !important;
+}
+
+.hero-subtitle .brand-text,
+.aboutus_hero .subtitle .brand-text,
+.aboutUs_card .subtitle .brand-text,
+.channels_hero .title .brand-text,
+.contact-page-lead .brand-text{
+    font-weight:800;
+}
+
+/* Balanced card grid widths so 2-card layouts do not become giant. */
+.courses_catalog .courses,
+.featured_courses .courses,
+.courses,
+.roadmaps_categories .categories,
+.learning_path .paths,
+.learning_process .process,
+.aboutUs_card .history_cards,
+.aboutus_hero .about_cards,
+.contact_hero .contact_cards{
+    justify-content:center !important;
+}
+
+.courses_catalog .courses,
+.featured_courses .courses,
+.courses{
+    grid-template-columns:repeat(auto-fit,minmax(min(100%, var(--card-grid-min)), var(--card-grid-max))) !important;
+    gap:var(--card-grid-gap) !important;
+}
+
+.roadmaps_categories .categories{
+    grid-template-columns:repeat(auto-fit,minmax(min(100%, 280px), 380px)) !important;
+    gap:var(--card-grid-gap) !important;
+}
+
+.learning_path .paths,
+.learning_process .process,
+.aboutUs_card .history_cards{
+    grid-template-columns:repeat(auto-fit,minmax(min(100%, 250px), 360px)) !important;
+}
+
+.aboutus_hero .about_cards{
+    display:grid !important;
+    grid-template-columns:repeat(auto-fit,minmax(min(100%, 160px), 220px)) !important;
+    justify-content:center !important;
+    gap:18px !important;
+}
+
+/* Course cards: compact vertical rhythm, still equal-height. */
+.course-card,
+.courses .course_card{
+    min-height:clamp(360px, 31vw, 430px) !important;
+    display:grid !important;
+    grid-template-rows:auto 1fr auto !important;
+    align-content:start !important;
+    padding:var(--card-padding-compact) !important;
+    border-radius:24px !important;
+    gap:0 !important;
+}
+
+.course-card__media,
+.courses .course_card .card_header{
+    height:var(--card-media-compact) !important;
+    min-height:var(--card-media-compact) !important;
+    margin:0 0 20px !important;
+}
+
+.course-card__body,
+.courses .course_card .card_body{
+    display:flex !important;
+    flex-direction:column !important;
+    gap:0 !important;
+}
+
+.course-card__title,
+.course-card-title{
+    min-height:0 !important;
+    margin:0 !important;
+    font-size:clamp(22px,1.8vw,30px) !important;
+    line-height:1.45 !important;
+}
+
+.course-card__description,
+.course-card-description{
+    min-height:0 !important;
+    margin-top:10px !important;
+    font-size:14px !important;
+    line-height:1.8 !important;
+    -webkit-line-clamp:2 !important;
+}
+
+.course-card__meta,
+.courses .course_card .card_body .info_course.course-card__meta{
+    margin-top:14px !important;
+    padding-top:0 !important;
+    gap:10px !important;
+}
+
+.course-card__footer,
+.courses .course_card .card_footer{
+    margin-top:18px !important;
+    padding-top:0 !important;
+    gap:10px !important;
+}
+
+.course-card__price,
+.course-card__button,
+.courses .course_card .card_footer .price,
+.courses .course_card .card_footer .course_btn{
+    height:var(--card-button-height) !important;
+    min-height:var(--card-button-height) !important;
+    max-height:var(--card-button-height) !important;
+}
+
+/* Feature cards / process cards: equal weight without oversized empty space. */
+.feature-card,
+.learning_path .paths a .card_path,
+.learning_process .process .card_process,
+.aboutUs_card .history_cards .card.about-feature-card{
+    min-height:220px !important;
+    padding:24px 22px !important;
+    justify-content:center !important;
+}
+
+.feature-card__icon,
+.learning_path .paths a .card_path svg,
+.learning_process .process .card_process .feature-card__badge,
+.aboutUs_card .history_cards .card.about-feature-card > svg{
+    margin-bottom:14px !important;
+}
+
+.feature-card__title,
+.feature-card-title,
+.feature-title,
+.learning_path .paths a .card_path h4,
+.learning_process .process .card_process h4,
+.aboutUs_card .history_cards .card.about-feature-card h4{
+    min-height:0 !important;
+    margin:0 !important;
+    font-size:clamp(24px, 2vw, 34px) !important;
+    line-height:1.45 !important;
+}
+
+.feature-card__description,
+.learning_path .paths a .card_path p,
+.learning_process .process .card_process p,
+.aboutUs_card .history_cards .card.about-feature-card p{
+    min-height:0 !important;
+    margin-top:10px !important;
+    font-size:15px !important;
+    line-height:1.8 !important;
+    -webkit-line-clamp:2 !important;
+}
+
+.about-stat-card{
+    min-height:132px !important;
+    padding:18px 16px !important;
+}
+
+.about-stat-card__number{
+    margin:0 !important;
+}
+
+/* Contact cards retain readable density. */
+.contact-card{
+    min-height:118px !important;
+    padding:20px 22px !important;
+    gap:14px !important;
+}
+
+.contact-card__title,
+.contact-card-title{
+    margin:0 !important;
+}
+
+.contact-card__value,
+.contact-card-value{
+    margin-top:6px !important;
+}
+
+@media (max-width:900px){
+    .courses_catalog .courses,
+    .featured_courses .courses,
+    .courses{
+        grid-template-columns:repeat(auto-fit,minmax(min(100%, 260px), 360px)) !important;
+    }
+}
+
+@media (max-width:640px){
+    .course-card,
+    .courses .course_card{
+        min-height:360px !important;
+        padding:18px !important;
+    }
+
+    .course-card__media,
+    .courses .course_card .card_header{
+        height:clamp(140px, 40vw, 170px) !important;
+        min-height:clamp(140px, 40vw, 170px) !important;
+        margin-bottom:18px !important;
+    }
+
+    .course-card__description,
+    .course-card-description{
+        -webkit-line-clamp:2 !important;
+    }
+
+    .feature-card,
+    .learning_path .paths a .card_path,
+    .learning_process .process .card_process,
+    .aboutUs_card .history_cards .card.about-feature-card{
+        min-height:184px !important;
+        padding:18px 16px !important;
+    }
+
+    .feature-card__title,
+    .feature-card-title,
+    .feature-title,
+    .learning_path .paths a .card_path h4,
+    .learning_process .process .card_process h4,
+    .aboutUs_card .history_cards .card.about-feature-card h4{
+        font-size:clamp(20px,5.9vw,26px) !important;
+    }
+
+    .aboutus_hero .about_cards{
+        grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
+        gap:12px !important;
+    }
+}
+
+@media (max-width:420px){
+    .aboutus_hero .about_cards{
+        grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
+    }
+
+    .about-stat-card{
+        min-height:110px !important;
+        padding:14px 10px !important;
+    }
+}
+
+@media (max-width:340px){
+    .aboutus_hero .about_cards{
+        grid-template-columns:1fr !important;
+    }
+}
+
+
+/* Final box density reduction for course detail and course cards */
+.related_courses_title{
+    padding-top:40px !important;
+}
+
+/* Compact course grid cards: reduce unnecessary empty space inside boxes. */
+.course-card,
+.courses .course_card{
+    min-height:clamp(300px, 28vw, 380px) !important;
+    max-width:420px !important;
+}
+
+.course-card__body,
+.courses .course_card .card_body{
+    flex:0 1 auto !important;
+}
+
+.course-card__title,
+.course-card-title{
+    margin-bottom:8px !important;
+}
+
+.course-card__description,
+.course-card-description,
+.courses .course_card .card_body p{
+    margin-top:8px !important;
+    min-height:0 !important;
+    -webkit-line-clamp:2 !important;
+}
+
+.course-card__meta,
+.courses .course_card .card_body .info_course.course-card__meta{
+    margin-top:12px !important;
+    padding-top:0 !important;
+}
+
+.course-card__footer,
+.courses .course_card .card_footer{
+    display:grid !important;
+    grid-template-columns:repeat(2, minmax(0,1fr)) !important;
+    margin-top:auto !important;
+    padding-top:16px !important;
+}
+
+.course-card__price,
+.course-card__button,
+.courses .course_card .card_footer .price,
+.courses .course_card .card_footer .course_btn{
+    height:44px !important;
+    min-height:44px !important;
+    max-height:44px !important;
+}
+
+/* Tighten course detail review cards and remove oversized blank areas. */
+.student_reviews{
+    padding:32px 0 48px !important;
+}
+
+.student_reviews .carousel_wrapper{
+    width:min(1180px, 92%) !important;
+    margin-inline:auto !important;
+    overflow:visible !important;
+}
+
+.student_reviews .carousel_wrapper .review_cards{
+    display:grid !important;
+    grid-template-columns:repeat(auto-fit, minmax(min(100%, 280px), 420px)) !important;
+    justify-content:center !important;
+    gap:24px !important;
+    padding:12px 0 0 !important;
+    transform:none !important;
+}
+
+.student_reviews .carousel_wrapper .review_cards .card{
+    width:100% !important;
+    min-height:0 !important;
+    padding:20px 22px !important;
+    display:flex !important;
+    flex-direction:column !important;
+    gap:0 !important;
+    border-radius:22px !important;
+}
+
+.student_reviews .review_cards .card .scores{
+    padding-bottom:10px !important;
+}
+
+.student_reviews .review_cards .card p.openion{
+    min-height:0 !important;
+    margin-top:12px !important;
+    padding-bottom:12px !important;
+    font-size:15px !important;
+    line-height:1.85 !important;
+    display:-webkit-box !important;
+    -webkit-line-clamp:3;
+    -webkit-box-orient:vertical;
+    overflow:hidden !important;
+    text-align:right !important;
+}
+
+.student_reviews .review_cards .card .student{
+    margin-top:12px !important;
+    padding-top:0 !important;
+    color:var(--text-secondary) !important;
+    gap:12px !important;
+    flex-wrap:wrap !important;
+}
+
+/* Slightly denser detail boxes. */
+.course_description_box,
+.course_empty_state{
+    padding:22px 24px !important;
+}
+
+@media (max-width:640px){
+    .course-card,
+    .courses .course_card{
+        min-height:292px !important;
+        max-width:100% !important;
+    }
+
+    .course-card__footer,
+    .courses .course_card .card_footer{
+        grid-template-columns:1fr !important;
+        padding-top:14px !important;
+    }
+
+    .student_reviews .carousel_wrapper .review_cards{
+        grid-template-columns:1fr !important;
+    }
+
+    .student_reviews .carousel_wrapper .review_cards .card{
+        padding:18px !important;
+    }
+}
+
+/* Independent mobile bottom navigation ---------------------------------
+   This bar is a direct child of <body>, not a child of .navbar. Keeping it
+   outside the legacy header menu prevents old .navbar .menu rules from
+   positioning or sizing it inside the top header. */
+.mobile-bottom-nav{
+    display:none !important;
+}
+
+@media (max-width:980px){
+    html{
+        scroll-padding-bottom:calc(96px + env(safe-area-inset-bottom, 0px));
+    }
+
+    body{
+        padding-bottom:calc(88px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+
+    /* The desktop menu and its drawer button are not used on phones. */
+    .navbar .menu.desktop-menu,
+    .navbar .bars{
+        display:none !important;
+    }
+
+    /* Keep only the logo and account actions in the top header. */
+    .navbar{
+        grid-template-columns:minmax(0,1fr) auto !important;
+        grid-template-areas:none !important;
+        gap:8px !important;
+    }
+
+    .navbar .logo{
+        grid-column:1 !important;
+        grid-row:1 !important;
+        justify-self:start !important;
+        min-width:0 !important;
+    }
+
+    .navbar .nav_cta{
+        grid-column:2 !important;
+        grid-row:1 !important;
+        justify-self:end !important;
+        min-width:0 !important;
+    }
+
+    .mobile-bottom-nav{
+        position:fixed !important;
+        inset-inline:8px !important;
+        inset-block-end:max(8px, env(safe-area-inset-bottom, 0px)) !important;
+        width:min(720px, calc(100vw - 16px)) !important;
+        min-height:70px !important;
+        margin-inline:auto !important;
+        padding:6px !important;
+        display:grid !important;
+        grid-template-columns:repeat(6,minmax(0,1fr)) !important;
+        align-items:stretch !important;
+        gap:3px !important;
+        border:1px solid var(--border-soft) !important;
+        border-radius:22px !important;
+        background:color-mix(in srgb,var(--bg-surface-strong) 94%,transparent) !important;
+        box-shadow:0 18px 52px rgba(2,6,23,.24) !important;
+        direction:rtl !important;
+        overflow:hidden !important;
+        z-index:7000 !important;
+        backdrop-filter:blur(20px) saturate(145%);
+        -webkit-backdrop-filter:blur(20px) saturate(145%);
+    }
+
+    .mobile-bottom-nav__item{
+        position:relative !important;
+        width:100% !important;
+        min-width:0 !important;
+        min-height:58px !important;
+        margin:0 !important;
+        padding:5px 2px !important;
+        display:flex !important;
+        flex-direction:column !important;
+        align-items:center !important;
+        justify-content:center !important;
+        gap:4px !important;
+        border:1px solid transparent !important;
+        border-radius:16px !important;
+        background:transparent !important;
+        color:var(--text-muted) !important;
+        box-shadow:none !important;
+        text-decoration:none !important;
+        line-height:1 !important;
+        white-space:nowrap !important;
+        overflow:hidden !important;
+        transform:none !important;
+    }
+
+    .mobile-bottom-nav__item:hover,
+    .mobile-bottom-nav__item:focus-visible,
+    .mobile-bottom-nav__item.is-active,
+    .mobile-bottom-nav__item[aria-current="page"]{
+        background:var(--accent-soft) !important;
+        border-color:color-mix(in srgb,var(--accent) 24%,var(--border-soft)) !important;
+        color:var(--accent) !important;
+    }
+
+    .mobile-bottom-nav__item::before,
+    .mobile-bottom-nav__item::after{
+        display:none !important;
+        content:none !important;
+    }
+
+    .mobile-bottom-nav__item > i{
+        width:22px !important;
+        height:22px !important;
+        display:grid !important;
+        place-items:center !important;
+        flex:none !important;
+        color:currentColor !important;
+        font-size:17px !important;
+        line-height:1 !important;
+    }
+
+    .mobile-bottom-nav__item > span{
+        display:block !important;
+        width:100% !important;
+        min-width:0 !important;
+        overflow:hidden !important;
+        text-overflow:ellipsis !important;
+        white-space:nowrap !important;
+        color:currentColor !important;
+        font-size:clamp(8.5px,2.45vw,11px) !important;
+        font-weight:800 !important;
+        line-height:1.25 !important;
+        text-align:center !important;
+    }
+
+    body.mobile-menu-open::before{
+        display:none !important;
+        content:none !important;
+    }
+}
+
+@media (max-width:360px){
+    .mobile-bottom-nav{
+        inset-inline:5px !important;
+        width:calc(100vw - 10px) !important;
+        padding-inline:4px !important;
+        gap:1px !important;
+        border-radius:19px !important;
+    }
+
+    .mobile-bottom-nav__item{
+        padding-inline:1px !important;
+        border-radius:13px !important;
+    }
+
+    .mobile-bottom-nav__item > span{
+        font-size:8.25px !important;
+    }
+}
+
+@media print{
+    .mobile-bottom-nav{
+        display:none !important;
+    }
+}

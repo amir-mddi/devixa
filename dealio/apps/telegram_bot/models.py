@@ -13,7 +13,9 @@ class TelegramProfile(models.Model):
         related_name="telegram_profiles",
     )
     telegram_user_id = models.CharField(max_length=120, db_index=True)
-    messenger_provider = models.CharField(max_length=30, default="telegram", db_index=True)
+    messenger_provider = models.CharField(
+        max_length=30, default="telegram", db_index=True
+    )
     chat_id = models.CharField(max_length=120, db_index=True)
     username = models.CharField(max_length=150, blank=True)
     first_name = models.CharField(max_length=150, blank=True)
@@ -27,12 +29,20 @@ class TelegramProfile(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=["telegram_user_id"], name="telegram_bo_telegra_9ead8b_idx"),
+            models.Index(
+                fields=["telegram_user_id"], name="telegram_bo_telegra_9ead8b_idx"
+            ),
             models.Index(fields=["chat_id"], name="telegram_bo_chat_id_123572_idx"),
-            models.Index(fields=["messenger_provider", "chat_id"], name="telegram_bo_messeng_39538d_idx"),
+            models.Index(
+                fields=["messenger_provider", "chat_id"],
+                name="telegram_bo_messeng_39538d_idx",
+            ),
         ]
         constraints = [
-            models.UniqueConstraint(fields=["messenger_provider", "chat_id"], name="unique_bot_profile_provider_chat"),
+            models.UniqueConstraint(
+                fields=["messenger_provider", "chat_id"],
+                name="unique_bot_profile_provider_chat",
+            ),
         ]
         ordering = ["-created_at"]
 
@@ -44,7 +54,9 @@ class TelegramProfile(models.Model):
 class TelegramUpdateLog(models.Model):
     """Keeps webhook processing idempotent because Telegram can retry updates."""
 
-    messenger_provider = models.CharField(max_length=30, default="telegram", db_index=True)
+    messenger_provider = models.CharField(
+        max_length=30, default="telegram", db_index=True
+    )
     update_id = models.BigIntegerField(db_index=True)
     payload = models.JSONField(default=dict)
     processed = models.BooleanField(default=False)
@@ -53,7 +65,10 @@ class TelegramUpdateLog(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["messenger_provider", "update_id"], name="unique_bot_update_provider_update"),
+            models.UniqueConstraint(
+                fields=["messenger_provider", "update_id"],
+                name="unique_bot_update_provider_update",
+            ),
         ]
         ordering = ["-created_at"]
 
@@ -82,12 +97,24 @@ class ChannelSyncMessage(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=["source_provider", "source_chat_id", "source_message_id"], name="telegram_bo_source__7c9aaf_idx"),
-            models.Index(fields=["target_provider", "target_chat_id", "target_message_id"], name="telegram_bo_target__f12eff_idx"),
+            models.Index(
+                fields=["source_provider", "source_chat_id", "source_message_id"],
+                name="telegram_bo_source__7c9aaf_idx",
+            ),
+            models.Index(
+                fields=["target_provider", "target_chat_id", "target_message_id"],
+                name="telegram_bo_target__f12eff_idx",
+            ),
         ]
         constraints = [
             models.UniqueConstraint(
-                fields=["source_provider", "source_chat_id", "source_message_id", "target_provider", "target_chat_id"],
+                fields=[
+                    "source_provider",
+                    "source_chat_id",
+                    "source_message_id",
+                    "target_provider",
+                    "target_chat_id",
+                ],
                 name="unique_channel_sync_source_target",
             ),
         ]
@@ -98,6 +125,7 @@ class ChannelSyncMessage(models.Model):
             f"ChannelSyncMessage({self.source_provider}:{self.source_chat_id}:{self.source_message_id}"
             f" -> {self.target_provider}:{self.target_chat_id}:{self.target_message_id})"
         )
+
 
 class BotRuntimeSetting(models.Model):
     """Runtime-editable bot setting.
@@ -123,11 +151,18 @@ class BotRuntimeSetting(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=["provider", "key"], name="telegram_bo_provide_5e3eb8_idx"),
-            models.Index(fields=["provider", "is_active"], name="telegram_bo_provide_933cb2_idx"),
+            models.Index(
+                fields=["provider", "key"], name="telegram_bo_provide_5e3eb8_idx"
+            ),
+            models.Index(
+                fields=["provider", "is_active"], name="telegram_bo_provide_933cb2_idx"
+            ),
         ]
         constraints = [
-            models.UniqueConstraint(fields=["provider", "key"], name="unique_bot_runtime_setting_provider_key"),
+            models.UniqueConstraint(
+                fields=["provider", "key"],
+                name="unique_bot_runtime_setting_provider_key",
+            ),
         ]
         ordering = ["provider", "key"]
 
@@ -152,7 +187,9 @@ class BotScheduledNotification(models.Model):
     provider = models.CharField(max_length=30, default="telegram", db_index=True)
     message = models.TextField()
     scheduled_at = models.DateTimeField(db_index=True)
-    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default=STATUS_PENDING, db_index=True)
+    status = models.CharField(
+        max_length=30, choices=STATUS_CHOICES, default=STATUS_PENDING, db_index=True
+    )
     recipient_count = models.PositiveIntegerField(default=0)
     success_count = models.PositiveIntegerField(default=0)
     failed_count = models.PositiveIntegerField(default=0)
@@ -171,7 +208,10 @@ class BotScheduledNotification(models.Model):
     class Meta:
         ordering = ["-scheduled_at"]
         indexes = [
-            models.Index(fields=["provider", "status", "scheduled_at"], name="bot_sched_provider_status_idx"),
+            models.Index(
+                fields=["provider", "status", "scheduled_at"],
+                name="bot_sched_provider_status_idx",
+            ),
         ]
 
     def __str__(self):
@@ -189,7 +229,13 @@ class BotSupportTicket(models.Model):
     )
 
     provider = models.CharField(max_length=30, default="telegram", db_index=True)
-    profile = models.ForeignKey(TelegramProfile, related_name="support_tickets", on_delete=models.CASCADE)
+    profile = models.ForeignKey(
+        TelegramProfile,
+        related_name="support_tickets",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
@@ -202,7 +248,9 @@ class BotSupportTicket(models.Model):
     faq_question = models.CharField(max_length=220, blank=True, default="")
     faq_answer = models.TextField(blank=True, default="")
     faq_display_order = models.PositiveSmallIntegerField(default=100)
-    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default=STATUS_OPEN, db_index=True)
+    status = models.CharField(
+        max_length=30, choices=STATUS_CHOICES, default=STATUS_OPEN, db_index=True
+    )
     last_message_at = models.DateTimeField(auto_now_add=True, db_index=True)
     closed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -218,8 +266,14 @@ class BotSupportTicket(models.Model):
     class Meta:
         ordering = ["-last_message_at"]
         indexes = [
-            models.Index(fields=["provider", "status", "last_message_at"], name="support_provider_status_idx"),
-            models.Index(fields=["is_frequently_asked", "faq_display_order"], name="support_faq_order_idx"),
+            models.Index(
+                fields=["provider", "status", "last_message_at"],
+                name="support_provider_status_idx",
+            ),
+            models.Index(
+                fields=["is_frequently_asked", "faq_display_order"],
+                name="support_faq_order_idx",
+            ),
         ]
 
     def __str__(self):
@@ -236,7 +290,9 @@ class BotSupportMessage(models.Model):
         (SENDER_SYSTEM, "System"),
     )
 
-    ticket = models.ForeignKey(BotSupportTicket, related_name="messages", on_delete=models.CASCADE)
+    ticket = models.ForeignKey(
+        BotSupportTicket, related_name="messages", on_delete=models.CASCADE
+    )
     sender_type = models.CharField(max_length=20, choices=SENDER_CHOICES, db_index=True)
     sender_user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -251,7 +307,9 @@ class BotSupportMessage(models.Model):
     class Meta:
         ordering = ["created_at"]
         indexes = [
-            models.Index(fields=["ticket", "created_at"], name="support_msg_ticket_created_idx"),
+            models.Index(
+                fields=["ticket", "created_at"], name="support_msg_ticket_created_idx"
+            ),
         ]
 
     def __str__(self):

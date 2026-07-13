@@ -2,7 +2,6 @@ from datetime import timedelta
 from decimal import Decimal
 
 from django.db import transaction
-from django.db.models import Q
 from django.utils.timezone import now
 from rest_framework.exceptions import NotFound, ValidationError
 
@@ -14,7 +13,7 @@ from dealio.apps.billing.enums import (
     DiscountTypeEnum,
 )
 from dealio.apps.billing.models import DiscountCode, DiscountRedemption, Order, OrderItem, Payment, PaymentReceipt
-from dealio.apps.billing.vo import BillingMessagesVO
+from dealio.apps.billing.vo import BasketMetadataVO, BillingMessagesVO
 from dealio.apps.common.helpers.metaclasses.singleton import Singleton
 from dealio.apps.courses.enums import CourseStatusEnum
 from dealio.apps.courses.repositories.adapters.postgres_adapter import CoursePostgresAdapter
@@ -146,6 +145,7 @@ class BillingPostgresAdapter(metaclass=Singleton):
                 items__course=course,
                 is_deleted=False,
             )
+            .exclude(metadata__kind=BasketMetadataVO.KIND_VALUE.value)
             .prefetch_related("items", "items__course")
             .order_by("-created_at")
             .first()
@@ -254,7 +254,7 @@ class BillingPostgresAdapter(metaclass=Singleton):
     def apply_discount_to_order(self, *, order, code: str, user):
         normalized_code = self.normalize_discount_code(code)
         if not normalized_code:
-            return order
+            return self.remove_discount_from_order(order=order, user=user)
         discount = (
             DiscountCode.objects.prefetch_related("courses")
             .filter(code=normalized_code, is_active=True, is_deleted=False)
@@ -262,57 +262,127 @@ class BillingPostgresAdapter(metaclass=Singleton):
         )
         if not discount:
             raise ValidationError("Discount code is invalid.")
+
         current_time = now()
         if discount.valid_from and discount.valid_from > current_time:
             raise ValidationError("Discount code is not active yet.")
         if discount.valid_until and discount.valid_until < current_time:
             raise ValidationError("Discount code is expired.")
-        if discount.usage_limit is not None and discount.used_count >= discount.usage_limit:
+
+        current_redemption = DiscountRedemption.objects.filter(
+            discount=discount,
+            order=order,
+            is_deleted=False,
+        ).first()
+        if (
+            discount.usage_limit is not None
+            and discount.used_count >= discount.usage_limit
+            and current_redemption is None
+        ):
             raise ValidationError("Discount usage limit has been reached.")
         if order.subtotal_amount < discount.minimum_order_amount:
             raise ValidationError("Order amount is lower than this discount minimum amount.")
-        course_ids = [item.course_id for item in order.items.all()]
-        if not discount.applies_to_all_courses and not discount.courses.filter(id__in=course_ids).exists():
-            raise ValidationError("Discount code is not valid for this course.")
-        user_redemptions = DiscountRedemption.objects.filter(discount=discount, user=user, is_deleted=False).exclude(order=order).count()
+
+        active_items = list(order.items.filter(is_deleted=False).select_related("course"))
+        if not active_items:
+            raise ValidationError("Order has no items.")
+        if discount.applies_to_all_courses:
+            discount_base = order.subtotal_amount
+        else:
+            eligible_course_ids = set(discount.courses.values_list("id", flat=True))
+            eligible_totals = [
+                item.total_price
+                for item in active_items
+                if item.course_id in eligible_course_ids
+            ]
+            if not eligible_totals:
+                raise ValidationError("Discount code is not valid for the courses in this order.")
+            discount_base = sum(eligible_totals, Decimal("0.00"))
+
+        user_redemptions = (
+            DiscountRedemption.objects.filter(
+                discount=discount,
+                user=user,
+                is_deleted=False,
+            )
+            .exclude(order=order)
+            .count()
+        )
         if user_redemptions >= discount.per_user_limit:
             raise ValidationError("You have already used this discount code.")
 
-        subtotal = order.subtotal_amount
         if discount.discount_type == DiscountTypeEnum.PERCENT.value:
-            amount = (subtotal * discount.value / Decimal("100.00")).quantize(Decimal("0.01"))
+            amount = (discount_base * discount.value / Decimal("100.00")).quantize(Decimal("0.01"))
         else:
             amount = discount.value
         if discount.max_discount_amount is not None:
             amount = min(amount, discount.max_discount_amount)
-        amount = max(Decimal("0.00"), min(amount, subtotal))
+        amount = max(Decimal("0.00"), min(amount, discount_base, order.subtotal_amount))
 
         previous = DiscountRedemption.objects.filter(order=order, is_deleted=False).first()
         if previous and previous.discount_id != discount.id:
             previous.discount.used_count = max(previous.discount.used_count - 1, 0)
             previous.discount.save(update_fields=["used_count", "updated_at"])
             previous.delete()
-        redemption, created = DiscountRedemption.objects.update_or_create(
+
+        redemption = DiscountRedemption.objects.filter(
             discount=discount,
             order=order,
-            defaults={
-                "user": user,
-                "code": discount.code,
-                "amount": amount,
-                "user_updated_object": user,
-                "is_active": True,
-                "is_deleted": False,
-            },
-        )
-        if created:
-            redemption.user_created_object = user
-            redemption.save(update_fields=["user_created_object", "updated_at"])
+        ).first()
+        was_active = bool(redemption and not redemption.is_deleted)
+        if redemption:
+            redemption.user = user
+            redemption.code = discount.code
+            redemption.amount = amount
+            redemption.user_updated_object = user
+            redemption.is_active = True
+            redemption.is_deleted = False
+            redemption.deleted_at = None
+            redemption.save()
+        else:
+            redemption = DiscountRedemption.objects.create(
+                discount=discount,
+                order=order,
+                user=user,
+                code=discount.code,
+                amount=amount,
+                user_created_object=user,
+                user_updated_object=user,
+            )
+        if not was_active:
             discount.used_count += 1
             discount.save(update_fields=["used_count", "updated_at"])
 
         order.discount_amount = amount
-        order.total_amount = max(Decimal("0.00"), subtotal - amount)
-        order.metadata = {**(order.metadata or {}), "discount_code": discount.code, "discount_id": str(discount.id)}
+        order.total_amount = max(Decimal("0.00"), order.subtotal_amount - amount)
+        order.metadata = {
+            **(order.metadata or {}),
+            BasketMetadataVO.DISCOUNT_CODE_KEY.value: discount.code,
+            BasketMetadataVO.DISCOUNT_ID_KEY.value: str(discount.id),
+        }
+        order.user_updated_object = user
+        order.save(update_fields=["discount_amount", "total_amount", "metadata", "user_updated_object", "updated_at"])
+        return order
+
+    @staticmethod
+    def remove_discount_from_order(*, order, user):
+        redemption = (
+            DiscountRedemption.objects.select_related("discount")
+            .filter(order=order, is_deleted=False)
+            .first()
+        )
+        if redemption:
+            discount = redemption.discount
+            discount.used_count = max(discount.used_count - 1, 0)
+            discount.save(update_fields=["used_count", "updated_at"])
+            redemption.delete()
+
+        metadata = dict(order.metadata or {})
+        metadata.pop(BasketMetadataVO.DISCOUNT_CODE_KEY.value, None)
+        metadata.pop(BasketMetadataVO.DISCOUNT_ID_KEY.value, None)
+        order.discount_amount = Decimal("0.00")
+        order.total_amount = order.subtotal_amount
+        order.metadata = metadata
         order.user_updated_object = user
         order.save(update_fields=["discount_amount", "total_amount", "metadata", "user_updated_object", "updated_at"])
         return order
@@ -486,7 +556,7 @@ class BillingPostgresAdapter(metaclass=Singleton):
         order.paid_at = now()
         order.user_updated_object = actor
         order.save(update_fields=["status", "paid_at", "user_updated_object", "updated_at"])
-        for item in order.items.select_related("course").all():
+        for item in order.items.select_related("course").filter(is_deleted=False):
             self.course_adapter.create_enrollment(
                 user=order.user,
                 course=item.course,

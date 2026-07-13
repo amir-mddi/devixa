@@ -2,6 +2,20 @@ from __future__ import annotations
 
 from django.urls import path
 
+from dealio.apps.accounts.web.profile_views import (
+    ProfileContactUpdateView,
+    ProfileCourseReviewView,
+    ProfileDashboardView,
+    ProfileEmailVerificationSendView,
+    ProfileEmailVerificationView,
+    ProfileIdentityUpdateView,
+    ProfileMessengerDisconnectView,
+    ProfilePaymentReceiptUploadView,
+    ProfilePhoneVerificationSendView,
+    ProfilePhoneVerificationView,
+    ProfileTicketCreateView,
+    ProfileTicketReplyView,
+)
 from dealio.apps.accounts.web.value_objects import (
     AccountWebAppNameVO,
     AccountWebPathVO,
@@ -42,5 +56,65 @@ urlpatterns = [
         AccountWebPathVO.LOGOUT.value,
         LogoutPageView.as_view(),
         name=AccountWebRouteNameVO.LOGOUT.value,
+    ),
+    path(
+        AccountWebPathVO.PROFILE.value,
+        ProfileDashboardView.as_view(),
+        name=AccountWebRouteNameVO.PROFILE.value,
+    ),
+    path(
+        AccountWebPathVO.PROFILE_EDIT.value,
+        ProfileIdentityUpdateView.as_view(),
+        name=AccountWebRouteNameVO.PROFILE_EDIT.value,
+    ),
+    path(
+        AccountWebPathVO.PROFILE_CONTACT.value,
+        ProfileContactUpdateView.as_view(),
+        name=AccountWebRouteNameVO.PROFILE_CONTACT.value,
+    ),
+    path(
+        AccountWebPathVO.PROFILE_EMAIL_SEND.value,
+        ProfileEmailVerificationSendView.as_view(),
+        name=AccountWebRouteNameVO.PROFILE_EMAIL_SEND.value,
+    ),
+    path(
+        AccountWebPathVO.PROFILE_EMAIL_VERIFY.value,
+        ProfileEmailVerificationView.as_view(),
+        name=AccountWebRouteNameVO.PROFILE_EMAIL_VERIFY.value,
+    ),
+    path(
+        AccountWebPathVO.PROFILE_PHONE_SEND.value,
+        ProfilePhoneVerificationSendView.as_view(),
+        name=AccountWebRouteNameVO.PROFILE_PHONE_SEND.value,
+    ),
+    path(
+        AccountWebPathVO.PROFILE_PHONE_VERIFY.value,
+        ProfilePhoneVerificationView.as_view(),
+        name=AccountWebRouteNameVO.PROFILE_PHONE_VERIFY.value,
+    ),
+    path(
+        AccountWebPathVO.PROFILE_MESSENGER_DISCONNECT.value,
+        ProfileMessengerDisconnectView.as_view(),
+        name=AccountWebRouteNameVO.PROFILE_MESSENGER_DISCONNECT.value,
+    ),
+    path(
+        AccountWebPathVO.PROFILE_PAYMENT_RECEIPT.value,
+        ProfilePaymentReceiptUploadView.as_view(),
+        name=AccountWebRouteNameVO.PROFILE_PAYMENT_RECEIPT.value,
+    ),
+    path(
+        AccountWebPathVO.PROFILE_TICKET_CREATE.value,
+        ProfileTicketCreateView.as_view(),
+        name=AccountWebRouteNameVO.PROFILE_TICKET_CREATE.value,
+    ),
+    path(
+        AccountWebPathVO.PROFILE_TICKET_REPLY.value,
+        ProfileTicketReplyView.as_view(),
+        name=AccountWebRouteNameVO.PROFILE_TICKET_REPLY.value,
+    ),
+    path(
+        AccountWebPathVO.PROFILE_COURSE_REVIEW.value,
+        ProfileCourseReviewView.as_view(),
+        name=AccountWebRouteNameVO.PROFILE_COURSE_REVIEW.value,
     ),
 ]

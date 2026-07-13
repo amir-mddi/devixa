@@ -1,0 +1,60 @@
+{% extends "web/pages/base.html" %}
+{% load project_tags billing_web_tags %}
+
+{% block title %}انتخاب روش پرداخت | {{ project.display_name }}{% endblock %}
+{% block page_styles %}<link rel="stylesheet" href="{% project_static 'Styles/basket.css' %}">{% endblock %}
+
+{% block content %}
+<main class="commerce-page">
+    <div class="commerce-container commerce-container--narrow">
+        <nav class="commerce-steps" aria-label="مراحل خرید">
+            <a href="{% url 'billing_web:basket' %}"><b>۱</b> سبد خرید</a>
+            <span class="is-active"><b>۲</b> روش پرداخت</span>
+            <span><b>۳</b> ثبت رسید</span>
+        </nav>
+        <header class="commerce-heading">
+            <div><p class="commerce-eyebrow">مرحله دوم</p><h1>روش پرداخت را انتخاب کنید</h1><p>در حال حاضر پرداخت کارت‌به‌کارت فعال است. درگاه آنلاین پس از اتصال سرویس قابل استفاده خواهد بود.</p></div>
+        </header>
+
+        <div class="checkout-layout">
+            <section class="payment-methods">
+                <article class="payment-method is-selected">
+                    <div class="payment-method__icon"><i class="fa-solid fa-building-columns"></i></div>
+                    <div class="payment-method__content"><div><h2>کارت‌به‌کارت</h2><span class="method-badge is-available">فعال</span></div><p>مبلغ را به حساب اعلام‌شده انتقال دهید و تصویر رسید یا کد رهگیری را ثبت کنید.</p><ul><li>بررسی امن توسط مدیر</li><li>فعال‌سازی خودکار دوره پس از تأیید</li><li>امکان پیگیری از پنل کاربری</li></ul></div>
+                    <i class="fa-solid fa-circle-check payment-method__check"></i>
+                </article>
+
+                <article class="payment-method is-disabled" aria-disabled="true">
+                    <div class="payment-method__icon"><i class="fa-solid fa-credit-card"></i></div>
+                    <div class="payment-method__content"><div><h2>درگاه پرداخت آنلاین</h2><span class="method-badge">به‌زودی</span></div><p>پرداخت مستقیم بانکی در رابط کاربری نمایش داده می‌شود، اما هنوز سرویس درگاه فعال نشده است.</p><ul><li>انتقال امن به صفحه بانک</li><li>تأیید خودکار تراکنش</li></ul></div>
+                    <i class="fa-solid fa-lock payment-method__check"></i>
+                </article>
+            </section>
+
+            <aside class="order-summary checkout-summary">
+                <div class="order-summary__title"><div><p class="commerce-eyebrow">سفارش {{ basket.order.order_number }}</p><h2>خلاصه پرداخت</h2></div><i class="fa-solid fa-wallet"></i></div>
+                <div class="checkout-mini-items">
+                    {% for item in basket.items %}<div><span>{{ item.course_title }}</span><strong>{{ item.total_price|billing_money:basket.currency }}</strong></div>{% endfor %}
+                </div>
+                <dl class="order-summary__rows">
+                    <div><dt>جمع</dt><dd>{{ basket.subtotal_amount|billing_money:basket.currency }}</dd></div>
+                    <div class="is-discount"><dt>تخفیف</dt><dd>- {{ basket.discount_amount|billing_money:basket.currency }}</dd></div>
+                </dl>
+                <div class="order-summary__total"><span>مبلغ نهایی</span><strong>{{ basket.total_amount|billing_money:basket.currency }}</strong></div>
+                {% if basket.is_locked %}
+                    <div class="commerce-alert commerce-alert--warning"><i class="fa-solid fa-hourglass-half"></i><div><strong>رسید در انتظار بررسی است</strong><p>برای این سفارش امکان ایجاد پرداخت جدید وجود ندارد.</p></div></div>
+                    <a href="{% url 'accounts_web:profile' %}#billing" class="commerce-button commerce-button--secondary">پیگیری در پنل کاربری</a>
+                {% else %}
+                    <form method="post" action="{% url 'billing_web:start_payment' %}">
+                        {% csrf_token %}
+                        {{ payment_form.provider }}
+                        <input type="hidden" name="order_id" value="{{ basket.order.id }}">
+                        <button type="submit" class="commerce-button commerce-button--primary">ادامه پرداخت کارت‌به‌کارت <i class="fa-solid fa-arrow-left"></i></button>
+                    </form>
+                    <a href="{% url 'billing_web:basket' %}" class="commerce-button commerce-button--ghost">بازگشت به سبد و ویرایش</a>
+                {% endif %}
+            </aside>
+        </div>
+    </div>
+</main>
+{% endblock %}

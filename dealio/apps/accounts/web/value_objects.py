@@ -12,6 +12,7 @@ class AccountWebTemplateVO(StrEnum):
     REGISTER = "web/accounts/register.html"
     FORGOT_PASSWORD = "web/accounts/forgot_password.html"
     RECOVER_PASSWORD = "web/accounts/recover_password.html"
+    PROFILE = "web/accounts/profile.html"
 
 
 class AccountWebPathVO(StrEnum):
@@ -20,6 +21,18 @@ class AccountWebPathVO(StrEnum):
     LOGOUT = "logout/"
     FORGOT_PASSWORD = "forgot-password/"
     RECOVER_PASSWORD = "recover-password/"
+    PROFILE = "profile/"
+    PROFILE_EDIT = "profile/edit/"
+    PROFILE_CONTACT = "profile/contact/"
+    PROFILE_EMAIL_SEND = "profile/email/send/"
+    PROFILE_EMAIL_VERIFY = "profile/email/verify/"
+    PROFILE_PHONE_SEND = "profile/phone/send/"
+    PROFILE_PHONE_VERIFY = "profile/phone/verify/"
+    PROFILE_MESSENGER_DISCONNECT = "profile/messengers/<int:profile_id>/disconnect/"
+    PROFILE_PAYMENT_RECEIPT = "profile/payments/<uuid:payment_id>/receipt/"
+    PROFILE_TICKET_CREATE = "profile/tickets/new/"
+    PROFILE_TICKET_REPLY = "profile/tickets/<int:ticket_id>/reply/"
+    PROFILE_COURSE_REVIEW = "profile/courses/<uuid:course_id>/review/"
 
 
 class AccountWebRouteNameVO(StrEnum):
@@ -28,6 +41,18 @@ class AccountWebRouteNameVO(StrEnum):
     LOGOUT = "logout"
     FORGOT_PASSWORD = "forgot_password"
     RECOVER_PASSWORD = "recover_password"
+    PROFILE = "profile"
+    PROFILE_EDIT = "profile_edit"
+    PROFILE_CONTACT = "profile_contact"
+    PROFILE_EMAIL_SEND = "profile_email_send"
+    PROFILE_EMAIL_VERIFY = "profile_email_verify"
+    PROFILE_PHONE_SEND = "profile_phone_send"
+    PROFILE_PHONE_VERIFY = "profile_phone_verify"
+    PROFILE_MESSENGER_DISCONNECT = "profile_messenger_disconnect"
+    PROFILE_PAYMENT_RECEIPT = "profile_payment_receipt"
+    PROFILE_TICKET_CREATE = "profile_ticket_create"
+    PROFILE_TICKET_REPLY = "profile_ticket_reply"
+    PROFILE_COURSE_REVIEW = "profile_course_review"
 
 
 class AccountWebReverseNameVO(StrEnum):
@@ -35,6 +60,18 @@ class AccountWebReverseNameVO(StrEnum):
     REGISTER = "accounts_web:register"
     FORGOT_PASSWORD = "accounts_web:forgot_password"
     RECOVER_PASSWORD = "accounts_web:recover_password"
+    PROFILE = "accounts_web:profile"
+    PROFILE_EDIT = "accounts_web:profile_edit"
+    PROFILE_CONTACT = "accounts_web:profile_contact"
+    PROFILE_EMAIL_SEND = "accounts_web:profile_email_send"
+    PROFILE_EMAIL_VERIFY = "accounts_web:profile_email_verify"
+    PROFILE_PHONE_SEND = "accounts_web:profile_phone_send"
+    PROFILE_PHONE_VERIFY = "accounts_web:profile_phone_verify"
+    PROFILE_MESSENGER_DISCONNECT = "accounts_web:profile_messenger_disconnect"
+    PROFILE_PAYMENT_RECEIPT = "accounts_web:profile_payment_receipt"
+    PROFILE_TICKET_CREATE = "accounts_web:profile_ticket_create"
+    PROFILE_TICKET_REPLY = "accounts_web:profile_ticket_reply"
+    PROFILE_COURSE_REVIEW = "accounts_web:profile_course_review"
 
 
 class AccountWebRequestKeyVO(StrEnum):
@@ -55,6 +92,19 @@ class AccountWebFieldNameVO(StrEnum):
     PASSWORD = "password"
     NEW_PASSWORD = "new_password"
     PASSWORD_CONFIRM = "password_confirm"
+    PHONE_NUMBER = "phone_number"
+    PROFILE_PHOTO = "profile_photo"
+    REMOVE_PROFILE_PHOTO = "remove_profile_photo"
+    SUBJECT = "subject"
+    MESSAGE = "message"
+    RATING = "rating"
+    TITLE = "title"
+    COMMENT = "comment"
+    RECEIPT_FILE = "receipt_file"
+    TRACKING_CODE = "tracking_code"
+    PAYER_CARD_LAST4 = "payer_card_last4"
+    PAID_AMOUNT = "paid_amount"
+    NOTE = "note"
 
 
 class AccountWebFieldLimitVO(IntEnum):
@@ -62,6 +112,13 @@ class AccountWebFieldLimitVO(IntEnum):
     USERNAME_MAX_LENGTH = 150
     EMAIL_MAX_LENGTH = 254
     RECOVERY_CODE_MAX_LENGTH = 6
+    PHONE_NUMBER_MAX_LENGTH = 13
+    SUPPORT_SUBJECT_MAX_LENGTH = 180
+    SUPPORT_MESSAGE_MAX_LENGTH = 2500
+    REVIEW_TITLE_MAX_LENGTH = 180
+    REVIEW_COMMENT_MAX_LENGTH = 5000
+    PAYMENT_TRACKING_CODE_MAX_LENGTH = 120
+    PAYMENT_NOTE_MAX_LENGTH = 1000
 
 
 class AccountWebWidgetAttrVO(StrEnum):
@@ -75,6 +132,7 @@ class AccountWebAutocompleteVO(StrEnum):
     CURRENT_PASSWORD = "current-password"
     NEW_PASSWORD = "new-password"
     ONE_TIME_CODE = "one-time-code"
+    TEL = "tel"
 
 
 class AccountWebPlaceholderVO(StrEnum):
@@ -89,6 +147,16 @@ class AccountWebPlaceholderVO(StrEnum):
     RECOVERY_CODE = "کد ۶ رقمی را وارد کنید"
     NEW_PASSWORD = "رمز عبور جدید"
     NEW_PASSWORD_CONFIRM = "تکرار رمز عبور جدید"
+    PHONE_NUMBER = "شماره موبایل مانند 09121234567"
+    SUPPORT_SUBJECT = "موضوع تیکت"
+    SUPPORT_MESSAGE = "پیام خود را برای پشتیبانی بنویسید"
+    VERIFICATION_CODE = "کد ۶ رقمی تأیید"
+    REVIEW_TITLE = "عنوان کوتاه دیدگاه (اختیاری)"
+    REVIEW_COMMENT = "نظر شما درباره این دوره"
+    PAYMENT_TRACKING_CODE = "کد رهگیری تراکنش"
+    PAYMENT_CARD_LAST4 = "۴ رقم آخر کارت پرداخت‌کننده"
+    PAYMENT_AMOUNT = "مبلغ پرداخت‌شده"
+    PAYMENT_NOTE = "توضیحات تکمیلی (اختیاری)"
 
 
 class AccountWebValidationMessageVO(StrEnum):
@@ -113,7 +181,18 @@ class AccountWebValidationMessageVO(StrEnum):
     REGISTER_SUCCESS = "حساب کاربری شما ساخته شد. حالا وارد شوید."
     LOGOUT_SUCCESS = "از حساب کاربری خارج شدید."
     RECOVERY_CODE_SENT = "اگر ایمیل وارد شده در سیستم وجود داشته باشد، کد بازیابی رمز عبور برای شما ارسال شد."
-    PASSWORD_RESET_SUCCESS = "رمز عبور شما با موفقیت تغییر کرد. حالا می‌توانید وارد شوید."
+    PASSWORD_RESET_SUCCESS = (
+        "رمز عبور شما با موفقیت تغییر کرد. حالا می‌توانید وارد شوید."
+    )
+    INVALID_PHONE_NUMBER = "شماره موبایل معتبر نیست."
+    INVALID_PROFILE_PHOTO = "تصویر پروفایل معتبر نیست."
+    SUPPORT_MESSAGE_TOO_SHORT = "متن تیکت باید حداقل ۳ کاراکتر باشد."
+    REVIEW_COMMENT_TOO_SHORT = "متن دیدگاه باید حداقل ۳ کاراکتر باشد."
+    INVALID_PAYMENT_RECEIPT = (
+        "رسید معتبر نیست. فقط JPG، PNG یا PDF تا حجم ۵ مگابایت مجاز است."
+    )
+    PAYMENT_RECEIPT_REQUIRED = "فایل رسید یا کد رهگیری را وارد کنید."
+    INVALID_CARD_LAST4 = "۴ رقم آخر کارت باید دقیقاً چهار رقم باشد."
 
 
 class AccountWebFormErrorKeyVO(StrEnum):

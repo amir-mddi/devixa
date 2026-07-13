@@ -1,0 +1,7 @@
+{% if page_obj.paginator.num_pages > 1 %}
+<nav class="admin-pagination" aria-label="صفحه‌بندی">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}{% if query_suffix %}&{{ query_suffix }}{% endif %}">قبلی</a>{% endif %}
+    <span>صفحه {{ page_obj.number }} از {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}{% if query_suffix %}&{{ query_suffix }}{% endif %}">بعدی</a>{% endif %}
+</nav>
+{% endif %}

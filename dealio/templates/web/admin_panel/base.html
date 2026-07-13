@@ -1,0 +1,35 @@
+{% extends "web/pages/base.html" %}
+{% load project_tags %}
+
+{% block title %}{% block admin_title %}پنل مدیریت{% endblock %} | {{ project.display_name }}{% endblock %}
+{% block page_styles_after %}
+<link rel="stylesheet" href="{% project_static 'Styles/admin-panel.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="admin-page">
+    <div class="admin-shell">
+        <aside class="admin-sidebar" aria-label="منوی پنل مدیریت">
+            <div class="admin-sidebar__heading">
+                <span class="admin-sidebar__icon"><i class="fa-solid fa-shield-halved"></i></span>
+                <div><small>فضای مدیریت</small><strong>{{ project.display_name }}</strong></div>
+            </div>
+            <nav class="admin-nav">
+                <a href="{% url 'admin_panel:dashboard' %}" class="admin-nav__item {% if admin_active_section == 'dashboard' %}is-active{% endif %}"><i class="fa-solid fa-chart-pie"></i><span>داشبورد</span></a>
+                <a href="{% url 'admin_panel:tickets' %}" class="admin-nav__item {% if admin_active_section == 'tickets' %}is-active{% endif %}"><i class="fa-regular fa-comments"></i><span>تیکت‌ها</span></a>
+                <a href="{% url 'admin_panel:reviews' %}" class="admin-nav__item {% if admin_active_section == 'reviews' %}is-active{% endif %}"><i class="fa-regular fa-star"></i><span>نظرات دوره‌ها</span></a>
+                <a href="{% url 'admin_panel:billing' %}" class="admin-nav__item {% if admin_active_section == 'billing' %}is-active{% endif %}"><i class="fa-solid fa-receipt"></i><span>سفارش‌ها و پرداخت</span></a>
+                <a href="{% url 'admin_panel:users' %}" class="admin-nav__item {% if admin_active_section == 'users' %}is-active{% endif %}"><i class="fa-solid fa-users"></i><span>کاربران</span></a>
+                <a href="{% url 'admin_panel:courses' %}" class="admin-nav__item {% if admin_active_section == 'courses' %}is-active{% endif %}"><i class="fa-solid fa-graduation-cap"></i><span>دوره‌ها</span></a>
+                <a href="{% url 'admin_panel:discounts' %}" class="admin-nav__item {% if admin_active_section == 'discounts' %}is-active{% endif %}"><i class="fa-solid fa-tags"></i><span>کدهای تخفیف</span></a>
+                <a href="{% url 'admin_panel:notifications' %}" class="admin-nav__item {% if admin_active_section == 'notifications' %}is-active{% endif %}"><i class="fa-regular fa-bell"></i><span>اعلان‌ها</span></a>
+                <a href="{% url 'admin_panel:bot_settings' %}" class="admin-nav__item {% if admin_active_section == 'bot_settings' %}is-active{% endif %}"><i class="fa-solid fa-gears"></i><span>تنظیمات ربات‌ها</span></a>
+            </nav>
+            <a href="{% url 'accounts_web:profile' %}" class="admin-sidebar__back"><i class="fa-solid fa-arrow-right"></i><span>بازگشت به پنل کاربری</span></a>
+        </aside>
+        <section class="admin-content">
+            {% block admin_content %}{% endblock %}
+        </section>
+    </div>
+</main>
+{% endblock %}

@@ -3,7 +3,9 @@ from __future__ import annotations
 from django.db import OperationalError, ProgrammingError
 
 from dealio.apps.shared.dtos.project_config_dto import ProjectConfigDTO
-from dealio.apps.shared.initial_data.initial_data.project_config_initial import build_project_config_initial_data
+from dealio.apps.shared.initial_data.initial_data.project_config_initial import (
+    build_project_config_initial_data,
+)
 from dealio.apps.shared.repositories.logic import SharedApplicationLogic
 from dealio.apps.shared.vo.project_config_vo import ProjectConfigFieldNameVO
 
@@ -27,6 +29,7 @@ def _fallback_project_config() -> ProjectConfigDTO:
         instagram_url=data[ProjectConfigFieldNameVO.INSTAGRAM_URL.value],
         telegram_bot_url=data[ProjectConfigFieldNameVO.TELEGRAM_BOT_URL.value],
         bale_bot_url=data[ProjectConfigFieldNameVO.BALE_BOT_URL.value],
+        rubika_bot_url=data[ProjectConfigFieldNameVO.RUBIKA_BOT_URL.value],
         phone=data[ProjectConfigFieldNameVO.PHONE.value],
         address=data[ProjectConfigFieldNameVO.ADDRESS.value],
         working_hours=data[ProjectConfigFieldNameVO.WORKING_HOURS.value],

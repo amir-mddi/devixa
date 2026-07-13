@@ -1,0 +1,154 @@
+from django.urls import path
+
+from dealio.apps.admin_panel.value_objects import AdminPanelAppVO, AdminPanelRouteVO
+from dealio.apps.admin_panel.web.views import (
+    AdminBillingView,
+    AdminBotSettingDeleteView,
+    AdminBotSettingsView,
+    AdminCourseCreateView,
+    AdminCourseDeleteView,
+    AdminCourseEditView,
+    AdminCourseLessonCreateView,
+    AdminCourseListView,
+    AdminDashboardView,
+    AdminDiscountCreateView,
+    AdminDiscountDeleteView,
+    AdminDiscountListView,
+    AdminNotificationCreateView,
+    AdminNotificationListView,
+    AdminReceiptFileView,
+    AdminReceiptReviewView,
+    AdminReviewListView,
+    AdminReviewModerateView,
+    AdminTicketCloseView,
+    AdminTicketDetailView,
+    AdminTicketListView,
+    AdminTicketReplyView,
+    AdminUserCreateView,
+    AdminUserDeleteView,
+    AdminUserEditView,
+    AdminUserListView,
+    AdminUserToggleView,
+)
+
+app_name = AdminPanelAppVO.NAMESPACE.value
+
+urlpatterns = [
+    path("", AdminDashboardView.as_view(), name=AdminPanelRouteVO.DASHBOARD.value),
+    path(
+        "tickets/", AdminTicketListView.as_view(), name=AdminPanelRouteVO.TICKETS.value
+    ),
+    path(
+        "tickets/<int:ticket_id>/",
+        AdminTicketDetailView.as_view(),
+        name=AdminPanelRouteVO.TICKET_DETAIL.value,
+    ),
+    path(
+        "tickets/<int:ticket_id>/reply/",
+        AdminTicketReplyView.as_view(),
+        name=AdminPanelRouteVO.TICKET_REPLY.value,
+    ),
+    path(
+        "tickets/<int:ticket_id>/close/",
+        AdminTicketCloseView.as_view(),
+        name=AdminPanelRouteVO.TICKET_CLOSE.value,
+    ),
+    path(
+        "reviews/", AdminReviewListView.as_view(), name=AdminPanelRouteVO.REVIEWS.value
+    ),
+    path(
+        "reviews/<uuid:review_id>/moderate/",
+        AdminReviewModerateView.as_view(),
+        name=AdminPanelRouteVO.REVIEW_MODERATE.value,
+    ),
+    path("billing/", AdminBillingView.as_view(), name=AdminPanelRouteVO.BILLING.value),
+    path(
+        "billing/receipts/<uuid:receipt_id>/review/",
+        AdminReceiptReviewView.as_view(),
+        name=AdminPanelRouteVO.RECEIPT_REVIEW.value,
+    ),
+    path(
+        "billing/receipts/<uuid:receipt_id>/file/",
+        AdminReceiptFileView.as_view(),
+        name=AdminPanelRouteVO.RECEIPT_FILE.value,
+    ),
+    path("users/", AdminUserListView.as_view(), name=AdminPanelRouteVO.USERS.value),
+    path(
+        "users/new/",
+        AdminUserCreateView.as_view(),
+        name=AdminPanelRouteVO.USER_CREATE.value,
+    ),
+    path(
+        "users/<uuid:user_id>/edit/",
+        AdminUserEditView.as_view(),
+        name=AdminPanelRouteVO.USER_EDIT.value,
+    ),
+    path(
+        "users/<uuid:user_id>/toggle/",
+        AdminUserToggleView.as_view(),
+        name=AdminPanelRouteVO.USER_TOGGLE.value,
+    ),
+    path(
+        "users/<uuid:user_id>/delete/",
+        AdminUserDeleteView.as_view(),
+        name=AdminPanelRouteVO.USER_DELETE.value,
+    ),
+    path(
+        "courses/", AdminCourseListView.as_view(), name=AdminPanelRouteVO.COURSES.value
+    ),
+    path(
+        "courses/new/",
+        AdminCourseCreateView.as_view(),
+        name=AdminPanelRouteVO.COURSE_CREATE.value,
+    ),
+    path(
+        "courses/<uuid:course_id>/edit/",
+        AdminCourseEditView.as_view(),
+        name=AdminPanelRouteVO.COURSE_EDIT.value,
+    ),
+    path(
+        "courses/<uuid:course_id>/delete/",
+        AdminCourseDeleteView.as_view(),
+        name=AdminPanelRouteVO.COURSE_DELETE.value,
+    ),
+    path(
+        "courses/<uuid:course_id>/lessons/new/",
+        AdminCourseLessonCreateView.as_view(),
+        name=AdminPanelRouteVO.COURSE_LESSON_CREATE.value,
+    ),
+    path(
+        "discounts/",
+        AdminDiscountListView.as_view(),
+        name=AdminPanelRouteVO.DISCOUNTS.value,
+    ),
+    path(
+        "discounts/new/",
+        AdminDiscountCreateView.as_view(),
+        name=AdminPanelRouteVO.DISCOUNT_CREATE.value,
+    ),
+    path(
+        "discounts/<uuid:discount_id>/delete/",
+        AdminDiscountDeleteView.as_view(),
+        name=AdminPanelRouteVO.DISCOUNT_DELETE.value,
+    ),
+    path(
+        "notifications/",
+        AdminNotificationListView.as_view(),
+        name=AdminPanelRouteVO.NOTIFICATIONS.value,
+    ),
+    path(
+        "notifications/new/",
+        AdminNotificationCreateView.as_view(),
+        name=AdminPanelRouteVO.NOTIFICATION_CREATE.value,
+    ),
+    path(
+        "bot-settings/",
+        AdminBotSettingsView.as_view(),
+        name=AdminPanelRouteVO.BOT_SETTINGS.value,
+    ),
+    path(
+        "bot-settings/<str:provider>/<str:key>/delete/",
+        AdminBotSettingDeleteView.as_view(),
+        name=AdminPanelRouteVO.BOT_SETTING_DELETE.value,
+    ),
+]

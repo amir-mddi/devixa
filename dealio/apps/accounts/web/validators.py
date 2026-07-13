@@ -5,12 +5,16 @@ import re
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
+from rest_framework import serializers
 
 from dealio.apps.accounts.web.value_objects import (
     AccountWebEmailVO,
     AccountWebPasswordValidationCodeVO,
     AccountWebRegexVO,
     AccountWebValidationMessageVO,
+)
+from dealio.apps.common.helpers.validators.account_validators import (
+    validate_iranian_phone_number,
 )
 
 
@@ -23,7 +27,9 @@ class AccountWebInputValidator:
             raise ValidationError(AccountWebValidationMessageVO.REQUIRED.value)
 
         if not re.fullmatch(AccountWebRegexVO.PERSIAN_TEXT.value, normalized_value):
-            raise ValidationError(AccountWebValidationMessageVO.INVALID_PERSIAN_TEXT.value)
+            raise ValidationError(
+                AccountWebValidationMessageVO.INVALID_PERSIAN_TEXT.value
+            )
 
         return normalized_value
 
@@ -49,12 +55,26 @@ class AccountWebInputValidator:
         try:
             validate_email(normalized_value)
         except ValidationError as exc:
-            raise ValidationError(AccountWebValidationMessageVO.INVALID_EMAIL.value) from exc
+            raise ValidationError(
+                AccountWebValidationMessageVO.INVALID_EMAIL.value
+            ) from exc
 
         if not normalized_value.endswith(AccountWebEmailVO.GMAIL_SUFFIX.value):
             raise ValidationError(AccountWebValidationMessageVO.INVALID_GMAIL.value)
 
         return normalized_value
+
+    @classmethod
+    def validate_phone_number(cls, value: str, *, required: bool = False) -> str:
+        normalized_value = (value or "").strip()
+        if not normalized_value and not required:
+            return ""
+        try:
+            return validate_iranian_phone_number(normalized_value)
+        except serializers.ValidationError as exc:
+            raise ValidationError(
+                AccountWebValidationMessageVO.INVALID_PHONE_NUMBER.value
+            ) from exc
 
     @classmethod
     def validate_recovery_code(cls, value: str) -> str:
@@ -64,7 +84,9 @@ class AccountWebInputValidator:
             raise ValidationError(AccountWebValidationMessageVO.REQUIRED.value)
 
         if not re.fullmatch(AccountWebRegexVO.RECOVERY_CODE.value, normalized_value):
-            raise ValidationError(AccountWebValidationMessageVO.INVALID_RECOVERY_CODE.value)
+            raise ValidationError(
+                AccountWebValidationMessageVO.INVALID_RECOVERY_CODE.value
+            )
 
         return normalized_value
 
@@ -90,7 +112,10 @@ class AccountWebInputValidator:
         if error_code == AccountWebPasswordValidationCodeVO.PASSWORD_TOO_COMMON.value:
             return AccountWebValidationMessageVO.PASSWORD_TOO_COMMON.value
 
-        if error_code == AccountWebPasswordValidationCodeVO.PASSWORD_ENTIRELY_NUMERIC.value:
+        if (
+            error_code
+            == AccountWebPasswordValidationCodeVO.PASSWORD_ENTIRELY_NUMERIC.value
+        ):
             return AccountWebValidationMessageVO.PASSWORD_ENTIRELY_NUMERIC.value
 
         if error_code == AccountWebPasswordValidationCodeVO.PASSWORD_TOO_SIMILAR.value:

@@ -38,6 +38,8 @@ urlpatterns = [
     path("", include("dealio.apps.accounts.web.urls")),
     path("", include("dealio.apps.pages.web.urls")),
     path("", include("dealio.apps.courses.web.urls")),
+    path("", include("dealio.apps.billing.web.urls")),
+    path("management/", include("dealio.apps.admin_panel.web.urls")),
     path(PREFIX_URL + "account/", include("dealio.apps.accounts.urls")),
     path(PREFIX_URL + "courses/", include("dealio.apps.courses.urls")),
     path(PREFIX_URL + "billing/", include("dealio.apps.billing.urls")),

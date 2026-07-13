@@ -4,7 +4,10 @@ from rest_framework import serializers
 
 from dealio.apps.shared.models import ApiKeyManagerModel, ProjectConfigModel
 from dealio.apps.shared.vo.project_config_vo import ProjectConfigSerializerMessageVO
-from dealio.apps.common.utils.network_security import UnsafeOutboundUrlError, validate_public_https_url
+from dealio.apps.common.utils.network_security import (
+    UnsafeOutboundUrlError,
+    validate_public_https_url,
+)
 
 
 class CommonSerializerField:
@@ -34,8 +37,12 @@ class ListResponseSerializer(BaseResponseSerializer):
 
 
 class BaseSerializerModel(serializers.ModelSerializer):
-    user_created_object = serializers.HiddenField(default=serializers.CurrentUserDefault())
-    user_updated_object = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    user_created_object = serializers.HiddenField(
+        default=serializers.CurrentUserDefault()
+    )
+    user_updated_object = serializers.HiddenField(
+        default=serializers.CurrentUserDefault()
+    )
 
     class Meta:
         abstract = True
@@ -53,7 +60,7 @@ class BaseSerializerModel(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "deleted_at",
-            "is_active"
+            "is_active",
         )
 
     # def to_internal_value(self, data):
@@ -68,10 +75,14 @@ class BaseSerializerModel(serializers.ModelSerializer):
         if meta:
             child_fields = list(getattr(meta, "fields", []))
             base_fields = list(getattr(BaseSerializerModel.Meta, "base_fields", []))
-            meta.fields = tuple(child_fields + [f for f in base_fields if f not in child_fields])
+            meta.fields = tuple(
+                child_fields + [f for f in base_fields if f not in child_fields]
+            )
 
             child_read_only_fields = list(getattr(meta, "read_only_fields", []))
-            base_read_only_fields = list(getattr(BaseSerializerModel.Meta, "base_read_only_fields", []))
+            base_read_only_fields = list(
+                getattr(BaseSerializerModel.Meta, "base_read_only_fields", [])
+            )
             meta.read_only_fields = tuple(
                 child_read_only_fields
                 + [
@@ -150,6 +161,7 @@ class ProjectConfigSerializer(BaseSerializerModel):
             "instagram_url",
             "telegram_bot_url",
             "bale_bot_url",
+            "rubika_bot_url",
             "phone",
             "address",
             "working_hours",
@@ -158,7 +170,9 @@ class ProjectConfigSerializer(BaseSerializerModel):
 
     def validate_slug(self, value: str) -> str:
         if not re.fullmatch(r"[a-zA-Z0-9_-]+", value or ""):
-            raise serializers.ValidationError(ProjectConfigSerializerMessageVO.SLUG_INVALID.value)
+            raise serializers.ValidationError(
+                ProjectConfigSerializerMessageVO.SLUG_INVALID.value
+            )
         return value.lower()
 
     def validate(self, attrs):
@@ -170,6 +184,7 @@ class ProjectConfigSerializer(BaseSerializerModel):
             "instagram_url",
             "telegram_bot_url",
             "bale_bot_url",
+            "rubika_bot_url",
         )
         for field_name in url_fields:
             value = str(attrs.get(field_name, "") or "").strip()

@@ -1,0 +1,124 @@
+{% extends "web/pages/base.html" %}
+{% load project_tags billing_web_tags %}
+
+{% block title %}سبد خرید | {{ project.display_name }}{% endblock %}
+{% block page_styles %}<link rel="stylesheet" href="{% project_static 'Styles/basket.css' %}">{% endblock %}
+
+{% block content %}
+<main class="commerce-page">
+    <div class="commerce-container">
+        <nav class="commerce-steps" aria-label="مراحل خرید">
+            <span class="is-active"><b>۱</b> سبد خرید</span>
+            <span><b>۲</b> روش پرداخت</span>
+            <span><b>۳</b> ثبت رسید</span>
+        </nav>
+
+        <header class="commerce-heading">
+            <div>
+                <p class="commerce-eyebrow">خرید دوره</p>
+                <h1>سبد خرید شما</h1>
+                <p>دوره‌ها، مبلغ نهایی و تخفیف را بررسی کنید؛ سپس روش پرداخت را انتخاب کنید.</p>
+            </div>
+            <span class="commerce-count"><i class="fa-solid fa-bag-shopping"></i>{{ basket.item_count }} دوره</span>
+        </header>
+
+        {% if basket.is_empty %}
+            <section class="commerce-empty">
+                <div class="commerce-empty__icon"><i class="fa-solid fa-cart-shopping"></i></div>
+                <h2>سبد خرید خالی است</h2>
+                <p>از میان دوره‌های منتشرشده، دوره مناسب مسیر یادگیری خود را انتخاب کنید.</p>
+                <a href="{% url 'courses_web:course_list' %}" class="commerce-button commerce-button--primary">مشاهده دوره‌ها</a>
+            </section>
+        {% else %}
+            {% if basket.is_locked %}
+                <div class="commerce-alert commerce-alert--warning">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <div><strong>رسید در حال بررسی است</strong><p>تا زمان بررسی مدیر، محتوای این سبد قابل تغییر نیست. وضعیت پرداخت را در پنل کاربری ببینید.</p></div>
+                    <a href="{% url 'accounts_web:profile' %}#billing">سوابق پرداخت</a>
+                </div>
+            {% endif %}
+
+            <div class="commerce-layout">
+                <section class="basket-items" aria-label="دوره‌های سبد خرید">
+                    <div class="basket-items__header">
+                        <div><h2>دوره‌های انتخاب‌شده</h2><p>{{ basket.item_count }} مورد در این سفارش</p></div>
+                        {% if not basket.is_locked %}
+                            <form method="post" action="{% url 'billing_web:clear' %}" onsubmit="return confirm('همه دوره‌ها از سبد حذف شوند؟');">
+                                {% csrf_token %}
+                                <button type="submit" class="commerce-text-button is-danger"><i class="fa-regular fa-trash-can"></i>پاک کردن سبد</button>
+                            </form>
+                        {% endif %}
+                    </div>
+
+                    {% for item in basket.items %}
+                        <article class="basket-item">
+                            <a href="{% url 'courses_web:course_detail' slug=item.course.slug %}" class="basket-item__media" aria-label="{{ item.course_title }}">
+                                {% if item.course.thumbnail %}
+                                    <img src="{{ item.course.thumbnail.url }}" alt="{{ item.course_title }}" loading="lazy">
+                                {% else %}
+                                    <i class="fa-solid fa-graduation-cap"></i>
+                                {% endif %}
+                            </a>
+                            <div class="basket-item__body">
+                                <div class="basket-item__topline">
+                                    <span>{{ item.course.category.title|default:"دوره آموزشی" }}</span>
+                                    <span>تعداد: {{ item.quantity }}</span>
+                                </div>
+                                <h3><a href="{% url 'courses_web:course_detail' slug=item.course.slug %}">{{ item.course_title }}</a></h3>
+                                <p>{{ item.course.short_description|default:item.course.description|truncatechars:150 }}</p>
+                                <div class="basket-item__meta">
+                                    <span><i class="fa-regular fa-clock"></i>{{ item.course.duration_minutes }} دقیقه</span>
+                                    <span><i class="fa-regular fa-user"></i>{{ item.course.instructor.get_full_name|default:item.course.instructor.username }}</span>
+                                </div>
+                            </div>
+                            <div class="basket-item__aside">
+                                <strong>{{ item.total_price|billing_money:basket.currency }}</strong>
+                                {% if not basket.is_locked %}
+                                    <form method="post" action="{% url 'billing_web:remove_item' item_id=item.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="commerce-icon-button" aria-label="حذف {{ item.course_title }}"><i class="fa-regular fa-trash-can"></i></button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </article>
+                    {% endfor %}
+                </section>
+
+                <aside class="order-summary">
+                    <div class="order-summary__title"><div><p class="commerce-eyebrow">خلاصه سفارش</p><h2>صورتحساب</h2></div><i class="fa-solid fa-receipt"></i></div>
+                    <dl class="order-summary__rows">
+                        <div><dt>تعداد دوره‌ها</dt><dd>{{ basket.item_count }}</dd></div>
+                        <div><dt>جمع دوره‌ها</dt><dd>{{ basket.subtotal_amount|billing_money:basket.currency }}</dd></div>
+                        <div class="is-discount"><dt>تخفیف</dt><dd>- {{ basket.discount_amount|billing_money:basket.currency }}</dd></div>
+                    </dl>
+
+                    {% if basket.discount_code %}
+                        <div class="discount-applied">
+                            <div><i class="fa-solid fa-tag"></i><span>کد <b dir="ltr">{{ basket.discount_code }}</b> اعمال شد.</span></div>
+                            {% if not basket.is_locked %}
+                                <form method="post" action="{% url 'billing_web:remove_discount' %}">{% csrf_token %}<button type="submit" aria-label="حذف کد تخفیف"><i class="fa-solid fa-xmark"></i></button></form>
+                            {% endif %}
+                        </div>
+                    {% elif not basket.is_locked %}
+                        <form method="post" action="{% url 'billing_web:apply_discount' %}" class="discount-form">
+                            {% csrf_token %}
+                            <label for="{{ discount_form.code.id_for_label }}">کد تخفیف دارید؟</label>
+                            <div>{{ discount_form.code }}<button type="submit">اعمال</button></div>
+                            {% for error in discount_form.code.errors %}<p class="commerce-field-error">{{ error }}</p>{% endfor %}
+                            {% for error in discount_form.non_field_errors %}<p class="commerce-field-error">{{ error }}</p>{% endfor %}
+                        </form>
+                    {% endif %}
+
+                    <div class="order-summary__total"><span>مبلغ قابل پرداخت</span><strong>{{ basket.total_amount|billing_money:basket.currency }}</strong></div>
+                    {% if basket.is_locked %}
+                        <a href="{% url 'accounts_web:profile' %}#billing" class="commerce-button commerce-button--secondary">پیگیری وضعیت پرداخت</a>
+                    {% else %}
+                        <a href="{% url 'billing_web:checkout' %}" class="commerce-button commerce-button--primary">ادامه و انتخاب روش پرداخت <i class="fa-solid fa-arrow-left"></i></a>
+                    {% endif %}
+                    <p class="order-summary__secure"><i class="fa-solid fa-shield-halved"></i>اطلاعات سفارش پیش از پرداخت دوباره اعتبارسنجی می‌شود.</p>
+                </aside>
+            </div>
+        {% endif %}
+    </div>
+</main>
+{% endblock %}

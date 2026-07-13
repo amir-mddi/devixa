@@ -12,7 +12,11 @@ from dealio.tests.mixins import IsolatedServiceTestMixin
 
 class PageDTOAndFormTests(SimpleTestCase):
     def test_channel_link_availability(self):
-        self.assertTrue(ChannelLinkDTO("T", "D", "https://example.com", "icon", "badge").is_available)
+        self.assertTrue(
+            ChannelLinkDTO(
+                "T", "D", "https://example.com", "icon", "badge"
+            ).is_available
+        )
         self.assertFalse(ChannelLinkDTO("T", "D", "#", "icon", "badge").is_available)
 
     def test_contact_form_normalizes_values_and_builds_dto(self):
@@ -32,8 +36,13 @@ class PageDTOAndFormTests(SimpleTestCase):
 
 
 class PageLogicRepositoryTests(IsolatedServiceTestMixin, TestCase):
-    @patch("dealio.apps.pages.repositories.logic.PageLogicRepository._contact_recipient_email", return_value="")
-    def test_contact_message_fails_when_recipient_is_not_configured(self, _recipient_mock):
+    @patch(
+        "dealio.apps.pages.repositories.logic.PageLogicRepository._contact_recipient_email",
+        return_value="",
+    )
+    def test_contact_message_fails_when_recipient_is_not_configured(
+        self, _recipient_mock
+    ):
         result = PageLogicRepository().send_contact_message(
             ContactMessageDTO("Ali", "ali@example.com", "Topic", "Message")
         )
@@ -43,8 +52,13 @@ class PageLogicRepositoryTests(IsolatedServiceTestMixin, TestCase):
 
     @patch("dealio.apps.pages.repositories.logic.send_html_email_async")
     @patch("dealio.apps.pages.repositories.logic.get_project_public_config")
-    @patch("dealio.apps.pages.repositories.logic.PageLogicRepository._contact_recipient_email", return_value="contact@example.com")
-    def test_contact_message_is_queued_with_configured_recipient(self, _recipient_mock, config_mock, send_mock):
+    @patch(
+        "dealio.apps.pages.repositories.logic.PageLogicRepository._contact_recipient_email",
+        return_value="contact@example.com",
+    )
+    def test_contact_message_is_queued_with_configured_recipient(
+        self, _recipient_mock, config_mock, send_mock
+    ):
         config_mock.return_value = MagicMock(display_name="Dealio")
 
         result = PageLogicRepository().send_contact_message(
@@ -62,3 +76,21 @@ class PageLogicRepositoryTests(IsolatedServiceTestMixin, TestCase):
         items = repository.list_home_frequently_asked_questions(limit=2)
 
         self.assertEqual(len(items), 2)
+
+
+class ChannelLinkTests(SimpleTestCase):
+    @patch("dealio.apps.pages.repositories.logic.get_project_public_config")
+    def test_channels_include_configured_rubika_bot(self, config_mock):
+        config_mock.return_value = MagicMock(
+            telegram_bot_url="https://t.me/dealio_bot",
+            telegram_url="https://t.me/dealio",
+            bale_bot_url="https://ble.ir/dealio_bot",
+            rubika_bot_url="https://rubika.ir/dealio_bot",
+        )
+
+        links = PageLogicRepository().list_channel_links()
+
+        self.assertEqual(len(links), 3)
+        rubika = next(link for link in links if link.badge == "Rubika")
+        self.assertEqual(rubika.url, "https://rubika.ir/dealio_bot")
+        self.assertTrue(rubika.is_available)

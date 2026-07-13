@@ -7,14 +7,20 @@
     <meta name="theme-color" content="#070b14">
     <meta name="description" content="{{ project.description }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    {# Global foundation: loaded for every public, basket, profile and admin page. #}
     <link rel="stylesheet" href="{% project_static 'Styles/variables.css' %}">
+    <link rel="stylesheet" href="{% project_static 'Styles/fonts.css' %}">
+    <link rel="stylesheet" href="{% project_static 'Styles/reset.css' %}">
+    <link rel="stylesheet" href="{% project_static 'Styles/framework.css' %}">
+    <link rel="stylesheet" href="{% project_static 'Styles/components.css' %}">
     {% block page_styles %}{% endblock %}
     <link rel="stylesheet" href="{% project_static 'Styles/theme.css' %}">
     <link rel="stylesheet" href="{% project_static 'Styles/premium.css' %}">
     <link rel="stylesheet" href="{% project_static 'Styles/responsive.css' %}">
     <link rel="stylesheet" href="{% project_static 'Styles/design-system-fixes.css' %}">
-    <link rel="stylesheet" href="{% project_static 'Styles/mobile-theme-system.css' %}">
+    <link rel="stylesheet" href="{% project_static 'Styles/mobile-theme-system.css' %}?v=mobile-nav-2">
     <link rel="stylesheet" href="{% project_static 'Styles/course-detail-polish.css' %}">
+    {% block page_styles_after %}{% endblock %}
     <title>{% block title %}{{ project.display_name }}{% endblock %}</title>
     {% include "web/shared/_message_styles.html" %}
 </head>
@@ -23,7 +29,7 @@
     {% include "web/shared/_flash_messages.html" with placement="page" %}
     {% block content %}{% endblock %}
     {% include "web/pages/_footer.html" %}
-    <script src="{% project_static 'js/main.js' %}"></script>
+    <script src="{% project_static 'js/main.js' %}?v=mobile-nav-2"></script>
     <script src="{% project_static 'js/theme.js' %}"></script>
     <script src="{% project_static 'js/effects.js' %}"></script>
     <script src="{% project_static 'js/premium.js' %}"></script>

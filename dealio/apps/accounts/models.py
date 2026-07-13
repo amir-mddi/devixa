@@ -1,12 +1,18 @@
+from uuid import uuid4
+
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
 from django.db import models
 from django.db.models import Q
 from django.db.models.functions import Lower
-from django.utils.timezone import now
 
 from dealio.apps.core_models.entities.base.base import BaseModel
+
+
+def profile_photo_upload_to(instance, filename: str) -> str:
+    extension = filename.rsplit(".", 1)[-1].lower() if "." in filename else "bin"
+    return f"accounts/profile/{instance.id}/{uuid4().hex}.{extension}"
 
 
 class Access(BaseModel):
@@ -18,7 +24,9 @@ class Access(BaseModel):
 
 class Role(BaseModel):
     name = models.CharField(max_length=20, unique=True)
-    accesses = models.ManyToManyField('Access', related_name='access_roles', null=False, default=None)
+    accesses = models.ManyToManyField(
+        "Access", related_name="access_roles", null=False, default=None
+    )
     symbol = models.CharField(max_length=20, unique=True, null=True)
 
     def __str__(self):
@@ -30,9 +38,9 @@ class CustomUser(BaseModel, AbstractUser):
         max_length=11,
         validators=[
             RegexValidator(
-                regex='^09[0-9]{9}$',
-                message='phone number must be digit and start with 09.........',
-                code='invalid_phone_number'
+                regex="^09[0-9]{9}$",
+                message="phone number must be digit and start with 09.........",
+                code="invalid_phone_number",
             ),
         ],
         unique=True,
@@ -40,13 +48,15 @@ class CustomUser(BaseModel, AbstractUser):
         blank=True,
         help_text="Phone can be collected after social signup.",
     )
-    role = models.ForeignKey(Role,
-                             related_name='user_role',
-                             on_delete=models.PROTECT
-                             )
+    role = models.ForeignKey(Role, related_name="user_role", on_delete=models.PROTECT)
     email_verified = models.BooleanField(default=False)
     phone_number_verified = models.BooleanField(default=False)
     is_service_user = models.BooleanField(default=False)
+    profile_photo = models.ImageField(
+        upload_to=profile_photo_upload_to,
+        null=True,
+        blank=True,
+    )
 
     def save(self, *args, **kwargs):
         self.email = str(self.email or "").strip().lower()
@@ -54,8 +64,8 @@ class CustomUser(BaseModel, AbstractUser):
 
         if not self._state.adding:
             previous = (
-                type(self).objects
-                .filter(pk=self.pk)
+                type(self)
+                .objects.filter(pk=self.pk)
                 .values("phone_number", "email")
                 .first()
                 or {}
@@ -70,7 +80,9 @@ class CustomUser(BaseModel, AbstractUser):
 
             update_fields = kwargs.get("update_fields")
             if update_fields is not None and changed_verification_fields:
-                kwargs["update_fields"] = set(update_fields) | changed_verification_fields | {"email"}
+                kwargs["update_fields"] = (
+                    set(update_fields) | changed_verification_fields | {"email"}
+                )
 
         super().save(*args, **kwargs)
 
@@ -94,6 +106,7 @@ class CustomUser(BaseModel, AbstractUser):
     #         raise Exception("Role Not Found")
     #     self.role = role
     #     super().save(*args, **kwargs)
+
 
 class SocialAuthProvider(models.TextChoices):
     GOOGLE = "google", "Google"
@@ -123,7 +136,9 @@ class SocialAccount(BaseModel):
             )
         ]
         indexes = [
-            models.Index(fields=["provider", "email"], name="social_provider_email_idx"),
+            models.Index(
+                fields=["provider", "email"], name="social_provider_email_idx"
+            ),
         ]
 
     def __str__(self):

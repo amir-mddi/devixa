@@ -1,13 +1,11 @@
 import html
 import json
 from dealio.apps.common.utils.common_utils import CommonUtils
-import secrets
 from decimal import Decimal
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-import requests
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.contrib.auth import get_user_model
@@ -44,6 +42,8 @@ from dealio.apps.telegram_bot.dtos.account_link_dtos import (
     ConfirmBotAccountLinkCodeDTO,
     SendBotAccountLinkCodeDTO,
 )
+from dealio.apps.telegram_bot.dtos.profile_dtos import DisconnectMessengerProfileDTO
+from dealio.apps.telegram_bot.logic.profile_logic import MessengerProfileLogic
 from dealio.apps.telegram_bot.models import BotSupportTicket, TelegramProfile
 from dealio.apps.telegram_bot.enums.bot_setting_enums import BotSettingProviderEnum
 from dealio.apps.telegram_bot.repositories.bot_cache_repository import TelegramBotCacheRepository
@@ -229,6 +229,7 @@ class TelegramBotService:
         support_logic: BotSupportLogicRepository | None = None,
         account_logic: AccountLogicRepository | None = None,
         account_link_logic: BotAccountLinkLogicRepository | None = None,
+        messenger_profile_logic: MessengerProfileLogic | None = None,
     ):
         self.client = client or TelegramBotClient()
         self.account_link_logic = account_link_logic or BotAccountLinkLogicRepository()
@@ -237,6 +238,7 @@ class TelegramBotService:
         self.notification_logic = notification_logic or BotNotificationLogicRepository()
         self.support_logic = support_logic or BotSupportLogicRepository()
         self.account_logic = account_logic or AccountLogicRepository()
+        self.messenger_profile_logic = messenger_profile_logic or MessengerProfileLogic()
 
     def handle_update(self, update: dict[str, Any]) -> None:
         channel_post = update.get("channel_post")
@@ -2319,12 +2321,24 @@ class TelegramBotService:
         )
 
     def handle_unlink(self, profile: TelegramProfile, command: TelegramCommand) -> None:
-        profile.user = None
-        profile.is_verified = False
-        profile.save(update_fields=["user", "is_verified", "updated_at"])
+        if not profile.user_id:
+            self.client.send_message(
+                profile.chat_id,
+                self.t(profile, "not_linked"),
+                reply_markup=self.main_menu_keyboard(profile),
+            )
+            return
+
+        result = self.messenger_profile_logic.disconnect(
+            DisconnectMessengerProfileDTO(
+                profile_id=profile.id,
+                user_id=profile.user_id,
+            )
+        )
+        message_key = "unlinked" if result.is_success else "not_linked"
         self.client.send_message(
             profile.chat_id,
-            self.t(profile, "unlinked"),
+            self.t(profile, message_key),
             reply_markup=self.main_menu_keyboard(profile),
         )
 
@@ -4680,7 +4694,7 @@ class TelegramBotService:
     @staticmethod
     def parse_optional_positive_int(text: str) -> int | None:
         value = text.strip()
-        if value == self.COMMERCE_FEATURE.CLEAR_VALUE_MARKER:
+        if value == TelegramCommerceFeatureVO.CLEAR_VALUE_MARKER:
             return None
         try:
             parsed = int(value)

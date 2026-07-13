@@ -224,6 +224,9 @@ class CourseLogicRepository(metaclass=Singleton):
     def list_user_enrollments(self, user):
         return self.postgres_adapter.list_user_enrollments(user)
 
+    def list_user_reviews(self, user):
+        return self.postgres_adapter.list_user_reviews(user)
+
     def submit_review(self, user, dto: ReviewCreateDTO):
         return self.postgres_adapter.create_or_update_review(user=user, dto=dto)
 

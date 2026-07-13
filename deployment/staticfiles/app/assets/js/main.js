@@ -149,4 +149,89 @@
 
     const firstChip = document.querySelector('.courses_section .courses_hero .category_chips .chip a');
     if (firstChip) firstChip.addEventListener('click', (event) => event.preventDefault());
+
+    const fitTextElements = [...document.querySelectorAll('[data-fit-text]')];
+
+    function fitElementText(element) {
+        const label = element.querySelector('[data-fit-text-label]');
+        if (!label || element.clientWidth <= 0) return;
+
+        const elementStyle = window.getComputedStyle(element);
+        const labelStyle = window.getComputedStyle(label);
+        const icon = element.querySelector(':scope > i, :scope > svg');
+        const iconWidth = icon ? icon.getBoundingClientRect().width : 0;
+        const gap = icon
+            ? parseFloat(elementStyle.columnGap || elementStyle.gap || '0') || 0
+            : 0;
+        const horizontalPadding =
+            (parseFloat(elementStyle.paddingInlineStart) || 0) +
+            (parseFloat(elementStyle.paddingInlineEnd) || 0);
+        const maximumFontSize =
+            parseFloat(element.dataset.fitTextMax || label.dataset.fitTextMax) ||
+            parseFloat(labelStyle.fontSize) ||
+            13;
+        const minimumFontSize =
+            parseFloat(element.dataset.fitTextMin || label.dataset.fitTextMin) || 9;
+        const availableWidth = Math.max(
+            1,
+            element.clientWidth - horizontalPadding - iconWidth - gap,
+        );
+
+        label.style.fontSize = `${maximumFontSize}px`;
+        const requiredWidth = label.scrollWidth;
+
+        if (requiredWidth <= availableWidth) return;
+
+        const fittedSize = Math.max(
+            minimumFontSize,
+            maximumFontSize * (availableWidth / requiredWidth),
+        );
+
+        label.style.fontSize = `${Math.floor(fittedSize * 10) / 10}px`;
+    }
+
+    function fitAllTextElements() {
+        fitTextElements.forEach(fitElementText);
+    }
+
+    if (fitTextElements.length) {
+        requestAnimationFrame(fitAllTextElements);
+
+        if (document.fonts?.ready) {
+            document.fonts.ready.then(fitAllTextElements);
+        }
+
+        if ('ResizeObserver' in window) {
+            const resizeObserver = new ResizeObserver((entries) => {
+                entries.forEach(({ target }) => fitElementText(target));
+            });
+            fitTextElements.forEach((element) => resizeObserver.observe(element));
+        } else {
+            window.addEventListener('resize', fitAllTextElements, { passive: true });
+        }
+    }
+
+    const mobileNavLinks = [...document.querySelectorAll('[data-mobile-nav-link]')];
+
+    function getActiveMobileNavKey(pathname) {
+        const path = String(pathname || '/').replace(/\/{2,}/g, '/');
+        if (path === '/' || path === '') return 'home';
+        if (/^\/courses(?:\/|$)/.test(path)) return 'courses';
+        if (/^\/roadmaps(?:\/|$)/.test(path)) return 'roadmaps';
+        if (/^\/channels(?:\/|$)/.test(path)) return 'channels';
+        if (/^\/contact-us(?:\/|$)/.test(path)) return 'contact';
+        if (/^\/about-us(?:\/|$)/.test(path)) return 'about';
+        return '';
+    }
+
+    if (mobileNavLinks.length) {
+        const activeKey = getActiveMobileNavKey(window.location.pathname);
+        mobileNavLinks.forEach((link) => {
+            const isActive = Boolean(activeKey) && link.dataset.mobileNavLink === activeKey;
+            link.classList.toggle('is-active', isActive);
+            if (isActive) link.setAttribute('aria-current', 'page');
+            else link.removeAttribute('aria-current');
+        });
+    }
+
 })();

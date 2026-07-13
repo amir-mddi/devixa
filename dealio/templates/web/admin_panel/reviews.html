@@ -1,0 +1,11 @@
+{% extends "web/admin_panel/base.html" %}
+{% block admin_title %}مدیریت نظرات{% endblock %}
+{% block admin_content %}
+<header class="admin-page-header"><div><span class="admin-eyebrow">بازخورد کاربران</span><h1>نظرات دوره‌ها</h1><p>نظرهای ثبت‌شده را قبل از نمایش عمومی تأیید یا رد کنید.</p></div></header>
+<form method="get" class="admin-filter-bar admin-filter-bar--compact"><select name="status" onchange="this.form.submit()">{% for value,label in review_statuses %}<option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></form>
+<section class="admin-card-grid">
+{% for review in reviews_page %}<article class="admin-card admin-review-card"><div class="admin-card__header"><div><span class="admin-eyebrow">{{ review.course.title }}</span><h2>{{ review.title|default:"نظر بدون عنوان" }}</h2></div><span class="admin-rating"><i class="fa-solid fa-star"></i>{{ review.rating }}/5</span></div><p class="admin-review-card__comment">{{ review.comment }}</p><div class="admin-review-card__author"><strong>{{ review.user.get_full_name|default:review.user.username }}</strong><span>{{ review.created_at|date:"Y/m/d H:i" }}</span></div><form method="post" action="{% url 'admin_panel:review_moderate' review.id %}" class="admin-form admin-form--compact">{% csrf_token %}<select name="status"><option value="approved">تأیید</option><option value="rejected">رد</option><option value="pending">در انتظار</option></select><textarea name="admin_note" rows="2" placeholder="یادداشت مدیر (اختیاری)">{{ review.admin_note }}</textarea><button class="admin-button admin-button--primary">ثبت تصمیم</button></form></article>
+{% empty %}<div class="admin-empty admin-empty--card">نظری در این وضعیت وجود ندارد.</div>{% endfor %}
+</section>
+{% include "web/admin_panel/_pagination.html" with page_obj=reviews_page %}
+{% endblock %}

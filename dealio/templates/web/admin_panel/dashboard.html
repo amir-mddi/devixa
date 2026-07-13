@@ -1,0 +1,47 @@
+{% extends "web/admin_panel/base.html" %}
+{% block admin_title %}داشبورد مدیریت{% endblock %}
+{% block admin_content %}
+<header class="admin-page-header">
+    <div><span class="admin-eyebrow">نمای کلی</span><h1>داشبورد مدیریت</h1><p>وضعیت فروش، کاربران، پشتیبانی و محتوای دوره‌ها را یک‌جا بررسی کنید.</p></div>
+</header>
+<section class="admin-stat-grid">
+    <a href="{% url 'admin_panel:users' %}" class="admin-stat-card"><i class="fa-solid fa-users"></i><div><span>کاربران</span><strong>{{ stats.users_count }}</strong></div></a>
+    <a href="{% url 'admin_panel:courses' %}" class="admin-stat-card"><i class="fa-solid fa-graduation-cap"></i><div><span>دوره‌های منتشرشده</span><strong>{{ stats.active_courses_count }}</strong></div></a>
+    <a href="{% url 'admin_panel:tickets' %}?status=open" class="admin-stat-card is-warning"><i class="fa-regular fa-comments"></i><div><span>تیکت باز</span><strong>{{ stats.open_tickets_count }}</strong></div></a>
+    <a href="{% url 'admin_panel:reviews' %}?status=pending" class="admin-stat-card is-warning"><i class="fa-regular fa-star"></i><div><span>نظر در انتظار</span><strong>{{ stats.pending_reviews_count }}</strong></div></a>
+    <a href="{% url 'admin_panel:billing' %}?receipt_status=pending" class="admin-stat-card is-danger"><i class="fa-solid fa-receipt"></i><div><span>رسید در انتظار</span><strong>{{ stats.pending_receipts_count }}</strong></div></a>
+    <a href="{% url 'admin_panel:billing' %}?order_status=pending" class="admin-stat-card"><i class="fa-solid fa-cart-shopping"></i><div><span>سفارش در انتظار</span><strong>{{ stats.pending_orders_count }}</strong></div></a>
+</section>
+<section class="admin-grid admin-grid--two">
+    <article class="admin-card">
+        <div class="admin-card__header"><div><span class="admin-eyebrow">پشتیبانی</span><h2>آخرین تیکت‌ها</h2></div><a href="{% url 'admin_panel:tickets' %}">مشاهده همه</a></div>
+        <div class="admin-list">
+            {% for ticket in recent_tickets %}
+            <a class="admin-list__row" href="{% url 'admin_panel:ticket_detail' ticket.id %}"><div><strong>{{ ticket.subject|default:"بدون عنوان" }}</strong><span>{{ ticket.user.get_full_name|default:ticket.user.username|default:ticket.profile.username|default:"کاربر" }}</span></div><span class="admin-status admin-status--{{ ticket.status }}">{{ ticket.get_status_display }}</span></a>
+            {% empty %}<div class="admin-empty">تیکتی ثبت نشده است.</div>{% endfor %}
+        </div>
+    </article>
+    <article class="admin-card">
+        <div class="admin-card__header"><div><span class="admin-eyebrow">پیام‌رسان‌ها</span><h2>کاربران متصل</h2></div><a href="{% url 'admin_panel:notifications' %}">ارسال اعلان</a></div>
+        <div class="admin-messenger-grid">
+            <div><i class="fa-brands fa-telegram"></i><span>تلگرام</span><strong>{{ recipient_counts.telegram }}</strong></div>
+            <div><i class="fa-solid fa-message"></i><span>بله</span><strong>{{ recipient_counts.bale }}</strong></div>
+            <div><i class="fa-solid fa-comments"></i><span>روبیکا</span><strong>{{ recipient_counts.rubika }}</strong></div>
+        </div>
+    </article>
+</section>
+<section class="admin-grid admin-grid--two">
+    <article class="admin-card">
+        <div class="admin-card__header"><div><span class="admin-eyebrow">مالی</span><h2>رسیدهای نیازمند بررسی</h2></div><a href="{% url 'admin_panel:billing' %}">مدیریت پرداخت‌ها</a></div>
+        <div class="admin-list">
+            {% for receipt in pending_receipts %}<div class="admin-list__row"><div><strong>{{ receipt.payment.payment_number }}</strong><span>{{ receipt.user.get_full_name|default:receipt.user.username }}</span></div><span>{{ receipt.payment.amount }}</span></div>{% empty %}<div class="admin-empty">رسید معلقی وجود ندارد.</div>{% endfor %}
+        </div>
+    </article>
+    <article class="admin-card">
+        <div class="admin-card__header"><div><span class="admin-eyebrow">محتوا</span><h2>نظرات نیازمند تأیید</h2></div><a href="{% url 'admin_panel:reviews' %}">مدیریت نظرات</a></div>
+        <div class="admin-list">
+            {% for review in pending_reviews %}<div class="admin-list__row"><div><strong>{{ review.course.title }}</strong><span>{{ review.user.get_full_name|default:review.user.username }}</span></div><span>{{ review.rating }} از ۵</span></div>{% empty %}<div class="admin-empty">نظر معلقی وجود ندارد.</div>{% endfor %}
+        </div>
+    </article>
+</section>
+{% endblock %}
