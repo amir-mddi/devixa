@@ -5,8 +5,10 @@ from django.core.exceptions import ValidationError
 from rest_framework import serializers
 
 from dealio.apps.accounts.dtos.password_recovery_dto import (
+    ResetPasswordBySmsDTO,
     ResetPasswordDTO,
     SendPasswordRecoveryCodeDTO,
+    SendSmsPasswordRecoveryCodeDTO,
 )
 from dealio.apps.accounts.dtos.profile_dto import (
     UpdateAccountContactDTO,
@@ -18,6 +20,7 @@ from dealio.apps.accounts.dtos.session_auth_dto import (
     RegisterUserDTO,
 )
 from dealio.apps.accounts.web.validators import AccountWebInputValidator
+from dealio.apps.accounts.vo.password_recovery_vo import AccountPasswordRecoveryMethodVO
 from dealio.apps.accounts.web.value_objects import (
     AccountWebAutocompleteVO,
     AccountWebFieldLimitVO,
@@ -78,6 +81,24 @@ class AccountWebFieldFactory:
                     AccountWebPlaceholderVO.EMAIL,
                     AccountWebAutocompleteVO.EMAIL,
                 )
+            ),
+        )
+
+    @classmethod
+    def phone_field(cls, *, required: bool = True) -> forms.CharField:
+        return forms.CharField(
+            required=required,
+            max_length=AccountWebFieldLimitVO.PHONE_NUMBER_MAX_LENGTH,
+            error_messages=AccountWebFormErrorMessageFactory.char_field_messages(),
+            widget=forms.TextInput(
+                attrs={
+                    **cls._widget_attrs(
+                        AccountWebPlaceholderVO.RECOVERY_PHONE,
+                        AccountWebAutocompleteVO.TEL,
+                    ),
+                    "inputmode": "tel",
+                    "dir": "ltr",
+                }
             ),
         )
 
@@ -243,24 +264,127 @@ class RegisterTemplateForm(AccountWebPasswordConfirmMixin, forms.Form):
         )
 
 
-class ForgotPasswordTemplateForm(forms.Form):
-    email = AccountWebFieldFactory.email_field()
+class PasswordRecoveryMethodFormMixin:
+    default_method = AccountPasswordRecoveryMethodVO.EMAIL.value
 
-    def clean_email(self) -> str:
-        return AccountWebInputValidator.validate_gmail_email(
-            self.cleaned_data[AccountWebFieldNameVO.EMAIL.value]
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.is_bound:
+            selected_method = self._selected_method()
+            self.fields[AccountWebFieldNameVO.EMAIL.value].disabled = (
+                selected_method == AccountPasswordRecoveryMethodVO.SMS.value
+            )
+            self.fields[AccountWebFieldNameVO.PHONE_NUMBER.value].disabled = (
+                selected_method != AccountPasswordRecoveryMethodVO.SMS.value
+            )
+
+    def _selected_method(self) -> str:
+        if self.is_bound:
+            method = self.data.get(AccountWebFieldNameVO.METHOD.value)
+        else:
+            method = self.initial.get(
+                AccountWebFieldNameVO.METHOD.value,
+                self.default_method,
+            )
+        valid_methods = {item.value for item in AccountPasswordRecoveryMethodVO}
+        return method if method in valid_methods else self.default_method
+
+    def clean_recovery_identifier(
+        self,
+        cleaned_data: dict[str, object],
+    ) -> dict[str, object]:
+        method = (
+            cleaned_data.get(AccountWebFieldNameVO.METHOD.value)
+            or self.default_method
         )
+        cleaned_data[AccountWebFieldNameVO.METHOD.value] = method
 
-    def to_dto(self) -> SendPasswordRecoveryCodeDTO:
+        if method == AccountPasswordRecoveryMethodVO.SMS.value:
+            field_name = AccountWebFieldNameVO.PHONE_NUMBER.value
+            raw_value = str(cleaned_data.get(field_name) or "")
+            try:
+                cleaned_data[field_name] = AccountWebInputValidator.validate_phone_number(
+                    raw_value,
+                    required=True,
+                )
+            except ValidationError as exc:
+                self.add_error(field_name, exc)
+            return cleaned_data
+
+        field_name = AccountWebFieldNameVO.EMAIL.value
+        raw_value = str(cleaned_data.get(field_name) or "")
+        try:
+            cleaned_data[field_name] = AccountWebInputValidator.validate_gmail_email(
+                raw_value
+            )
+        except ValidationError as exc:
+            self.add_error(field_name, exc)
+        return cleaned_data
+
+
+class ForgotPasswordTemplateForm(PasswordRecoveryMethodFormMixin, forms.Form):
+    method = forms.ChoiceField(
+        choices=AccountPasswordRecoveryMethodVO.choices(),
+        initial=AccountPasswordRecoveryMethodVO.EMAIL.value,
+        required=False,
+        widget=forms.RadioSelect,
+    )
+    email = forms.EmailField(
+        required=False,
+        max_length=AccountWebFieldLimitVO.EMAIL_MAX_LENGTH,
+        error_messages=AccountWebFormErrorMessageFactory.email_field_messages(),
+        widget=forms.EmailInput(
+            attrs=AccountWebFieldFactory._widget_attrs(
+                AccountWebPlaceholderVO.RECOVERY_EMAIL,
+                AccountWebAutocompleteVO.EMAIL,
+            )
+        ),
+    )
+    phone_number = AccountWebFieldFactory.phone_field(required=False)
+
+    def clean(self) -> dict[str, object]:
+        return self.clean_recovery_identifier(super().clean())
+
+    def to_dto(
+        self,
+    ) -> SendPasswordRecoveryCodeDTO | SendSmsPasswordRecoveryCodeDTO:
+        method = self.cleaned_data[AccountWebFieldNameVO.METHOD.value]
+        if method == AccountPasswordRecoveryMethodVO.SMS.value:
+            return SendSmsPasswordRecoveryCodeDTO(
+                phone_number=self.cleaned_data[
+                    AccountWebFieldNameVO.PHONE_NUMBER.value
+                ]
+            )
         return SendPasswordRecoveryCodeDTO(
             email=self.cleaned_data[AccountWebFieldNameVO.EMAIL.value]
         )
 
 
-class RecoverPasswordTemplateForm(AccountWebPasswordConfirmMixin, forms.Form):
+class RecoverPasswordTemplateForm(
+    PasswordRecoveryMethodFormMixin,
+    AccountWebPasswordConfirmMixin,
+    forms.Form,
+):
     password_field_name = AccountWebFieldNameVO.NEW_PASSWORD
 
-    email = AccountWebFieldFactory.email_field()
+    method = forms.ChoiceField(
+        choices=AccountPasswordRecoveryMethodVO.choices(),
+        initial=AccountPasswordRecoveryMethodVO.EMAIL.value,
+        required=False,
+        widget=forms.RadioSelect,
+    )
+    email = forms.EmailField(
+        required=False,
+        max_length=AccountWebFieldLimitVO.EMAIL_MAX_LENGTH,
+        error_messages=AccountWebFormErrorMessageFactory.email_field_messages(),
+        widget=forms.EmailInput(
+            attrs=AccountWebFieldFactory._widget_attrs(
+                AccountWebPlaceholderVO.RECOVERY_EMAIL,
+                AccountWebAutocompleteVO.EMAIL,
+            )
+        ),
+    )
+    phone_number = AccountWebFieldFactory.phone_field(required=False)
     code = AccountWebFieldFactory.recovery_code_field()
     new_password = AccountWebFieldFactory.password_field(
         placeholder=AccountWebPlaceholderVO.NEW_PASSWORD,
@@ -271,26 +395,34 @@ class RecoverPasswordTemplateForm(AccountWebPasswordConfirmMixin, forms.Form):
         autocomplete=AccountWebAutocompleteVO.NEW_PASSWORD,
     )
 
-    def clean_email(self) -> str:
-        return AccountWebInputValidator.validate_gmail_email(
-            self.cleaned_data[AccountWebFieldNameVO.EMAIL.value]
-        )
-
     def clean_code(self) -> str:
         return AccountWebInputValidator.validate_recovery_code(
             self.cleaned_data[AccountWebFieldNameVO.CODE.value]
         )
 
     def clean(self) -> dict[str, object]:
-        cleaned_data = super().clean()
+        cleaned_data = self.clean_recovery_identifier(super().clean())
         self.validate_password_confirmation(cleaned_data)
         return cleaned_data
 
-    def to_dto(self) -> ResetPasswordDTO:
+    def to_dto(self) -> ResetPasswordDTO | ResetPasswordBySmsDTO:
+        common = {
+            "code": self.cleaned_data[AccountWebFieldNameVO.CODE.value],
+            "new_password": self.cleaned_data[
+                AccountWebFieldNameVO.NEW_PASSWORD.value
+            ],
+        }
+        method = self.cleaned_data[AccountWebFieldNameVO.METHOD.value]
+        if method == AccountPasswordRecoveryMethodVO.SMS.value:
+            return ResetPasswordBySmsDTO(
+                phone_number=self.cleaned_data[
+                    AccountWebFieldNameVO.PHONE_NUMBER.value
+                ],
+                **common,
+            )
         return ResetPasswordDTO(
             email=self.cleaned_data[AccountWebFieldNameVO.EMAIL.value],
-            code=self.cleaned_data[AccountWebFieldNameVO.CODE.value],
-            new_password=self.cleaned_data[AccountWebFieldNameVO.NEW_PASSWORD.value],
+            **common,
         )
 
 

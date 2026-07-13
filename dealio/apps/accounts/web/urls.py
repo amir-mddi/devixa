@@ -2,6 +2,12 @@ from __future__ import annotations
 
 from django.urls import path
 
+from dealio.apps.accounts.web.oauth_views import (
+    GitHubOAuthWebCallbackView,
+    GitHubOAuthWebStartView,
+    GoogleOAuthWebCallbackView,
+    GoogleOAuthWebStartView,
+)
 from dealio.apps.accounts.web.profile_views import (
     ProfileContactUpdateView,
     ProfileCourseReviewView,
@@ -56,6 +62,26 @@ urlpatterns = [
         AccountWebPathVO.LOGOUT.value,
         LogoutPageView.as_view(),
         name=AccountWebRouteNameVO.LOGOUT.value,
+    ),
+    path(
+        AccountWebPathVO.OAUTH_GOOGLE_START.value,
+        GoogleOAuthWebStartView.as_view(),
+        name=AccountWebRouteNameVO.OAUTH_GOOGLE_START.value,
+    ),
+    path(
+        AccountWebPathVO.OAUTH_GOOGLE_CALLBACK.value,
+        GoogleOAuthWebCallbackView.as_view(),
+        name=AccountWebRouteNameVO.OAUTH_GOOGLE_CALLBACK.value,
+    ),
+    path(
+        AccountWebPathVO.OAUTH_GITHUB_START.value,
+        GitHubOAuthWebStartView.as_view(),
+        name=AccountWebRouteNameVO.OAUTH_GITHUB_START.value,
+    ),
+    path(
+        AccountWebPathVO.OAUTH_GITHUB_CALLBACK.value,
+        GitHubOAuthWebCallbackView.as_view(),
+        name=AccountWebRouteNameVO.OAUTH_GITHUB_CALLBACK.value,
     ),
     path(
         AccountWebPathVO.PROFILE.value,

@@ -12,7 +12,7 @@
         <aside class="admin-sidebar" aria-label="منوی پنل مدیریت">
             <div class="admin-sidebar__heading">
                 <span class="admin-sidebar__icon"><i class="fa-solid fa-shield-halved"></i></span>
-                <div><small>فضای مدیریت</small><strong>{{ project.display_name }}</strong></div>
+                <div><small>فضای مدیریت</small><strong class="brand-text">{{ project.display_name }}</strong></div>
             </div>
             <nav class="admin-nav">
                 <a href="{% url 'admin_panel:dashboard' %}" class="admin-nav__item {% if admin_active_section == 'dashboard' %}is-active{% endif %}"><i class="fa-solid fa-chart-pie"></i><span>داشبورد</span></a>

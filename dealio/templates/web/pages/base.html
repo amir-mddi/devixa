@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     {# Global foundation: loaded for every public, basket, profile and admin page. #}
     <link rel="stylesheet" href="{% project_static 'Styles/variables.css' %}">
-    <link rel="stylesheet" href="{% project_static 'Styles/fonts.css' %}">
+    <link rel="stylesheet" href="{% project_static 'Styles/fonts.css' %}?v=font-4">
     <link rel="stylesheet" href="{% project_static 'Styles/reset.css' %}">
     <link rel="stylesheet" href="{% project_static 'Styles/framework.css' %}">
     <link rel="stylesheet" href="{% project_static 'Styles/components.css' %}">
@@ -21,6 +21,7 @@
     <link rel="stylesheet" href="{% project_static 'Styles/mobile-theme-system.css' %}?v=mobile-nav-2">
     <link rel="stylesheet" href="{% project_static 'Styles/course-detail-polish.css' %}">
     {% block page_styles_after %}{% endblock %}
+    <link rel="stylesheet" href="{% project_static 'Styles/app-ui.css' %}?v=ui-3">
     <title>{% block title %}{{ project.display_name }}{% endblock %}</title>
     {% include "web/shared/_message_styles.html" %}
 </head>

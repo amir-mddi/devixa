@@ -1,0 +1,57 @@
+{% load static project_tags %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#070b14">
+    <meta name="description" content="{% block meta_description %}{{ project.description }}{% endblock %}">
+    <script>
+        (() => {
+            let saved = null;
+            try {
+                saved = localStorage.getItem("theme");
+            } catch (error) {
+                saved = null;
+            }
+            const light = saved
+                ? saved === "light"
+                : window.matchMedia("(prefers-color-scheme: light)").matches;
+            document.documentElement.dataset.theme = light ? "light" : "dark";
+            document.documentElement.style.colorScheme = light ? "light" : "dark";
+        })();
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet" href="{% project_static 'Styles/variables.css' %}">
+    <link rel="stylesheet" href="{% project_static 'Styles/fonts.css' %}?v=font-4">
+    <link rel="stylesheet" href="{% project_static 'Styles/reset.css' %}">
+    <link rel="stylesheet" href="{% project_static 'Styles/framework.css' %}">
+    <link rel="stylesheet" href="{% project_static 'Styles/forget_password.css' %}?v=auth-4">
+    <title>{% block title %}{{ project.display_name }}{% endblock %}</title>
+    {% include "web/shared/_message_styles.html" %}
+    {% block page_styles %}{% endblock %}
+</head>
+<body class="auth-page" data-project-name="{{ project.display_name }}" data-project-initial="{{ project.logo_initial }}">
+    {% include "web/shared/_flash_messages.html" with placement="auth" %}
+
+    <header class="auth-toolbar" aria-label="دسترسی سریع">
+        <a href="{% url 'pages_web:home' %}" class="auth-brand" aria-label="صفحه اصلی {{ project.display_name }}">
+            <span class="auth-brand__mark">{{ project.logo_initial }}</span>
+            <span class="brand-text">{{ project.display_name }}</span>
+        </a>
+        <button type="button" class="auth-theme-toggle" data-auth-theme-toggle aria-label="تغییر پوسته">
+            <i class="fa-solid fa-sun" aria-hidden="true"></i>
+            <i class="fa-solid fa-moon" aria-hidden="true"></i>
+        </button>
+    </header>
+
+    <main class="auth-layout">
+        <section class="auth-card {% block card_class %}{% endblock %}">
+            {% block content %}{% endblock %}
+        </section>
+    </main>
+
+    <script src="{% project_static 'js/auth.js' %}?v=auth-4"></script>
+    {% block page_scripts %}{% endblock %}
+</body>
+</html>

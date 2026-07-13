@@ -33,6 +33,10 @@ class AccountWebPathVO(StrEnum):
     PROFILE_TICKET_CREATE = "profile/tickets/new/"
     PROFILE_TICKET_REPLY = "profile/tickets/<int:ticket_id>/reply/"
     PROFILE_COURSE_REVIEW = "profile/courses/<uuid:course_id>/review/"
+    OAUTH_GOOGLE_START = "oauth/google/start/"
+    OAUTH_GOOGLE_CALLBACK = "oauth/google/callback/"
+    OAUTH_GITHUB_START = "oauth/github/start/"
+    OAUTH_GITHUB_CALLBACK = "oauth/github/callback/"
 
 
 class AccountWebRouteNameVO(StrEnum):
@@ -53,6 +57,10 @@ class AccountWebRouteNameVO(StrEnum):
     PROFILE_TICKET_CREATE = "profile_ticket_create"
     PROFILE_TICKET_REPLY = "profile_ticket_reply"
     PROFILE_COURSE_REVIEW = "profile_course_review"
+    OAUTH_GOOGLE_START = "oauth_google_start"
+    OAUTH_GOOGLE_CALLBACK = "oauth_google_callback"
+    OAUTH_GITHUB_START = "oauth_github_start"
+    OAUTH_GITHUB_CALLBACK = "oauth_github_callback"
 
 
 class AccountWebReverseNameVO(StrEnum):
@@ -72,6 +80,10 @@ class AccountWebReverseNameVO(StrEnum):
     PROFILE_TICKET_CREATE = "accounts_web:profile_ticket_create"
     PROFILE_TICKET_REPLY = "accounts_web:profile_ticket_reply"
     PROFILE_COURSE_REVIEW = "accounts_web:profile_course_review"
+    OAUTH_GOOGLE_START = "accounts_web:oauth_google_start"
+    OAUTH_GOOGLE_CALLBACK = "accounts_web:oauth_google_callback"
+    OAUTH_GITHUB_START = "accounts_web:oauth_github_start"
+    OAUTH_GITHUB_CALLBACK = "accounts_web:oauth_github_callback"
 
 
 class AccountWebRequestKeyVO(StrEnum):
@@ -88,6 +100,7 @@ class AccountWebFieldNameVO(StrEnum):
     LAST_NAME = "last_name"
     USERNAME = "username"
     EMAIL = "email"
+    METHOD = "method"
     CODE = "code"
     PASSWORD = "password"
     NEW_PASSWORD = "new_password"
@@ -141,6 +154,8 @@ class AccountWebPlaceholderVO(StrEnum):
     LAST_NAME = "نام خانوادگی خود را وارد کنید"
     USERNAME = "نام کاربری خود را وارد کنید"
     EMAIL = "ایمیل Gmail خود را وارد کنید"
+    RECOVERY_EMAIL = "ایمیل حساب را وارد کنید"
+    RECOVERY_PHONE = "شماره موبایل تأییدشده مانند 09121234567"
     PASSWORD = "رمز عبور خود را وارد کنید"
     LOGIN_PASSWORD = "رمز عبور"
     PASSWORD_CONFIRM = "تکرار رمز عبور خود را وارد کنید"
@@ -181,6 +196,7 @@ class AccountWebValidationMessageVO(StrEnum):
     REGISTER_SUCCESS = "حساب کاربری شما ساخته شد. حالا وارد شوید."
     LOGOUT_SUCCESS = "از حساب کاربری خارج شدید."
     RECOVERY_CODE_SENT = "اگر ایمیل وارد شده در سیستم وجود داشته باشد، کد بازیابی رمز عبور برای شما ارسال شد."
+    RECOVERY_SMS_CODE_SENT = "اگر شماره موبایل وارد شده در سیستم وجود داشته و تأیید شده باشد، کد بازیابی برای شما پیامک شد."
     PASSWORD_RESET_SUCCESS = (
         "رمز عبور شما با موفقیت تغییر کرد. حالا می‌توانید وارد شوید."
     )

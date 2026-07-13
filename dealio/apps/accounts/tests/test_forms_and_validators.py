@@ -78,3 +78,40 @@ class AccountWebFormTests(SimpleTestCase):
         self.assertTrue(recover_form.is_valid(), recover_form.errors)
         self.assertEqual(forgot_form.to_dto().email, "user@gmail.com")
         self.assertEqual(recover_form.to_dto().code, "123456")
+
+    def test_sms_password_recovery_forms_build_dtos(self):
+        forgot_form = ForgotPasswordTemplateForm(
+            data={
+                "method": "sms",
+                "phone_number": "09121234567",
+            }
+        )
+        recover_form = RecoverPasswordTemplateForm(
+            data={
+                "method": "sms",
+                "phone_number": "09121234567",
+                "code": "123456",
+                "new_password": "VeryStrongPass123!",
+                "password_confirm": "VeryStrongPass123!",
+            }
+        )
+
+        self.assertTrue(forgot_form.is_valid(), forgot_form.errors)
+        self.assertTrue(recover_form.is_valid(), recover_form.errors)
+        self.assertEqual(forgot_form.to_dto().phone_number, "09121234567")
+        self.assertEqual(recover_form.to_dto().phone_number, "09121234567")
+
+    def test_recovery_form_requires_only_selected_identifier(self):
+        email_form = ForgotPasswordTemplateForm(
+            data={"method": "email", "phone_number": "invalid"}
+        )
+        sms_form = ForgotPasswordTemplateForm(
+            data={"method": "sms", "email": "not-an-email"}
+        )
+
+        self.assertFalse(email_form.is_valid())
+        self.assertIn("email", email_form.errors)
+        self.assertNotIn("phone_number", email_form.errors)
+        self.assertFalse(sms_form.is_valid())
+        self.assertIn("phone_number", sms_form.errors)
+        self.assertNotIn("email", sms_form.errors)

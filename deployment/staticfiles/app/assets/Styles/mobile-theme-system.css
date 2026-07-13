@@ -1131,14 +1131,22 @@ body:not(.light-theme){
     }
 
     .aboutus_hero .about_cards{
-        grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
+        grid-template-columns:repeat(2,minmax(0,1fr)) !important;
         gap:12px !important;
+    }
+
+    .aboutus_hero .about_cards .about-stat-card:last-child:nth-child(odd),
+    .aboutUs_card .history_cards .about-feature-card:last-child:nth-child(odd){
+        grid-column:1 / -1;
+        width:min(100%,360px) !important;
+        justify-self:center !important;
     }
 }
 
 @media (max-width:420px){
-    .aboutus_hero .about_cards{
-        grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
+    .aboutus_hero .about_cards,
+    .aboutUs_card .history_cards{
+        grid-template-columns:repeat(2,minmax(0,1fr)) !important;
     }
 
     .about-stat-card{
@@ -1148,8 +1156,15 @@ body:not(.light-theme){
 }
 
 @media (max-width:340px){
-    .aboutus_hero .about_cards{
+    .aboutus_hero .about_cards,
+    .aboutUs_card .history_cards{
         grid-template-columns:1fr !important;
+    }
+
+    .aboutus_hero .about_cards .about-stat-card:last-child:nth-child(odd),
+    .aboutUs_card .history_cards .about-feature-card:last-child:nth-child(odd){
+        grid-column:auto;
+        width:100% !important;
     }
 }
 

@@ -133,7 +133,11 @@ class SocialAccount(BaseModel):
             models.UniqueConstraint(
                 fields=["provider", "provider_user_id"],
                 name="unique_social_provider_user_id",
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["user", "provider"],
+                name="unique_social_user_provider",
+            ),
         ]
         indexes = [
             models.Index(

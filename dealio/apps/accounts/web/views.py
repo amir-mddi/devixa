@@ -12,6 +12,7 @@ from django.views import View
 from django.views.generic.edit import FormView
 
 from dealio.apps.accounts.repositories.account_logic import AccountLogicRepository
+from dealio.apps.accounts.vo.password_recovery_vo import AccountPasswordRecoveryMethodVO
 from dealio.apps.common.helpers.decorators.rate_limit import rate_limit
 from dealio.apps.accounts.web.forms import (
     ForgotPasswordTemplateForm,
@@ -102,15 +103,30 @@ class ForgotPasswordPageView(FormView):
     success_url = reverse_lazy(AccountWebReverseNameVO.RECOVER_PASSWORD.value)
     account_logic_repository_class = AccountLogicRepository
 
+    def get_initial(self):
+        initial = super().get_initial()
+        method = self.request.GET.get(AccountWebFieldNameVO.METHOD.value)
+        if method in {item.value for item in AccountPasswordRecoveryMethodVO}:
+            initial[AccountWebFieldNameVO.METHOD.value] = method
+        return initial
+
     def form_valid(self, form):
+        method = form.cleaned_data[AccountWebFieldNameVO.METHOD.value]
         dto = form.to_dto()
-        self.account_logic_repository_class().send_forget_password_code_by_email(dto=dto)
-        messages.success(self.request, AccountWebValidationMessageVO.RECOVERY_CODE_SENT.value)
-        return redirect(self._build_recover_password_url(email=dto.email))
+        account_logic = self.account_logic_repository_class()
+        if method == AccountPasswordRecoveryMethodVO.SMS.value:
+            account_logic.send_forget_password_code_by_sms(dto=dto)
+            messages.success(self.request, AccountWebValidationMessageVO.RECOVERY_SMS_CODE_SENT.value)
+            identifier = {AccountWebFieldNameVO.PHONE_NUMBER.value: dto.phone_number}
+        else:
+            account_logic.send_forget_password_code_by_email(dto=dto)
+            messages.success(self.request, AccountWebValidationMessageVO.RECOVERY_CODE_SENT.value)
+            identifier = {AccountWebFieldNameVO.EMAIL.value: dto.email}
+        return redirect(self._build_recover_password_url(method=method, identifier=identifier))
 
     @staticmethod
-    def _build_recover_password_url(*, email: str) -> str:
-        query = urlencode({AccountWebFieldNameVO.EMAIL.value: email})
+    def _build_recover_password_url(*, method: str, identifier: dict[str, str]) -> str:
+        query = urlencode({AccountWebFieldNameVO.METHOD.value: method, **identifier})
         return (
             reverse(AccountWebReverseNameVO.RECOVER_PASSWORD.value)
             + AccountWebUrlSeparatorVO.QUERY.value
@@ -128,13 +144,26 @@ class RecoverPasswordPageView(FormView):
 
     def get_initial(self):
         initial = super().get_initial()
-        email = self.request.GET.get(AccountWebFieldNameVO.EMAIL.value)
-        if email:
-            initial[AccountWebFieldNameVO.EMAIL.value] = email
+        method = self.request.GET.get(
+            AccountWebFieldNameVO.METHOD.value,
+            AccountPasswordRecoveryMethodVO.EMAIL.value,
+        )
+        if method not in {item.value for item in AccountPasswordRecoveryMethodVO}:
+            method = AccountPasswordRecoveryMethodVO.EMAIL.value
+        initial[AccountWebFieldNameVO.METHOD.value] = method
+        for field_name in (AccountWebFieldNameVO.EMAIL, AccountWebFieldNameVO.PHONE_NUMBER):
+            value = self.request.GET.get(field_name.value)
+            if value:
+                initial[field_name.value] = value
         return initial
 
     def form_valid(self, form):
-        result = self.account_logic_repository_class().reset_forget_password_by_email(dto=form.to_dto())
+        method = form.cleaned_data[AccountWebFieldNameVO.METHOD.value]
+        account_logic = self.account_logic_repository_class()
+        if method == AccountPasswordRecoveryMethodVO.SMS.value:
+            result = account_logic.reset_forget_password_by_sms(dto=form.to_dto())
+        else:
+            result = account_logic.reset_forget_password_by_email(dto=form.to_dto())
 
         if not result.is_success:
             form.add_error(None, self.error_presenter_class.message_for(result.error_code))

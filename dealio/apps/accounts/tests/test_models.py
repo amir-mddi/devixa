@@ -44,6 +44,20 @@ class AccountModelTests(TestCase):
                 provider_user_id="provider-user-1",
             )
 
+    def test_user_can_have_only_one_account_per_social_provider(self):
+        user = UserFactory.create()
+        SocialAccount.objects.create(
+            user=user,
+            provider=SocialAuthProvider.GOOGLE,
+            provider_user_id="provider-user-1",
+        )
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            SocialAccount.objects.create(
+                user=user,
+                provider=SocialAuthProvider.GOOGLE,
+                provider_user_id="provider-user-2",
+            )
+
     def test_social_account_string_is_provider_and_identifier(self):
         social = SocialAccount.objects.create(
             user=UserFactory.create(),

@@ -14,6 +14,7 @@ from dealio.apps.accounts.dtos.phone_verification_dto import (
     VerifyPhoneNumberDTO,
 )
 from dealio.apps.accounts.repositories.account_logic import AccountLogicRepository
+from dealio.apps.accounts.enums.oauth_enums import OAuthProviderEnum
 from dealio.apps.accounts.repositories.oauth_service import OAuthProviderError, SocialOAuthService
 from dealio.apps.accounts.serializers import (
     ChangePasswordSerializer,
@@ -26,6 +27,7 @@ from dealio.apps.accounts.serializers import (
     UserSerializer,
     VerifyCodeSerializer,
 )
+from dealio.apps.accounts.vo.oauth_vo import OAuthLogMessageVO, OAuthResponseKeyVO
 from dealio.apps.accounts.vo.password_recovery_vo import (
     AccountPasswordRecoveryApiMessageVO,
     AccountPasswordRecoveryErrorCodeVO,
@@ -330,24 +332,20 @@ class BaseSocialOAuthLoginAPIView(BaseAPIView):
         redirect_uri = serializer.validated_data["redirect_uri"]
 
         try:
-            if self.provider == "google":
-                token_data = service.login_with_google(code=code, redirect_uri=redirect_uri)
-            elif self.provider == "github":
-                token_data = service.login_with_github(code=code, redirect_uri=redirect_uri)
-            else:
-                return ResponseUtil(
-                    data={"detail": "Unsupported OAuth provider."},
-                    status_code=ResponseVO.http_400,
-                )
+            token_data = service.login(
+                provider=self.provider,
+                code=code,
+                redirect_uri=redirect_uri,
+            )
         except OAuthProviderError as exc:
-            logger.warning("OAuth login failed: %s", exc.log_message)
+            logger.warning(OAuthLogMessageVO.LOGIN_FAILED.value.format(error=exc.log_message))
             response_status = (
                 ResponseVO.http_500
                 if exc.status_code >= status.HTTP_500_INTERNAL_SERVER_ERROR
                 else ResponseVO.http_400
             )
             return ResponseUtil(
-                data={"detail": exc.public_message},
+                data={OAuthResponseKeyVO.DETAIL.value: exc.public_message},
                 status_code=response_status,
             )
 
@@ -355,11 +353,11 @@ class BaseSocialOAuthLoginAPIView(BaseAPIView):
 
 
 class GoogleOAuthLoginAPIView(BaseSocialOAuthLoginAPIView):
-    provider = "google"
+    provider = OAuthProviderEnum.GOOGLE.value
 
 
 class GitHubOAuthLoginAPIView(BaseSocialOAuthLoginAPIView):
-    provider = "github"
+    provider = OAuthProviderEnum.GITHUB.value
 
 
 def _password_reset_response(result):

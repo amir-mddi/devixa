@@ -16,8 +16,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # if os.environ.get("ENV", EnvVO.production) == EnvVO.production:
 from dotenv import load_dotenv
 
-env_path = os.path.join(BASE_DIR, f"deployment/env/{os.environ.get('ENV', 'local')}.env")
-load_dotenv(dotenv_path=env_path, override=True)
+env_name = os.environ.get("ENV", "local")
+env_path = os.path.join(BASE_DIR, f"deployment/env/{env_name}.env")
+root_env_path = os.path.join(BASE_DIR, ".env")
+
+# Docker, systemd and shell environment values have the highest priority.
+# Project dotenv files only fill variables that are not already defined.
+for dotenv_path in (env_path, root_env_path):
+    if os.path.isfile(dotenv_path):
+        load_dotenv(dotenv_path=dotenv_path, override=True)
 
 BOT_RUNTIME_ENV_FILE_PATH = os.environ.get("BOT_RUNTIME_ENV_FILE_PATH", env_path)
 BOT_RUNTIME_ENV_WRITE_ENABLED = os.environ.get("BOT_RUNTIME_ENV_WRITE_ENABLED", "false")
@@ -386,6 +393,11 @@ OAUTH_ALLOWED_REDIRECT_URIS = [
 ]
 OAUTH_HTTP_TIMEOUT_SECONDS = int(os.getenv("OAUTH_HTTP_TIMEOUT_SECONDS", "10"))
 OAUTH_MAX_RESPONSE_BYTES = int(os.getenv("OAUTH_MAX_RESPONSE_BYTES", str(1024 * 1024)))
+OAUTH_STATE_TTL_SECONDS = int(os.getenv("OAUTH_STATE_TTL_SECONDS", "600"))
+GOOGLE_OAUTH_WEB_REDIRECT_URI = os.getenv("GOOGLE_OAUTH_WEB_REDIRECT_URI", "").strip()
+GITHUB_OAUTH_WEB_REDIRECT_URI = os.getenv("GITHUB_OAUTH_WEB_REDIRECT_URI", "").strip()
+# Kept for backward compatibility with previous deployments. OAuth now logs in
+# existing accounts only and never provisions a role or creates a user.
 OAUTH_DEFAULT_USER_ROLE_SYMBOL = os.getenv("OAUTH_DEFAULT_USER_ROLE_SYMBOL", "user")
 
 RUBIKA_BOT_TOKEN = os.environ.get("RUBIKA_BOT_TOKEN")

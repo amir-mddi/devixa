@@ -47,3 +47,15 @@ class AccountPasswordRecoveryApiMessageVO(StrEnum):
 
 class AccountPasswordRecoveryResponseKeyVO(StrEnum):
     DETAIL = "detail"
+
+
+class AccountPasswordRecoveryMethodVO(StrEnum):
+    EMAIL = "email"
+    SMS = "sms"
+
+    @classmethod
+    def choices(cls) -> tuple[tuple[str, str], ...]:
+        return (
+            (cls.EMAIL.value, "ایمیل"),
+            (cls.SMS.value, "پیامک"),
+        )
