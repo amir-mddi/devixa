@@ -1,0 +1,21 @@
+<article class="featured-article-card{% if forloop.first %} featured-article-card--primary{% endif %}">
+    <a class="featured-article-card__media" href="{% url 'articles_web:article_detail' slug=article.slug %}" aria-label="{{ article.title }}">
+        {% if article.cover_image %}
+            <img src="{{ article.cover_image.url }}" alt="{{ article.title }}" loading="{% if forloop.first %}eager{% else %}lazy{% endif %}">
+        {% else %}
+            <span class="featured-article-card__placeholder" aria-hidden="true">
+                <i class="fa-solid {% if article.article_type == 'news' %}fa-newspaper{% else %}fa-pen-nib{% endif %}"></i>
+            </span>
+        {% endif %}
+        <span class="featured-article-card__overlay"></span>
+        <span class="article-type-badge article-type-badge--{{ article.article_type }}">{{ article.get_article_type_display }}</span>
+        <div class="featured-article-card__content">
+            {% if article.category %}<span class="featured-article-card__category">{{ article.category.title }}</span>{% endif %}
+            <h2 class="featured-article-card__title clamp-2">{{ article.title }}</h2>
+            <div class="featured-article-card__meta">
+                <span>{{ article.published_at|date:"Y/m/d" }}</span>
+                <span>{{ article.estimated_reading_minutes }} دقیقه مطالعه</span>
+            </div>
+        </div>
+    </a>
+</article>

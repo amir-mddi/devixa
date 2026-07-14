@@ -1,3 +1,10 @@
+from .article_bot_vo import (
+    ArticleBotButtonTextVO,
+    ArticleBotCallbackVO,
+    ArticleBotInputVO,
+    ArticleBotLabelVO,
+    ArticleBotTextVO,
+)
 from .commerce_bot_vo import (
     TelegramBotAliasVO,
     TelegramBotButtonKeyVO,
@@ -11,6 +18,11 @@ from .commerce_bot_vo import (
 )
 
 __all__ = [
+    "ArticleBotButtonTextVO",
+    "ArticleBotCallbackVO",
+    "ArticleBotInputVO",
+    "ArticleBotLabelVO",
+    "ArticleBotTextVO",
     "TelegramBotAliasVO",
     "TelegramBotButtonKeyVO",
     "TelegramBotButtonTextVO",

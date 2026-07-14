@@ -1,0 +1,23 @@
+{% if page_obj.paginator.num_pages > 1 %}
+<nav class="articles-pagination" aria-label="صفحه‌بندی مطالب">
+    {% if page_obj.has_previous %}
+        <a class="articles-pagination__link" href="?page={{ page_obj.previous_page_number }}{% if query_suffix %}&{{ query_suffix }}{% endif %}">
+            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            قبلی
+        </a>
+    {% else %}
+        <span class="articles-pagination__link is-disabled" aria-disabled="true">قبلی</span>
+    {% endif %}
+
+    <span class="articles-pagination__status">صفحه {{ page_obj.number }} از {{ page_obj.paginator.num_pages }}</span>
+
+    {% if page_obj.has_next %}
+        <a class="articles-pagination__link" href="?page={{ page_obj.next_page_number }}{% if query_suffix %}&{{ query_suffix }}{% endif %}">
+            بعدی
+            <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+        </a>
+    {% else %}
+        <span class="articles-pagination__link is-disabled" aria-disabled="true">بعدی</span>
+    {% endif %}
+</nav>
+{% endif %}

@@ -2,6 +2,10 @@ from django.urls import path
 
 from dealio.apps.admin_panel.value_objects import AdminPanelAppVO, AdminPanelRouteVO
 from dealio.apps.admin_panel.web.views import (
+    AdminArticleCreateView,
+    AdminArticleDeleteView,
+    AdminArticleEditView,
+    AdminArticleListView,
     AdminBillingView,
     AdminBotSettingDeleteView,
     AdminBotSettingsView,
@@ -92,6 +96,27 @@ urlpatterns = [
         "users/<uuid:user_id>/delete/",
         AdminUserDeleteView.as_view(),
         name=AdminPanelRouteVO.USER_DELETE.value,
+    ),
+
+    path(
+        "articles/",
+        AdminArticleListView.as_view(),
+        name=AdminPanelRouteVO.ARTICLES.value,
+    ),
+    path(
+        "articles/new/",
+        AdminArticleCreateView.as_view(),
+        name=AdminPanelRouteVO.ARTICLE_CREATE.value,
+    ),
+    path(
+        "articles/<uuid:article_id>/edit/",
+        AdminArticleEditView.as_view(),
+        name=AdminPanelRouteVO.ARTICLE_EDIT.value,
+    ),
+    path(
+        "articles/<uuid:article_id>/delete/",
+        AdminArticleDeleteView.as_view(),
+        name=AdminPanelRouteVO.ARTICLE_DELETE.value,
     ),
     path(
         "courses/", AdminCourseListView.as_view(), name=AdminPanelRouteVO.COURSES.value

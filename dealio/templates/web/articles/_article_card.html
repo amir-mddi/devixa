@@ -1,0 +1,40 @@
+<article class="article-card">
+    <a class="article-card__media" href="{% url 'articles_web:article_detail' slug=article.slug %}" aria-label="{{ article.title }}">
+        {% if article.cover_image %}
+            <img src="{{ article.cover_image.url }}" alt="{{ article.title }}" loading="lazy">
+        {% else %}
+            <span class="article-card__placeholder" aria-hidden="true">
+                {% if article.article_type == 'news' %}
+                    <i class="fa-solid fa-newspaper"></i>
+                {% else %}
+                    <i class="fa-solid fa-pen-nib"></i>
+                {% endif %}
+            </span>
+        {% endif %}
+        <span class="article-type-badge article-type-badge--{{ article.article_type }}">
+            {{ article.get_article_type_display }}
+        </span>
+    </a>
+
+    <div class="article-card__body">
+        <div class="article-card__meta">
+            {% if article.category %}<span>{{ article.category.title }}</span>{% endif %}
+            <span><i class="fa-regular fa-clock" aria-hidden="true"></i> {{ article.estimated_reading_minutes }} دقیقه</span>
+        </div>
+        <h2 class="article-card__title clamp-2">
+            <a href="{% url 'articles_web:article_detail' slug=article.slug %}">{{ article.title }}</a>
+        </h2>
+        <p class="article-card__excerpt clamp-3">{{ article.excerpt|default:article.content|truncatechars:180 }}</p>
+    </div>
+
+    <div class="article-card__footer">
+        <span class="article-card__date">
+            <i class="fa-regular fa-calendar" aria-hidden="true"></i>
+            {{ article.published_at|date:"Y/m/d" }}
+        </span>
+        <a class="article-card__link" href="{% url 'articles_web:article_detail' slug=article.slug %}">
+            ادامه مطلب
+            <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+        </a>
+    </div>
+</article>

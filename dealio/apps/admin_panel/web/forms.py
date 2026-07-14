@@ -12,6 +12,7 @@ from dealio.apps.admin_panel.dtos import (
     AdminUserCreateDTO,
     AdminUserUpdateDTO,
 )
+from dealio.apps.articles.enums import ArticleStatusEnum, ArticleTypeEnum
 from dealio.apps.billing.enums import CurrencyEnum, DiscountTypeEnum
 from dealio.apps.common.helpers.validators.security_validators import (
     validate_profile_photo,
@@ -188,6 +189,92 @@ class AdminCourseForm(AdminPanelFormMixin, forms.Form):
             "duration_minutes": self.cleaned_data["duration_minutes"],
             "category_id": self.cleaned_data["category_id"] or None,
             "is_featured": self.cleaned_data["is_featured"],
+        }
+
+
+class AdminArticleForm(AdminPanelFormMixin, forms.Form):
+    article_type = forms.ChoiceField(choices=ArticleTypeEnum.choices(), label="نوع مطلب")
+    status = forms.ChoiceField(choices=ArticleStatusEnum.choices(), label="وضعیت")
+    title = forms.CharField(max_length=220, label="عنوان")
+    slug = forms.SlugField(
+        max_length=250,
+        required=False,
+        allow_unicode=True,
+        label="نامک",
+        help_text="برای ساخت خودکار از عنوان، خالی بگذارید.",
+    )
+    excerpt = forms.CharField(
+        max_length=420,
+        required=False,
+        label="خلاصه",
+        widget=forms.Textarea(attrs={"rows": 3}),
+    )
+    content = forms.CharField(
+        label="محتوا",
+        widget=forms.Textarea(attrs={"rows": 14}),
+    )
+    category_id = forms.ChoiceField(required=False, label="دسته‌بندی")
+    tag_ids = forms.MultipleChoiceField(
+        required=False,
+        label="برچسب‌ها",
+        widget=forms.SelectMultiple(attrs={"size": 6}),
+    )
+    cover_image = forms.ImageField(required=False, label="تصویر شاخص")
+    is_featured = forms.BooleanField(required=False, label="مطلب ویژه")
+    published_at = forms.DateTimeField(
+        required=False,
+        label="زمان انتشار",
+        input_formats=["%Y-%m-%dT%H:%M"],
+        widget=forms.DateTimeInput(
+            format="%Y-%m-%dT%H:%M",
+            attrs={"type": "datetime-local"},
+        ),
+    )
+    source_name = forms.CharField(max_length=150, required=False, label="نام منبع")
+    source_url = forms.URLField(required=False, label="لینک منبع")
+    meta_title = forms.CharField(max_length=220, required=False, label="عنوان SEO")
+    meta_description = forms.CharField(
+        max_length=320,
+        required=False,
+        label="توضیحات SEO",
+        widget=forms.Textarea(attrs={"rows": 3}),
+    )
+
+    def __init__(self, *args, categories=(), tags=(), **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["category_id"].choices = [("", "بدون دسته‌بندی")] + [
+            (str(category.id), category.title) for category in categories
+        ]
+        self.fields["tag_ids"].choices = [
+            (str(tag.id), tag.title) for tag in tags
+        ]
+
+    def clean_cover_image(self):
+        image = self.cleaned_data.get("cover_image")
+        if not image:
+            return None
+        try:
+            return validate_profile_photo(image)
+        except Exception as exc:
+            raise ValidationError("تصویر شاخص معتبر نیست.") from exc
+
+    def to_domain_data(self) -> dict:
+        return {
+            "article_type": self.cleaned_data["article_type"],
+            "status": self.cleaned_data["status"],
+            "title": self.cleaned_data["title"].strip(),
+            "slug": self.cleaned_data["slug"].strip(),
+            "excerpt": self.cleaned_data["excerpt"].strip(),
+            "content": self.cleaned_data["content"].strip(),
+            "category_id": self.cleaned_data["category_id"] or None,
+            "tag_ids": tuple(self.cleaned_data["tag_ids"]),
+            "cover_image": self.cleaned_data["cover_image"],
+            "is_featured": self.cleaned_data["is_featured"],
+            "published_at": self.cleaned_data["published_at"],
+            "source_name": self.cleaned_data["source_name"].strip(),
+            "source_url": self.cleaned_data["source_url"].strip(),
+            "meta_title": self.cleaned_data["meta_title"].strip(),
+            "meta_description": self.cleaned_data["meta_description"].strip(),
         }
 
 

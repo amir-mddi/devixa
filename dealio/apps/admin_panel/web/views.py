@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.contrib import messages
+from django.http import Http404
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.http import FileResponse, Http404
@@ -11,6 +12,7 @@ from rest_framework.exceptions import APIException
 
 from dealio.apps.admin_panel.enums import AdminPanelSectionEnum
 from dealio.apps.admin_panel.logic import (
+    AdminArticleLogic,
     AdminBotSettingLogic,
     AdminCourseLogic,
     AdminDashboardLogic,
@@ -22,6 +24,7 @@ from dealio.apps.admin_panel.value_objects import (
     AdminPanelProviderVO,
 )
 from dealio.apps.admin_panel.web.forms import (
+    AdminArticleForm,
     AdminBotSettingsForm,
     AdminCourseForm,
     AdminCourseLessonForm,
@@ -33,6 +36,7 @@ from dealio.apps.admin_panel.web.forms import (
     AdminUserForm,
 )
 from dealio.apps.admin_panel.web.mixins import AdminPanelProtectedViewMixin
+from dealio.apps.articles.enums import ArticleStatusEnum, ArticleTypeEnum
 from dealio.apps.billing.enums import (
     OrderStatusEnum,
     PaymentReceiptStatusEnum,
@@ -433,6 +437,165 @@ class AdminUserDeleteView(AdminPanelProtectedViewMixin, AdminPanelContextMixin, 
         except ValidationError as exc:
             messages.error(request, self.error_text(exc))
         return redirect("admin_panel:users")
+
+
+class AdminArticleListView(AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
+    logic_class = AdminArticleLogic
+
+    def get(self, request):
+        filters = {
+            "search": request.GET.get("search", "").strip(),
+            "article_type": request.GET.get("article_type", "").strip(),
+            "status": request.GET.get("status", "").strip(),
+            "category_id": request.GET.get("category_id", "").strip(),
+        }
+        logic = self.logic_class()
+        return render(
+            request,
+            f"{self.template_root}/articles.html",
+            self.base_context(
+                active_section=AdminPanelSectionEnum.ARTICLES,
+                articles_page=logic.paginate_articles(
+                    filters,
+                    page=request.GET.get("page", 1),
+                    page_size=20,
+                ),
+                categories=logic.list_categories(),
+                filters=filters,
+                article_types=ArticleTypeEnum.choices(),
+                article_statuses=ArticleStatusEnum.choices(),
+            ),
+        )
+
+
+class AdminArticleFormMixin(AdminPanelContextMixin):
+    logic_class = AdminArticleLogic
+
+    def build_form(self, logic, *args, **kwargs):
+        return AdminArticleForm(
+            *args,
+            categories=logic.list_categories(),
+            tags=logic.list_tags(),
+            **kwargs,
+        )
+
+    def get_article_or_404(self, logic, article_id):
+        try:
+            return logic.get_article(article_id)
+        except APIException as exc:
+            raise Http404(self.error_text(exc)) from exc
+
+    def add_form_exception(self, form, exc: Exception) -> None:
+        if isinstance(exc, ValidationError):
+            form.add_domain_errors(exc)
+            return
+        form.add_error(None, self.error_text(exc))
+
+    def render_form(self, request, *, form, article=None, status=200):
+        return render(
+            request,
+            f"{self.template_root}/article_form.html",
+            self.base_context(
+                active_section=AdminPanelSectionEnum.ARTICLES,
+                form=form,
+                article=article,
+                page_title=(
+                    AdminPanelMessageVO.ARTICLE_EDIT_TITLE.value
+                    if article
+                    else AdminPanelMessageVO.ARTICLE_CREATE_TITLE.value
+                ),
+                submit_label=(
+                    AdminPanelMessageVO.ARTICLE_EDIT_SUBMIT.value
+                    if article
+                    else AdminPanelMessageVO.ARTICLE_CREATE_SUBMIT.value
+                ),
+            ),
+            status=status,
+        )
+
+
+class AdminArticleCreateView(AdminPanelProtectedViewMixin, AdminArticleFormMixin, View):
+    def get(self, request):
+        logic = self.logic_class()
+        return self.render_form(request, form=self.build_form(logic))
+
+    def post(self, request):
+        logic = self.logic_class()
+        form = self.build_form(logic, request.POST, request.FILES)
+        if form.is_valid():
+            try:
+                logic.create_article(actor=request.user, data=form.to_domain_data())
+                messages.success(request, AdminPanelMessageVO.ARTICLE_CREATED.value)
+                return redirect("admin_panel:articles")
+            except (ValidationError, APIException) as exc:
+                self.add_form_exception(form, exc)
+        return self.render_form(request, form=form, status=400)
+
+
+class AdminArticleEditView(AdminPanelProtectedViewMixin, AdminArticleFormMixin, View):
+    @staticmethod
+    def initial(article, tag_ids):
+        published_at = article.published_at
+        return {
+            "article_type": article.article_type,
+            "status": article.status,
+            "title": article.title,
+            "slug": article.slug,
+            "excerpt": article.excerpt,
+            "content": article.content,
+            "category_id": str(article.category_id or ""),
+            "tag_ids": [str(tag_id) for tag_id in tag_ids],
+            "is_featured": article.is_featured,
+            "published_at": published_at,
+            "source_name": article.source_name,
+            "source_url": article.source_url,
+            "meta_title": article.meta_title,
+            "meta_description": article.meta_description,
+        }
+
+    def get(self, request, article_id):
+        logic = self.logic_class()
+        article = self.get_article_or_404(logic, article_id)
+        return self.render_form(
+            request,
+            form=self.build_form(
+                logic,
+                initial=self.initial(
+                    article,
+                    logic.list_article_tag_ids(article.id),
+                ),
+            ),
+            article=article,
+        )
+
+    def post(self, request, article_id):
+        logic = self.logic_class()
+        article = self.get_article_or_404(logic, article_id)
+        form = self.build_form(logic, request.POST, request.FILES)
+        if form.is_valid():
+            try:
+                logic.update_article(
+                    actor=request.user,
+                    article_id=article.id,
+                    data=form.to_domain_data(),
+                )
+                messages.success(request, AdminPanelMessageVO.ARTICLE_UPDATED.value)
+                return redirect("admin_panel:articles")
+            except (ValidationError, APIException) as exc:
+                self.add_form_exception(form, exc)
+        return self.render_form(request, form=form, article=article, status=400)
+
+
+class AdminArticleDeleteView(AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
+    logic_class = AdminArticleLogic
+
+    def post(self, request, article_id):
+        try:
+            self.logic_class().delete_article(actor=request.user, article_id=article_id)
+            messages.success(request, AdminPanelMessageVO.ARTICLE_DELETED.value)
+        except (ValidationError, APIException) as exc:
+            messages.error(request, self.error_text(exc))
+        return redirect("admin_panel:articles")
 
 
 class AdminCourseListView(AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):

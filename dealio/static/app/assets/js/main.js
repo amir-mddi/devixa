@@ -220,6 +220,7 @@
         if (/^\/roadmaps(?:\/|$)/.test(path)) return 'roadmaps';
         if (/^\/channels(?:\/|$)/.test(path)) return 'channels';
         if (/^\/contact-us(?:\/|$)/.test(path)) return 'contact';
+        if (/^\/(?:articles|blog|news)(?:\/|$)/.test(path)) return 'articles';
         if (/^\/about-us(?:\/|$)/.test(path)) return 'about';
         return '';
     }

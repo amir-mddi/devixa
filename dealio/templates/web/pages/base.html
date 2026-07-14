@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#070b14">
-    <meta name="description" content="{{ project.description }}">
+    <meta name="description" content="{% block meta_description %}{{ project.description }}{% endblock %}">
+    {% block meta_tags %}{% endblock %}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     {# Global foundation: loaded for every public, basket, profile and admin page. #}
     <link rel="stylesheet" href="{% project_static 'Styles/variables.css' %}">
@@ -30,7 +31,7 @@
     {% include "web/shared/_flash_messages.html" with placement="page" %}
     {% block content %}{% endblock %}
     {% include "web/pages/_footer.html" %}
-    <script src="{% project_static 'js/main.js' %}?v=mobile-nav-2"></script>
+    <script src="{% project_static 'js/main.js' %}?v=mobile-nav-3"></script>
     <script src="{% project_static 'js/theme.js' %}"></script>
     <script src="{% project_static 'js/effects.js' %}"></script>
     <script src="{% project_static 'js/premium.js' %}"></script>

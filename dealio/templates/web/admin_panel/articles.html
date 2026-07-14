@@ -1,0 +1,48 @@
+{% extends "web/admin_panel/base.html" %}
+{% block admin_title %}مدیریت اخبار و وبلاگ{% endblock %}
+{% block admin_content %}
+<header class="admin-page-header admin-page-header--actions">
+    <div>
+        <span class="admin-eyebrow">مدیریت محتوا</span>
+        <h1>اخبار و وبلاگ</h1>
+        <p>مطالب را ایجاد، ویرایش، زمان‌بندی، منتشر، بایگانی یا حذف کنید.</p>
+    </div>
+    <a class="admin-button admin-button--primary" href="{% url 'admin_panel:article_create' %}"><i class="fa-solid fa-plus"></i>مطلب جدید</a>
+</header>
+<form method="get" class="admin-filter-bar">
+    <input type="search" name="search" value="{{ filters.search }}" placeholder="جست‌وجوی عنوان، محتوا یا نویسنده...">
+    <select name="article_type"><option value="">همه نوع‌ها</option>{% for value,label in article_types %}<option value="{{ value }}" {% if filters.article_type == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    <select name="status"><option value="">همه وضعیت‌ها</option>{% for value,label in article_statuses %}<option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    <select name="category_id"><option value="">همه دسته‌ها</option>{% for category in categories %}<option value="{{ category.id }}" {% if filters.category_id == category.id|stringformat:'s' %}selected{% endif %}>{{ category.title }}</option>{% endfor %}</select>
+    <button class="admin-button admin-button--primary">اعمال فیلتر</button>
+</form>
+<section class="admin-course-grid">
+{% for article in articles_page %}
+<article class="admin-course-card">
+    <div class="admin-course-card__media">
+        {% if article.cover_image %}<img src="{{ article.cover_image.url }}" alt="{{ article.title }}">{% else %}<div class="admin-course-card__placeholder"><i class="fa-solid {% if article.article_type == 'news' %}fa-newspaper{% else %}fa-pen-nib{% endif %}"></i></div>{% endif %}
+        <span class="admin-status admin-status--{{ article.status }}">{{ article.get_status_display }}</span>
+    </div>
+    <div class="admin-course-card__body">
+        <div>
+            <span class="admin-eyebrow">{{ article.get_article_type_display }} · {{ article.category.title|default:"بدون دسته‌بندی" }}</span>
+            <h2>{{ article.title }}</h2>
+            <p>{{ article.excerpt|default:"خلاصه‌ای ثبت نشده است." }}</p>
+        </div>
+        <dl class="admin-mini-details">
+            <div><dt>نویسنده</dt><dd>{{ article.author.get_full_name|default:article.author.username }}</dd></div>
+            <div><dt>بازدید</dt><dd>{{ article.view_count }}</dd></div>
+            <div><dt>انتشار</dt><dd>{{ article.published_at|date:"Y/m/d H:i"|default:"—" }}</dd></div>
+            <div><dt>ویژه</dt><dd>{% if article.is_featured %}بله{% else %}خیر{% endif %}</dd></div>
+        </dl>
+        <div class="admin-actions">
+            <a class="admin-button admin-button--primary" href="{% url 'admin_panel:article_edit' article.id %}">ویرایش</a>
+            {% if article.is_published %}<a class="admin-button admin-button--ghost" href="{{ article.get_absolute_url }}" target="_blank" rel="noopener">مشاهده</a>{% endif %}
+            <form method="post" action="{% url 'admin_panel:article_delete' article.id %}" onsubmit="return confirm('این مطلب حذف شود؟')">{% csrf_token %}<button class="admin-button admin-button--danger">حذف</button></form>
+        </div>
+    </div>
+</article>
+{% empty %}<div class="admin-empty admin-empty--card">مطلبی پیدا نشد.</div>{% endfor %}
+</section>
+{% include "web/admin_panel/_pagination.html" with page_obj=articles_page %}
+{% endblock %}

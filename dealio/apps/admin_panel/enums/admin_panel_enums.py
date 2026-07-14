@@ -8,6 +8,7 @@ class AdminPanelSectionEnum(StrEnum):
     BILLING = "billing"
     USERS = "users"
     COURSES = "courses"
+    ARTICLES = "articles"
     DISCOUNTS = "discounts"
     NOTIFICATIONS = "notifications"
     BOT_SETTINGS = "bot_settings"

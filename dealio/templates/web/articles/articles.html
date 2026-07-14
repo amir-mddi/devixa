@@ -1,0 +1,99 @@
+{% extends "web/pages/base.html" %}
+{% load project_tags %}
+
+{% block title %}مجله، اخبار و وبلاگ {{ project.display_name }}{% endblock %}
+{% block meta_description %}جدیدترین اخبار، مقاله‌های آموزشی و مطالب تخصصی {{ project.display_name }}{% endblock %}
+
+{% block page_styles_after %}
+    <link rel="stylesheet" href="{% project_static 'Styles/articles.css' %}?v=articles-1">
+{% endblock %}
+
+{% block content %}
+<main class="articles-page">
+    <header class="articles-hero app-container">
+        <div class="articles-hero__badge">
+            <i class="fa-solid fa-sparkles" aria-hidden="true"></i>
+            مجله <span class="brand-text">{{ project.display_name }}</span>
+        </div>
+        <h1>اخبار و مقاله‌های کاربردی برای رشد حرفه‌ای</h1>
+        <p>تازه‌ترین خبرهای فناوری، راهنماهای تخصصی و تجربه‌های عملی برنامه‌نویسی را یکجا دنبال کنید.</p>
+
+        <nav class="articles-type-tabs tab-list" aria-label="نوع محتوا">
+            {% for type_filter in type_filters %}
+                <a class="tab {% if catalog.selected_type == type_filter.value %}is-active{% endif %}" href="{% url type_filter.reverse_name %}">
+                    <i class="fa-solid {{ type_filter.icon }}" aria-hidden="true"></i>
+                    {{ type_filter.label }}
+                </a>
+            {% endfor %}
+        </nav>
+
+        <form method="get" action="{{ request.path }}" class="articles-search" role="search">
+            {% if catalog.selected_category != 'all' %}
+                <input type="hidden" name="category" value="{{ catalog.selected_category }}">
+            {% endif %}
+            <label class="articles-search__field">
+                <span class="sr-only">جستجو در مطالب</span>
+                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                <input type="search" name="search" value="{{ catalog.search }}" placeholder="جستجو در خبرها و مقاله‌ها..." autocomplete="off">
+            </label>
+            <button type="submit">جستجو</button>
+        </form>
+    </header>
+
+    <section class="articles-filter-section app-container" aria-label="دسته‌بندی مطالب">
+        <div class="articles-category-list chip-list">
+            {% for category in catalog.categories %}
+                <a class="category-chip {% if category.value == catalog.selected_category %}is-active{% endif %}"
+                   href="?category={{ category.value }}{% if catalog.search %}&search={{ catalog.search|urlencode }}{% endif %}">
+                    {{ category.label }}
+                    {% if category.count %}<span class="articles-category-count">{{ category.count }}</span>{% endif %}
+                </a>
+            {% endfor %}
+        </div>
+        <p class="articles-result-summary">{{ catalog.total_count }} مطلب برای نمایش پیدا شد.</p>
+    </section>
+
+    {% if catalog.featured_articles %}
+    <section class="articles-featured app-container" aria-labelledby="featured-articles-title">
+        <div class="articles-section-heading">
+            <div>
+                <span>پیشنهاد سردبیر</span>
+                <h2 id="featured-articles-title">مطالب ویژه</h2>
+            </div>
+            <i class="fa-solid fa-star" aria-hidden="true"></i>
+        </div>
+        <div class="articles-featured-grid">
+            {% for article in catalog.featured_articles %}
+                {% include "web/articles/_featured_article_card.html" with article=article %}
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <section class="articles-catalog app-container" aria-labelledby="latest-articles-title">
+        <div class="articles-section-heading">
+            <div>
+                <span>تازه‌ترین محتوا</span>
+                <h2 id="latest-articles-title">آخرین مطالب</h2>
+            </div>
+            <i class="fa-solid fa-arrow-trend-up" aria-hidden="true"></i>
+        </div>
+
+        {% if catalog.page.object_list %}
+            <div class="articles-grid">
+                {% for article in catalog.page.object_list %}
+                    {% include "web/articles/_article_card.html" with article=article %}
+                {% endfor %}
+            </div>
+            {% include "web/articles/_pagination.html" with page_obj=catalog.page query_suffix=query_suffix %}
+        {% else %}
+            <div class="articles-empty-state">
+                <i class="fa-regular fa-folder-open" aria-hidden="true"></i>
+                <h2>مطلبی پیدا نشد</h2>
+                <p>{{ empty_message }}</p>
+                <a href="{% url 'articles_web:article_list' %}">حذف فیلترها</a>
+            </div>
+        {% endif %}
+    </section>
+</main>
+{% endblock %}

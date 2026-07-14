@@ -1,3 +1,8 @@
+from .article_bot_dtos import (
+    ArticleBotButtonDTO,
+    ArticleBotHandleResultDTO,
+    ArticleBotScreenDTO,
+)
 from .commerce_bot_dtos import (
     TelegramCheckoutDTO,
     TelegramCourseReviewDTO,
@@ -10,6 +15,9 @@ from .profile_dtos import (
 )
 
 __all__ = [
+    "ArticleBotButtonDTO",
+    "ArticleBotHandleResultDTO",
+    "ArticleBotScreenDTO",
     "TelegramCheckoutDTO",
     "TelegramCourseReviewDTO",
     "TelegramPaginationDTO",

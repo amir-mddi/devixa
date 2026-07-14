@@ -1,0 +1,30 @@
+{% extends "web/admin_panel/base.html" %}
+{% block admin_title %}{{ page_title }}{% endblock %}
+{% block admin_content %}
+<header class="admin-page-header">
+    <div>
+        <a class="admin-back-link" href="{% url 'admin_panel:articles' %}">بازگشت به اخبار و وبلاگ</a>
+        <h1>{{ page_title }}</h1>
+        <p>محتوا، نوع مطلب، وضعیت انتشار، دسته‌بندی، برچسب‌ها، منبع و SEO را مدیریت کنید.</p>
+    </div>
+</header>
+<form method="post" enctype="multipart/form-data" class="admin-card admin-form admin-form--wide">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="admin-form-error">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="admin-form-grid">
+        {% for field in form %}
+        <div class="admin-field {% if field.name == 'excerpt' or field.name == 'content' or field.name == 'cover_image' or field.name == 'meta_description' %}admin-field--wide{% endif %}">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+            {% if field.errors %}<div class="admin-field-error">{{ field.errors|join:' ' }}</div>{% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% if article and article.cover_image %}<div class="admin-card"><span class="admin-eyebrow">تصویر فعلی</span><img src="{{ article.cover_image.url }}" alt="{{ article.title }}" class="admin-article-cover-preview"></div>{% endif %}
+    <div class="admin-form-actions">
+        <a class="admin-button admin-button--ghost" href="{% url 'admin_panel:articles' %}">انصراف</a>
+        <button class="admin-button admin-button--primary" type="submit">{{ submit_label }}</button>
+    </div>
+</form>
+{% endblock %}

@@ -72,6 +72,9 @@ from dealio.apps.telegram_bot.vo.account_link_vo import BotAccountLinkVO
 from dealio.apps.telegram_bot.vo.bot_setting_vo import BotSettingRegistryVO
 from dealio.apps.telegram_bot.interfaces.commerce_bot_logic_interface import CommerceBotLogicInterface
 from dealio.apps.telegram_bot.repositories.logic.channel_sync_logic import ChannelSyncLogicRepository
+from dealio.apps.telegram_bot.controllers.article_controller import ArticleBotController
+from dealio.apps.telegram_bot.logic.article_bot_logic import ArticleBotLogic
+from dealio.apps.telegram_bot.repositories.article_bot_state_repository import ArticleBotStateRepository
 from dealio.apps.courses.enums import CourseLevelEnum, CourseStatusEnum, ReviewStatusEnum
 from dealio.apps.billing.enums import CurrencyEnum, PaymentProviderEnum, PaymentReceiptStatusEnum, PaymentStatusEnum
 
@@ -239,6 +242,12 @@ class TelegramBotService:
         self.support_logic = support_logic or BotSupportLogicRepository()
         self.account_logic = account_logic or AccountLogicRepository()
         self.messenger_profile_logic = messenger_profile_logic or MessengerProfileLogic()
+        self.article_controller = ArticleBotController(
+            logic=ArticleBotLogic(cache_prefix=self.CACHE_PREFIX),
+            send_chain_message=self.send_chain_message,
+            is_admin_profile=self.is_admin_profile,
+            language_resolver=self.lang,
+        )
 
     def handle_update(self, update: dict[str, Any]) -> None:
         channel_post = update.get("channel_post")
@@ -317,6 +326,9 @@ class TelegramBotService:
                 self.t(profile, "canceled"),
                 reply_markup=self.main_menu_keyboard(profile),
             )
+            return
+
+        if self.article_controller.handle_text(profile, text):
             return
 
         # Active step-by-step flows must own the next text message.
@@ -612,6 +624,13 @@ class TelegramBotService:
             )
             return
 
+        if self.article_controller.handle_callback(
+            profile,
+            data,
+            message_id=message.get("message_id"),
+        ):
+            return
+
         if self.handle_commerce_callback(profile, data, message_id=message.get("message_id")):
             return
 
@@ -752,6 +771,8 @@ class TelegramBotService:
             "discounts": self.send_discount_menu,
             "support": (lambda p: self.send_support_queue(p) if self.is_admin_profile(p) else self.send_support_menu(p)),
             "support_queue": self.send_support_queue,
+            "articles": self.article_controller.show_menu,
+            "admin_articles": self.article_controller.show_admin_list,
             "courses": lambda p: self.send_course_list(p, page=1),
             "my_courses": self.send_my_courses,
             "my_orders": self.send_my_orders,
@@ -812,6 +833,7 @@ class TelegramBotService:
         cls.clear_support_flow_data(chat_id)
         cls.clear_discount_flow_data(chat_id)
         cls.clear_checkout_flow_data(chat_id)
+        ArticleBotStateRepository(cache_prefix=cls.CACHE_PREFIX).clear(chat_id)
 
     @classmethod
     def bot_setting_edit_cache_key(cls, chat_id: int) -> str:
@@ -5293,18 +5315,19 @@ class TelegramBotService:
         rows: list[list[dict[str, Any] | str]] = []
 
         if is_linked:
-            rows.append([cls.button(profile, "courses"), cls.button(profile, "my_courses")])
-            rows.append([cls.button(profile, "my_orders"), cls.button(profile, "account")])
+            rows.append([cls.button(profile, "articles"), cls.button(profile, "courses")])
+            rows.append([cls.button(profile, "my_courses"), cls.button(profile, "my_orders")])
+            rows.append([cls.button(profile, "account"), cls.button(profile, "forgot_password")])
             if profile and cls.is_admin_profile(profile):
-                rows.append([cls.button(profile, "admin_courses"), cls.button(profile, "create_course")])
-                rows.append([cls.button(profile, "create_user"), cls.button(profile, "review_queue")])
-                rows.append([cls.button(profile, "payment_queue"), cls.button(profile, "forgot_password")])
+                rows.append([cls.button(profile, "admin_articles"), cls.button(profile, "admin_courses")])
+                rows.append([cls.button(profile, "create_course"), cls.button(profile, "create_user")])
+                rows.append([cls.button(profile, "review_queue"), cls.button(profile, "payment_queue")])
                 rows.append([cls.button(profile, "bot_settings"), cls.button(profile, "admin_notification")])
                 rows.append([cls.button(profile, "discounts"), cls.button(profile, "support_queue")])
                 rows.append([cls.button(profile, "channels"), cls.button(profile, "help")])
             else:
-                rows.append([cls.button(profile, "support"), cls.button(profile, "forgot_password")])
-                rows.append([cls.button(profile, "channels"), cls.button(profile, "help")])
+                rows.append([cls.button(profile, "support"), cls.button(profile, "channels")])
+                rows.append([cls.button(profile, "help")])
 
             verification_buttons: list[str] = []
             if profile and profile.user:
@@ -5319,8 +5342,9 @@ class TelegramBotService:
             if cls.web_app_url():
                 rows.append([cls.web_app_button(profile), cls.button(profile, "help")])
         else:
-            rows.append([cls.button(profile, "courses"), cls.button(profile, "link")])
-            rows.append([cls.button(profile, "forgot_password"), cls.button(profile, "channels")])
+            rows.append([cls.button(profile, "articles"), cls.button(profile, "courses")])
+            rows.append([cls.button(profile, "link"), cls.button(profile, "forgot_password")])
+            rows.append([cls.button(profile, "channels"), cls.button(profile, "help")])
             if cls.web_app_url():
                 rows.append([cls.web_app_button(profile), cls.button(profile, "help")])
                 rows.append([cls.button(profile, "language")])

@@ -117,6 +117,8 @@ class TelegramBotButtonKeyVO:
     LANGUAGE = "language"
     UNLINK = "unlink"
     HELP = "help"
+    ARTICLES = "articles"
+    ADMIN_ARTICLES = "admin_articles"
     COURSES = "courses"
     MY_COURSES = "my_courses"
     MY_ORDERS = "my_orders"
@@ -166,6 +168,8 @@ class TelegramBotButtonTextVO:
             TelegramBotButtonKeyVO.DISCOUNTS: "🏷 Discounts",
             TelegramBotButtonKeyVO.SUPPORT: "💬 Support",
             TelegramBotButtonKeyVO.SUPPORT_QUEUE: "🎧 Support tickets",
+            TelegramBotButtonKeyVO.ARTICLES: "📰 News & weblog",
+            TelegramBotButtonKeyVO.ADMIN_ARTICLES: "🛠 Manage articles",
             TelegramBotButtonKeyVO.COURSES: "📚 Courses",
             TelegramBotButtonKeyVO.MY_COURSES: "🎓 My courses",
             TelegramBotButtonKeyVO.MY_ORDERS: "🧾 My orders",
@@ -201,6 +205,8 @@ class TelegramBotButtonTextVO:
             TelegramBotButtonKeyVO.DISCOUNTS: "🏷 تخفیف‌ها",
             TelegramBotButtonKeyVO.SUPPORT: "💬 پشتیبانی",
             TelegramBotButtonKeyVO.SUPPORT_QUEUE: "🎧 مدیریت تیکت‌ها",
+            TelegramBotButtonKeyVO.ARTICLES: "📰 اخبار و وبلاگ",
+            TelegramBotButtonKeyVO.ADMIN_ARTICLES: "🛠 مدیریت مطالب",
             TelegramBotButtonKeyVO.COURSES: "📚 دوره‌ها",
             TelegramBotButtonKeyVO.MY_COURSES: "🎓 دوره‌های من",
             TelegramBotButtonKeyVO.MY_ORDERS: "🧾 سفارش‌های من",
@@ -248,6 +254,8 @@ class TelegramBotAliasVO:
         TelegramBotButtonKeyVO.DISCOUNTS: {"discounts", "discount", "coupon", "coupons", "تخفیف", "تخفیف‌ها", "کد تخفیف"},
         TelegramBotButtonKeyVO.SUPPORT: {"support", "ticket", "help desk", "پشتیبانی", "تیکت"},
         TelegramBotButtonKeyVO.SUPPORT_QUEUE: {"support tickets", "tickets", "support queue", "تیکت‌های پشتیبانی", "صف پشتیبانی", "مدیریت تیکت‌ها", "مدیریت تیکت ها"},
+        TelegramBotButtonKeyVO.ARTICLES: {"articles", "news", "blog", "weblog", "اخبار", "وبلاگ", "اخبار و وبلاگ"},
+        TelegramBotButtonKeyVO.ADMIN_ARTICLES: {"manage articles", "admin articles", "article admin", "مدیریت مطالب", "مدیریت اخبار", "مدیریت وبلاگ"},
         TelegramBotButtonKeyVO.COURSES: {"courses", "course", "دوره", "دوره‌ها", "دوره ها"},
         TelegramBotButtonKeyVO.MY_COURSES: {"my courses", "my course", "دوره‌های من", "دوره های من"},
         TelegramBotButtonKeyVO.MY_ORDERS: {"my orders", "orders", "سفارش‌های من", "سفارش های من"},

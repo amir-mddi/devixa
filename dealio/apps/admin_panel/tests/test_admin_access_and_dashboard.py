@@ -47,6 +47,8 @@ class AdminPanelAccessTests(TestCase):
             "admin_panel:billing",
             "admin_panel:users",
             "admin_panel:user_create",
+            "admin_panel:articles",
+            "admin_panel:article_create",
             "admin_panel:courses",
             "admin_panel:course_create",
             "admin_panel:discounts",

@@ -8,6 +8,8 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from dealio.apps.accounts.models import Access, Role
+from dealio.apps.articles.enums import ArticleStatusEnum, ArticleTypeEnum
+from dealio.apps.articles.models import Article, ArticleCategory, ArticleTag
 from dealio.apps.billing.enums import PaymentProviderEnum
 from dealio.apps.billing.models import Order, OrderItem, Payment, PaymentReceipt
 from dealio.apps.courses.enums import CourseStatusEnum, ReviewStatusEnum
@@ -80,6 +82,42 @@ class UserFactory:
         overrides.setdefault("is_staff", True)
         overrides.setdefault("is_superuser", True)
         return cls.create(**overrides)
+
+
+class ArticleCategoryFactory:
+    @classmethod
+    def create(cls, **overrides: Any) -> ArticleCategory:
+        seq = next(_sequence)
+        values = {"title": f"Article Category {seq}", "slug": f"article-category-{seq}"}
+        values.update(overrides)
+        return ArticleCategory.objects.create(**values)
+
+
+class ArticleTagFactory:
+    @classmethod
+    def create(cls, **overrides: Any) -> ArticleTag:
+        seq = next(_sequence)
+        values = {"title": f"Article Tag {seq}", "slug": f"article-tag-{seq}"}
+        values.update(overrides)
+        return ArticleTag.objects.create(**values)
+
+
+class ArticleFactory:
+    @classmethod
+    def create(cls, **overrides: Any) -> Article:
+        seq = next(_sequence)
+        values = {
+            "author": overrides.pop("author", None) or UserFactory.create(),
+            "category": overrides.pop("category", None),
+            "article_type": ArticleTypeEnum.BLOG.value,
+            "status": ArticleStatusEnum.PUBLISHED.value,
+            "title": f"Article {seq}",
+            "slug": f"article-{seq}",
+            "excerpt": "A useful article excerpt.",
+            "content": "A useful article body with enough words for testing.",
+        }
+        values.update(overrides)
+        return Article.objects.create(**values)
 
 
 class CourseCategoryFactory:

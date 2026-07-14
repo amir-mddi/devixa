@@ -1,0 +1,112 @@
+{% extends "web/pages/base.html" %}
+{% load project_tags %}
+
+{% block title %}{{ article.seo_title }} | {{ project.display_name }}{% endblock %}
+{% block meta_description %}{{ article.seo_description }}{% endblock %}
+{% block meta_tags %}
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="{{ article.seo_title }}">
+    <meta property="og:description" content="{{ article.seo_description }}">
+    {% if article.cover_image %}<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ article.cover_image.url }}">{% endif %}
+{% endblock %}
+
+{% block page_styles_after %}
+    <link rel="stylesheet" href="{% project_static 'Styles/articles.css' %}?v=articles-1">
+{% endblock %}
+
+{% block content %}
+<main class="article-detail-page">
+    <article class="article-detail app-container">
+        <nav class="article-breadcrumb" aria-label="مسیر صفحه">
+            <a href="{% url 'pages_web:home' %}">خانه</a>
+            <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+            <a href="{% if article.article_type == 'news' %}{% url 'articles_web:news_list' %}{% else %}{% url 'articles_web:blog_list' %}{% endif %}">{{ article.get_article_type_display }}</a>
+            <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+            <span class="clamp-1">{{ article.title }}</span>
+        </nav>
+
+        <header class="article-detail__header">
+            <div class="article-detail__badges">
+                <span class="article-type-badge article-type-badge--{{ article.article_type }}">{{ article.get_article_type_display }}</span>
+                {% if article.category %}<span class="article-category-badge">{{ article.category.title }}</span>{% endif %}
+            </div>
+            <h1>{{ article.title }}</h1>
+            {% if article.excerpt %}<p class="article-detail__lead">{{ article.excerpt }}</p>{% endif %}
+            <div class="article-detail__meta">
+                <span><i class="fa-regular fa-user" aria-hidden="true"></i> {{ article.author.get_full_name|default:article.author.username }}</span>
+                <span><i class="fa-regular fa-calendar" aria-hidden="true"></i> {{ article.published_at|date:"Y/m/d" }}</span>
+                <span><i class="fa-regular fa-clock" aria-hidden="true"></i> {{ article.estimated_reading_minutes }} دقیقه مطالعه</span>
+                <span><i class="fa-regular fa-eye" aria-hidden="true"></i> {{ article.view_count }} بازدید</span>
+            </div>
+        </header>
+
+        {% if article.cover_image %}
+            <figure class="article-detail__cover">
+                <img src="{{ article.cover_image.url }}" alt="{{ article.title }}">
+            </figure>
+        {% endif %}
+
+        <div class="article-detail__layout">
+            <div class="article-detail__main">
+                <div class="article-content">{{ article.content|linebreaks }}</div>
+
+                {% if article.article_type == 'news' and article.source_url %}
+                    <aside class="article-source">
+                        <div>
+                            <i class="fa-solid fa-link" aria-hidden="true"></i>
+                            <span>منبع خبر</span>
+                        </div>
+                        <a href="{{ article.source_url }}" target="_blank" rel="noopener noreferrer nofollow">
+                            {{ article.source_name|default:"مشاهده منبع اصلی" }}
+                            <i class="fa-solid fa-arrow-up-left-from-square" aria-hidden="true"></i>
+                        </a>
+                    </aside>
+                {% endif %}
+
+                {% if article.tags.all %}
+                    <div class="article-tags" aria-label="برچسب‌ها">
+                        <i class="fa-solid fa-tags" aria-hidden="true"></i>
+                        {% for tag in article.tags.all %}<span>{{ tag.title }}</span>{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <aside class="article-detail__sidebar">
+                <div class="article-author-card">
+                    <div class="article-author-card__avatar">{{ article.author.username|first|upper }}</div>
+                    <div>
+                        <span>نویسنده</span>
+                        <strong>{{ article.author.get_full_name|default:article.author.username }}</strong>
+                    </div>
+                </div>
+                <div class="article-share-card">
+                    <span>اشتراک‌گذاری مطلب</span>
+                    <div>
+                        <a href="https://t.me/share/url?url={{ request.build_absolute_uri|urlencode }}&text={{ article.title|urlencode }}" target="_blank" rel="noopener noreferrer" aria-label="اشتراک در تلگرام"><i class="fa-brands fa-telegram"></i></a>
+                        <a href="https://wa.me/?text={{ article.title|urlencode }}%20{{ request.build_absolute_uri|urlencode }}" target="_blank" rel="noopener noreferrer" aria-label="اشتراک در واتساپ"><i class="fa-brands fa-whatsapp"></i></a>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </article>
+
+    <section class="related-articles app-container" aria-labelledby="related-articles-title">
+        <div class="articles-section-heading">
+            <div>
+                <span>برای مطالعه بیشتر</span>
+                <h2 id="related-articles-title">مطالب مرتبط</h2>
+            </div>
+            <i class="fa-solid fa-book-open" aria-hidden="true"></i>
+        </div>
+        {% if related_articles %}
+            <div class="articles-grid">
+                {% for article in related_articles %}
+                    {% include "web/articles/_article_card.html" with article=article %}
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="articles-empty-state articles-empty-state--compact"><p>{{ related_empty_message }}</p></div>
+        {% endif %}
+    </section>
+</main>
+{% endblock %}

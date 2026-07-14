@@ -84,6 +84,7 @@ INSTALLED_APPS = [
     'dealio.apps.pages',
     'dealio.apps.shared',
     'dealio.apps.courses',
+    'dealio.apps.articles',
     'dealio.apps.billing',
     'dealio.apps.telegram_bot',
     'dealio.apps.admin_panel',
