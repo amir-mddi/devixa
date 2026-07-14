@@ -142,6 +142,19 @@ class AccountWebFieldFactory:
         return attrs
 
 
+class RecaptchaProtectedTemplateFormMixin(forms.Form):
+    recaptcha_token = forms.CharField(
+        required=False,
+        max_length=AccountWebFieldLimitVO.RECAPTCHA_TOKEN_MAX_LENGTH,
+        widget=forms.HiddenInput(
+            attrs={
+                "data-recaptcha-token": "",
+                "autocomplete": "off",
+            }
+        ),
+    )
+
+
 class AccountWebPasswordConfirmMixin:
     password_field_name: AccountWebFieldNameVO
     password_confirm_field_name = AccountWebFieldNameVO.PASSWORD_CONFIRM
@@ -169,7 +182,7 @@ class AccountWebPasswordConfirmMixin:
                 self.add_error(self.password_field_name.value, exc)
 
 
-class LoginTemplateForm(forms.Form):
+class LoginTemplateForm(RecaptchaProtectedTemplateFormMixin):
     identifier = AccountWebFieldFactory.text_field(
         max_length=AccountWebFieldLimitVO.EMAIL_MAX_LENGTH,
         placeholder=AccountWebPlaceholderVO.IDENTIFIER,
@@ -189,7 +202,10 @@ class LoginTemplateForm(forms.Form):
         )
 
 
-class RegisterTemplateForm(AccountWebPasswordConfirmMixin, forms.Form):
+class RegisterTemplateForm(
+    AccountWebPasswordConfirmMixin,
+    RecaptchaProtectedTemplateFormMixin,
+):
     password_field_name = AccountWebFieldNameVO.PASSWORD
 
     first_name = AccountWebFieldFactory.text_field(
@@ -322,7 +338,10 @@ class PasswordRecoveryMethodFormMixin:
         return cleaned_data
 
 
-class ForgotPasswordTemplateForm(PasswordRecoveryMethodFormMixin, forms.Form):
+class ForgotPasswordTemplateForm(
+    PasswordRecoveryMethodFormMixin,
+    RecaptchaProtectedTemplateFormMixin,
+):
     method = forms.ChoiceField(
         choices=AccountPasswordRecoveryMethodVO.choices(),
         initial=AccountPasswordRecoveryMethodVO.EMAIL.value,

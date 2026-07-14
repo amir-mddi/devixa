@@ -9,6 +9,7 @@ from django.views.generic.edit import FormView
 
 from dealio.apps.courses.repositories.logic import CourseLogicRepository
 from dealio.apps.common.helpers.decorators.rate_limit import rate_limit
+from dealio.apps.common.web.mixins import FormHttpErrorResponseMixin
 from dealio.apps.pages.repositories.logic import PageLogicRepository
 from dealio.apps.pages.web.forms import ContactMessageTemplateForm
 from dealio.apps.pages.web.presenters import PageWebErrorPresenter
@@ -54,7 +55,7 @@ class ChannelsPageView(TemplateView):
 
 
 @method_decorator(rate_limit(authenticated_limit=5, anonymous_limit=5, period=3600), name="post")
-class ContactUsPageView(FormView):
+class ContactUsPageView(FormHttpErrorResponseMixin, FormView):
     template_name = PageWebTemplateVO.CONTACT_US.value
     form_class = ContactMessageTemplateForm
     success_url = reverse_lazy(PageWebReverseNameVO.CONTACT_US.value)

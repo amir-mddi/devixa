@@ -31,7 +31,7 @@
     {% include "web/shared/_message_styles.html" %}
     {% block page_styles %}{% endblock %}
 </head>
-<body class="auth-page" data-project-name="{{ project.display_name }}" data-project-initial="{{ project.logo_initial }}">
+<body class="auth-page" data-project-name="{{ project.display_name }}" data-project-initial="{{ project.logo_initial }}"{% if recaptcha_enabled %} data-recaptcha-enabled="true" data-recaptcha-site-key="{{ recaptcha_site_key }}" data-recaptcha-error-message="{{ recaptcha_client_error_message }}"{% endif %}>
     {% include "web/shared/_flash_messages.html" with placement="auth" %}
 
     <header class="auth-toolbar" aria-label="دسترسی سریع">
@@ -51,7 +51,10 @@
         </section>
     </main>
 
-    <script src="{% project_static 'js/auth.js' %}?v=auth-4"></script>
+    {% if recaptcha_enabled %}
+        <script src="https://www.google.com/recaptcha/api.js?render={{ recaptcha_site_key|urlencode }}&trustedtypes=true" async defer></script>
+    {% endif %}
+    <script src="{% project_static 'js/auth.js' %}?v=auth-5"></script>
     {% block page_scripts %}{% endblock %}
 </body>
 </html>

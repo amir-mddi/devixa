@@ -30,6 +30,7 @@ BOT_RUNTIME_ENV_FILE_PATH = os.environ.get("BOT_RUNTIME_ENV_FILE_PATH", env_path
 BOT_RUNTIME_ENV_WRITE_ENABLED = os.environ.get("BOT_RUNTIME_ENV_WRITE_ENABLED", "false")
 BOT_RUNTIME_ENV_WRITE_ALLOW_ANY_PATH = os.environ.get("BOT_RUNTIME_ENV_WRITE_ALLOW_ANY_PATH", "false")
 
+from dealio.apps.core_models.dtos.setup_config import env_bool, env_list
 from dealio.apps.core_models.dtos.setup_config import general_config, redis_config, celery_config, \
     pagination_config, \
     database_config, sentry_config, jwt_config, logging_config, swagger_config, session_config
@@ -216,7 +217,7 @@ INTERNAL_IPS = [
 # --- Session Settings ---
 SESSION_ENGINE = session_config.session_engine
 SESSION_CACHE_ALIAS = session_config.session_cache_alias
-SESSION_COOKIE_AGE = int(jwt_config.access_token_lifetime.total_seconds())
+SESSION_COOKIE_AGE = session_config.session_cookie_age
 SESSION_EXPIRE_AT_BROWSER_CLOSE = session_config.session_expire_at_browser_close
 SESSION_SAVE_EVERY_REQUEST = session_config.session_save_every_request
 
@@ -232,6 +233,18 @@ SESSION_COOKIE_SAMESITE = session_config.session_cookie_samesite
 CSRF_TRUSTED_ORIGINS = session_config.csrf_trusted_origins
 CSRF_COOKIE_SAMESITE = session_config.csrf_cookie_samesite
 CSRF_COOKIE_SECURE = session_config.csrf_cookie_secure
+CSRF_FAILURE_VIEW = "dealio.apps.common.web.error_views.csrf_failure"
+
+if IS_PROD and not CSRF_TRUSTED_ORIGINS:
+    raise ImproperlyConfigured(
+        "CSRF_TRUSTED_ORIGINS must contain the production HTTPS origins."
+    )
+if IS_PROD and any(
+    not origin.startswith("https://") for origin in CSRF_TRUSTED_ORIGINS
+):
+    raise ImproperlyConfigured(
+        "Every production CSRF_TRUSTED_ORIGINS value must start with https://."
+    )
 
 # Celery configuration
 CELERY_BROKER_URL = celery_config.broker_url
@@ -380,6 +393,44 @@ BALE_POLLING_LIMIT = os.environ.get("BALE_POLLING_LIMIT")
 
 PROXY_URL = os.environ.get("PROXY_URL")
 BALE_PROXY_URL = os.environ.get("BALE_PROXY_URL")
+
+# --- reCAPTCHA v3 Settings ---
+RECAPTCHA_ENABLED = env_bool("RECAPTCHA_ENABLED", False)
+RECAPTCHA_SITE_KEY = os.getenv("RECAPTCHA_SITE_KEY", "").strip()
+RECAPTCHA_SECRET_KEY = os.getenv("RECAPTCHA_SECRET_KEY", "").strip()
+RECAPTCHA_MIN_SCORE = float(os.getenv("RECAPTCHA_MIN_SCORE", "0.5"))
+RECAPTCHA_ALLOWED_HOSTNAMES = [
+    hostname.lower().rstrip(".")
+    for hostname in env_list("RECAPTCHA_ALLOWED_HOSTNAMES")
+]
+RECAPTCHA_HTTP_TIMEOUT_SECONDS = max(
+    1,
+    min(int(os.getenv("RECAPTCHA_HTTP_TIMEOUT_SECONDS", "5")), 30),
+)
+RECAPTCHA_MAX_RESPONSE_BYTES = max(
+    1024,
+    min(int(os.getenv("RECAPTCHA_MAX_RESPONSE_BYTES", "65536")), 1024 * 1024),
+)
+RECAPTCHA_SEND_REMOTE_IP = env_bool("RECAPTCHA_SEND_REMOTE_IP", True)
+
+if not 0.0 <= RECAPTCHA_MIN_SCORE <= 1.0:
+    raise ImproperlyConfigured("RECAPTCHA_MIN_SCORE must be between 0.0 and 1.0.")
+if RECAPTCHA_ENABLED:
+    missing_recaptcha_settings = [
+        setting_name
+        for setting_name, value in (
+            ("RECAPTCHA_SITE_KEY", RECAPTCHA_SITE_KEY),
+            ("RECAPTCHA_SECRET_KEY", RECAPTCHA_SECRET_KEY),
+            ("RECAPTCHA_ALLOWED_HOSTNAMES", RECAPTCHA_ALLOWED_HOSTNAMES),
+        )
+        if not value
+    ]
+    if missing_recaptcha_settings:
+        raise ImproperlyConfigured(
+            "Missing required reCAPTCHA settings: "
+            + ", ".join(missing_recaptcha_settings)
+        )
+
 
 # --- Social OAuth Settings ---
 GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID", "")

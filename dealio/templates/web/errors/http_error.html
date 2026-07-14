@@ -1,0 +1,52 @@
+{% extends "web/pages/base.html" %}
+{% load static project_tags %}
+
+{% block title %}{{ http_error.title }}{% endblock %}
+
+{% block page_styles %}
+<link rel="stylesheet" href="{% project_static 'Styles/http-errors.css' %}?v=errors-1">
+{% endblock %}
+
+{% block content %}
+<main class="http-error-page">
+    <section class="http-error-card" role="alert" aria-labelledby="http-error-title">
+        <div class="http-error-card__icon" aria-hidden="true">
+            {% if http_error.status_code == 429 %}
+                <i class="fa-solid fa-hourglass-half"></i>
+            {% else %}
+                <i class="fa-solid fa-shield-halved"></i>
+            {% endif %}
+        </div>
+
+        <span class="http-error-card__status">کد پاسخ {{ http_error.status_code }}</span>
+        <h1 id="http-error-title">{{ http_error.title }}</h1>
+        <p>{{ http_error.message }}</p>
+
+        {% if http_error.retry_after_seconds %}
+            <div class="http-error-card__wait" aria-live="polite">
+                <i class="fa-regular fa-clock" aria-hidden="true"></i>
+                <span>زمان باقی‌مانده:</span>
+                <strong>{{ http_error.retry_after_seconds }} ثانیه</strong>
+            </div>
+        {% endif %}
+
+        {% if http_error.technical_detail %}
+            <details class="http-error-card__technical">
+                <summary>جزئیات فنی</summary>
+                <code>{{ http_error.technical_detail }}</code>
+            </details>
+        {% endif %}
+
+        <div class="http-error-card__actions">
+            <a class="http-error-button http-error-button--primary" href="{{ request.path }}">
+                <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+                تلاش دوباره
+            </a>
+            <a class="http-error-button" href="{% url 'pages_web:home' %}">
+                <i class="fa-solid fa-house" aria-hidden="true"></i>
+                بازگشت به خانه
+            </a>
+        </div>
+    </section>
+</main>
+{% endblock %}

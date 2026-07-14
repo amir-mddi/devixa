@@ -19,6 +19,7 @@
 
 <form action="{% url 'accounts_web:login' %}" method="post" novalidate class="auth-form">
     {% csrf_token %}
+    {% include "web/accounts/_recaptcha_fields.html" %}
     <input type="hidden" name="next" value="{{ request.GET.next }}">
 
     <div class="auth-field">

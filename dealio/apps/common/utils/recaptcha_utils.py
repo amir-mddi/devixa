@@ -1,33 +1,33 @@
-from django.contrib.auth import get_user_model
+from __future__ import annotations
 
-from dealio.apps.common.utils.request_utils import RequestUtils
-from dealio.apps.core_models.constants.recaptcha_goole import RecaptchaConfig
-from dealio.apps.core_models.enum.general_enum import RequestMethod
+from dealio.apps.common.utils.common_utils import CommonUtils
 
 
 class ValidateReCaptcha:
+    """Backward-compatible facade for legacy API callers.
 
-    def check_user_exist(self, username: str, password: str):
-        User = get_user_model()
-        service_user = User.objects.get(username=username)
-        if service_user and service_user.check_password(password):
-            return service_user
-        return
+    New account web flows use `RecaptchaVerificationLogic` directly. This
+    facade remains so older imports do not call the removed duplicate provider
+    implementation.
+    """
 
-    def validate(self, request):
-        service_user = self.check_user_exist(username=request.data.get("username"), password=request.data.get(
-            "password"))
-        if service_user and service_user.is_service_user:
-            return True
+    def validate(self, request, *, action="login") -> bool:
+        from dealio.apps.accounts.dtos.recaptcha_dto import RecaptchaVerificationDTO
+        from dealio.apps.accounts.enums.recaptcha_enums import RecaptchaActionEnum
+        from dealio.apps.accounts.logic.recaptcha_logic import RecaptchaVerificationLogic
 
-        recaptcha_response = request.data.get('recaptcha', '')
-        data = {
-            'secret': RecaptchaConfig.secret_key,
-            'response': recaptcha_response
-        }
-        response = RequestUtils.request_with_retry(url=RecaptchaConfig.request_url, data=data,
-                                                   method=RequestMethod.POST)
-        result = response.json()
-        if result.get('success') and result.get("score") >= RecaptchaConfig.risk_score:
-            return True
-        return False
+        try:
+            expected_action = RecaptchaActionEnum(action)
+        except ValueError:
+            return False
+
+        request_data = getattr(request, "data", None) or getattr(request, "POST", {})
+        token = request_data.get("recaptcha_token") or request_data.get("recaptcha") or ""
+        result = RecaptchaVerificationLogic().verify(
+            RecaptchaVerificationDTO(
+                token=str(token),
+                expected_action=expected_action,
+                remote_ip=CommonUtils.get_client_ip(request),
+            )
+        )
+        return result.is_allowed

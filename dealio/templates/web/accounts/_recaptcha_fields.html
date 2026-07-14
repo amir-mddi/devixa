@@ -1,0 +1,5 @@
+{% if recaptcha_enabled %}
+    {{ form.recaptcha_token }}
+    <span hidden data-recaptcha-config data-recaptcha-action="{{ recaptcha_action }}"></span>
+    <p class="recaptcha-client-error" data-recaptcha-client-error role="alert" hidden></p>
+{% endif %}

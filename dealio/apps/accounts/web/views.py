@@ -12,14 +12,17 @@ from django.views import View
 from django.views.generic.edit import FormView
 
 from dealio.apps.accounts.repositories.account_logic import AccountLogicRepository
+from dealio.apps.accounts.enums.recaptcha_enums import RecaptchaActionEnum
 from dealio.apps.accounts.vo.password_recovery_vo import AccountPasswordRecoveryMethodVO
 from dealio.apps.common.helpers.decorators.rate_limit import rate_limit
+from dealio.apps.common.web.mixins import FormHttpErrorResponseMixin
 from dealio.apps.accounts.web.forms import (
     ForgotPasswordTemplateForm,
     LoginTemplateForm,
     RecoverPasswordTemplateForm,
     RegisterTemplateForm,
 )
+from dealio.apps.accounts.web.recaptcha_mixins import RecaptchaProtectedFormViewMixin
 from dealio.apps.accounts.web.presenters import (
     AccountWebAuthErrorPresenter,
     AccountWebPasswordRecoveryErrorPresenter,
@@ -52,14 +55,15 @@ class SafeNextUrlMixin:
 
 
 @method_decorator(rate_limit(authenticated_limit=10, anonymous_limit=10, period=300), name="post")
-class LoginPageView(SafeNextUrlMixin, FormView):
+class LoginPageView(FormHttpErrorResponseMixin, RecaptchaProtectedFormViewMixin, SafeNextUrlMixin, FormView):
     template_name = AccountWebTemplateVO.LOGIN.value
     form_class = LoginTemplateForm
     fallback_success_url = reverse_lazy(PageWebReverseNameVO.HOME.value)
     account_logic_repository_class = AccountLogicRepository
     error_presenter_class = AccountWebAuthErrorPresenter
+    recaptcha_action = RecaptchaActionEnum.LOGIN
 
-    def form_valid(self, form):
+    def recaptcha_form_valid(self, form):
         result = self.account_logic_repository_class().authenticate_user_by_identifier(
             request=self.request,
             dto=form.to_dto(),
@@ -75,14 +79,15 @@ class LoginPageView(SafeNextUrlMixin, FormView):
 
 
 @method_decorator(rate_limit(authenticated_limit=5, anonymous_limit=5, period=3600), name="post")
-class RegisterPageView(FormView):
+class RegisterPageView(FormHttpErrorResponseMixin, RecaptchaProtectedFormViewMixin, FormView):
     template_name = AccountWebTemplateVO.REGISTER.value
     form_class = RegisterTemplateForm
     success_url = reverse_lazy(AccountWebReverseNameVO.LOGIN.value)
     account_logic_repository_class = AccountLogicRepository
     error_presenter_class = AccountWebAuthErrorPresenter
+    recaptcha_action = RecaptchaActionEnum.REGISTER
 
-    def form_valid(self, form):
+    def recaptcha_form_valid(self, form):
         result = self.account_logic_repository_class().register_user_account(dto=form.to_dto())
 
         if not result.is_success:
@@ -97,11 +102,12 @@ class RegisterPageView(FormView):
 
 
 @method_decorator(rate_limit(authenticated_limit=3, anonymous_limit=3, period=300), name="post")
-class ForgotPasswordPageView(FormView):
+class ForgotPasswordPageView(FormHttpErrorResponseMixin, RecaptchaProtectedFormViewMixin, FormView):
     template_name = AccountWebTemplateVO.FORGOT_PASSWORD.value
     form_class = ForgotPasswordTemplateForm
     success_url = reverse_lazy(AccountWebReverseNameVO.RECOVER_PASSWORD.value)
     account_logic_repository_class = AccountLogicRepository
+    recaptcha_action = RecaptchaActionEnum.FORGOT_PASSWORD
 
     def get_initial(self):
         initial = super().get_initial()
@@ -110,7 +116,7 @@ class ForgotPasswordPageView(FormView):
             initial[AccountWebFieldNameVO.METHOD.value] = method
         return initial
 
-    def form_valid(self, form):
+    def recaptcha_form_valid(self, form):
         method = form.cleaned_data[AccountWebFieldNameVO.METHOD.value]
         dto = form.to_dto()
         account_logic = self.account_logic_repository_class()
@@ -135,7 +141,7 @@ class ForgotPasswordPageView(FormView):
 
 
 @method_decorator(rate_limit(authenticated_limit=10, anonymous_limit=10, period=300), name="post")
-class RecoverPasswordPageView(FormView):
+class RecoverPasswordPageView(FormHttpErrorResponseMixin, FormView):
     template_name = AccountWebTemplateVO.RECOVER_PASSWORD.value
     form_class = RecoverPasswordTemplateForm
     success_url = reverse_lazy(AccountWebReverseNameVO.LOGIN.value)

@@ -118,6 +118,7 @@ class AccountWebFieldNameVO(StrEnum):
     PAYER_CARD_LAST4 = "payer_card_last4"
     PAID_AMOUNT = "paid_amount"
     NOTE = "note"
+    RECAPTCHA_TOKEN = "recaptcha_token"
 
 
 class AccountWebFieldLimitVO(IntEnum):
@@ -132,6 +133,7 @@ class AccountWebFieldLimitVO(IntEnum):
     REVIEW_COMMENT_MAX_LENGTH = 5000
     PAYMENT_TRACKING_CODE_MAX_LENGTH = 120
     PAYMENT_NOTE_MAX_LENGTH = 1000
+    RECAPTCHA_TOKEN_MAX_LENGTH = 4096
 
 
 class AccountWebWidgetAttrVO(StrEnum):
@@ -209,6 +211,8 @@ class AccountWebValidationMessageVO(StrEnum):
     )
     PAYMENT_RECEIPT_REQUIRED = "فایل رسید یا کد رهگیری را وارد کنید."
     INVALID_CARD_LAST4 = "۴ رقم آخر کارت باید دقیقاً چهار رقم باشد."
+    RECAPTCHA_FAILED = "اعتبارسنجی امنیتی ناموفق بود. صفحه را تازه‌سازی کنید و دوباره تلاش کنید."
+    RECAPTCHA_UNAVAILABLE = "سرویس اعتبارسنجی امنیتی در دسترس نیست. اتصال اینترنت را بررسی کرده و دوباره تلاش کنید."
 
 
 class AccountWebFormErrorKeyVO(StrEnum):

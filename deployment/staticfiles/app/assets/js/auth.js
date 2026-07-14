@@ -27,6 +27,75 @@
         applyTheme(root.dataset.theme === "light" ? "dark" : "light");
     });
 
+
+
+    const recaptchaEnabled = body.dataset.recaptchaEnabled === "true";
+    const recaptchaSiteKey = (body.dataset.recaptchaSiteKey || "").trim();
+    const recaptchaErrorMessage = body.dataset.recaptchaErrorMessage || "";
+
+    const setRecaptchaFormBusy = (form, isBusy) => {
+        form.setAttribute("aria-busy", isBusy ? "true" : "false");
+        const submitButtons = form.querySelectorAll('[type="submit"]');
+        submitButtons.forEach((button) => {
+            button.disabled = isBusy;
+            button.classList.toggle("is-loading", isBusy);
+        });
+    };
+
+    const showRecaptchaClientError = (form) => {
+        const errorElement = form.querySelector("[data-recaptcha-client-error]");
+        if (!errorElement) return;
+        errorElement.textContent = recaptchaErrorMessage;
+        errorElement.hidden = false;
+    };
+
+    const clearRecaptchaClientError = (form) => {
+        const errorElement = form.querySelector("[data-recaptcha-client-error]");
+        if (!errorElement) return;
+        errorElement.textContent = "";
+        errorElement.hidden = true;
+    };
+
+    const executeRecaptcha = (action) => new Promise((resolve, reject) => {
+        if (!window.grecaptcha || typeof window.grecaptcha.ready !== "function") {
+            reject(new Error("recaptcha_not_loaded"));
+            return;
+        }
+
+        window.grecaptcha.ready(() => {
+            window.grecaptcha
+                .execute(recaptchaSiteKey, {action})
+                .then(resolve)
+                .catch(reject);
+        });
+    });
+
+    if (recaptchaEnabled && recaptchaSiteKey) {
+        document.querySelectorAll("[data-recaptcha-config]").forEach((configElement) => {
+            const form = configElement.closest("form");
+            const tokenInput = form?.querySelector("[data-recaptcha-token]");
+            const action = (configElement.dataset.recaptchaAction || "").trim();
+            if (!form || !tokenInput || !action) return;
+
+            form.addEventListener("submit", async (event) => {
+                event.preventDefault();
+                clearRecaptchaClientError(form);
+                setRecaptchaFormBusy(form, true);
+
+                try {
+                    const token = await executeRecaptcha(action);
+                    if (!token) throw new Error("empty_recaptcha_token");
+                    tokenInput.value = token;
+                    HTMLFormElement.prototype.submit.call(form);
+                } catch (error) {
+                    tokenInput.value = "";
+                    showRecaptchaClientError(form);
+                    setRecaptchaFormBusy(form, false);
+                }
+            });
+        });
+    }
+
     document.querySelectorAll("[data-recovery-form]").forEach((form) => {
         const methodInputs = [...form.querySelectorAll("[data-recovery-method]")];
         const panels = [...form.querySelectorAll("[data-recovery-panel]")];

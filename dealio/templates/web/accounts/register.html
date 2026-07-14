@@ -16,6 +16,7 @@
 
 <form action="{% url 'accounts_web:register' %}" method="post" novalidate class="auth-form auth-form--grid">
     {% csrf_token %}
+    {% include "web/accounts/_recaptcha_fields.html" %}
     <div class="auth-field">
         <label for="{{ form.first_name.id_for_label }}">نام</label>
         <div class="auth-input-wrap">{{ form.first_name }}<i class="fa-regular fa-id-card" aria-hidden="true"></i></div>

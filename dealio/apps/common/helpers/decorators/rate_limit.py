@@ -1,8 +1,11 @@
 from functools import wraps
 
 from django.core.cache import cache
-from django.http import JsonResponse
 
+from dealio.apps.common.adapters.http_error_response_adapter import (
+    HttpErrorResponseAdapter,
+)
+from dealio.apps.common.logic.http_error_logic import RateLimitErrorLogic
 from dealio.apps.common.utils.common_utils import CommonUtils
 
 
@@ -74,12 +77,10 @@ def rate_limit(
 
             if key is None:
                 if block_if_no_key:
-                    return JsonResponse(
-                        {
-                            "detail": "Could not identify client for rate limiting.",
-                            "waiting_time": period,
-                        },
-                        status=400,
+                    error = RateLimitErrorLogic.client_unknown(waiting_time=period)
+                    return HttpErrorResponseAdapter.build(
+                        request=request,
+                        error=error,
                     )
 
                 return func(*args, **kwargs)
@@ -97,12 +98,12 @@ def rate_limit(
             )
 
             if not allowed:
-                return JsonResponse(
-                    {
-                        "detail": "Too many requests. Try again later.",
-                        "waiting_time": get_cache_ttl(key, period),
-                    },
-                    status=429,
+                error = RateLimitErrorLogic.exceeded(
+                    waiting_time=get_cache_ttl(key, period),
+                )
+                return HttpErrorResponseAdapter.build(
+                    request=request,
+                    error=error,
                 )
 
             return func(*args, **kwargs)
