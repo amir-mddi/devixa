@@ -1,4 +1,6 @@
 class HttpErrorCodeVO:
+    NOT_FOUND = "not_found"
+
     RATE_LIMIT_EXCEEDED = "rate_limit_exceeded"
     RATE_LIMIT_CLIENT_UNKNOWN = "rate_limit_client_unknown"
 
@@ -11,6 +13,22 @@ class HttpErrorCodeVO:
 
 
 class HttpErrorTextVO:
+    NOT_FOUND_TITLE = "صفحه موردنظر پیدا نشد"
+    NOT_FOUND_MESSAGE = (
+        "نشانی واردشده درست نیست، صفحه جابه‌جا شده یا محتوای موردنظر "
+        "دیگر در دسترس نیست."
+    )
+    NOT_FOUND_OBJECT_MESSAGE = "محتوای موردنظر پیدا نشد یا دیگر قابل دسترسی نیست."
+    NOT_FOUND_EYEBROW = "خطای ۴۰۴"
+    NOT_FOUND_PATH_LABEL = "نشانی بررسی‌شده"
+    NOT_FOUND_HELP_TITLE = "از اینجا مسیرت را ادامه بده"
+    NOT_FOUND_HELP_MESSAGE = (
+        "می‌توانی به صفحه اصلی برگردی یا دوره‌ها و نقشه‌راه‌های موجود را بررسی کنی."
+    )
+    NOT_FOUND_HOME_ACTION = "بازگشت به صفحه اصلی"
+    NOT_FOUND_COURSES_ACTION = "مشاهده دوره‌ها"
+    NOT_FOUND_ROADMAPS_ACTION = "مشاهده نقشه‌راه‌ها"
+
     RATE_LIMIT_TITLE = "درخواست‌های بیش از حد"
     RATE_LIMIT_MESSAGE = (
         "تعداد درخواست‌های شما بیش از حد مجاز است. "

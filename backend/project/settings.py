@@ -56,6 +56,7 @@ if IS_PROD and not ALLOWED_HOSTS:
 PROJECT_LOGGER_NAME = general_config.project_logger_name
 PROJECT_STATIC_ASSET_ROOT = general_config.static_asset_root
 PROJECT_SERVE_STATIC_FILES = general_config.serve_static_files
+SEO_CANONICAL_ORIGIN = os.environ.get("SEO_CANONICAL_ORIGIN", "").strip()
 
 INSTALLED_APPS = [
     # pre-required apps
@@ -95,6 +96,7 @@ if DEBUG:
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "backend.apps.common.web.seo.middleware.SeoRobotsHeaderMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",

@@ -1,7 +1,8 @@
 {% extends "web/pages/base.html" %}
 {% load static project_tags %}
 
-{% block title %}تماس با ما{% endblock %}
+{% block title %}{{ seo.title }}{% endblock %}
+{% block meta_description %}{{ seo.description }}{% endblock %}
 {% block page_styles %}
     <link rel="stylesheet" href="{% project_static 'Styles/contact_us.css' %}">
 {% endblock %}

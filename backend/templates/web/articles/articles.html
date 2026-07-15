@@ -1,8 +1,8 @@
 {% extends "web/pages/base.html" %}
 {% load project_tags %}
 
-{% block title %}مجله، اخبار و وبلاگ {{ project.display_name }}{% endblock %}
-{% block meta_description %}جدیدترین اخبار، مقاله‌های آموزشی و مطالب تخصصی {{ project.display_name }}{% endblock %}
+{% block title %}{{ seo.title }}{% endblock %}
+{% block meta_description %}{{ seo.description }}{% endblock %}
 
 {% block page_styles_after %}
     <link rel="stylesheet" href="{% project_static 'Styles/articles.css' %}?v=articles-1">

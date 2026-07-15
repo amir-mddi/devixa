@@ -33,8 +33,11 @@ class PrivateRedocView(SpectacularRedocView):
     permission_classes = [IsAdminUser]
 
 
+handler404 = "backend.apps.common.web.error_views.page_not_found"
+
 PREFIX_URL = "api/v1/"
 urlpatterns = [
+    path("", include("backend.apps.common.web.seo.urls")),
     path("", include("backend.apps.accounts.web.urls")),
     path("", include("backend.apps.pages.web.urls")),
     path("", include("backend.apps.courses.web.urls")),

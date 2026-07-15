@@ -1,9 +1,61 @@
 from __future__ import annotations
 
+from http import HTTPStatus
+
 from django.conf import settings
+from django.http import Http404
+from django.urls import Resolver404
 
 from backend.apps.common.dtos.http_error_dto import HttpErrorDTO
 from backend.apps.common.vo.http_error_vo import HttpErrorCodeVO, HttpErrorTextVO
+
+
+class NotFoundErrorLogic:
+    """Build a safe browser/API 404 presentation for missing routes and objects."""
+
+    MAX_PUBLIC_MESSAGE_LENGTH = 240
+
+    @classmethod
+    def from_exception(cls, exception: Exception | None) -> HttpErrorDTO:
+        message = cls._public_message(exception)
+        return HttpErrorDTO(
+            code=HttpErrorCodeVO.NOT_FOUND,
+            title=HttpErrorTextVO.NOT_FOUND_TITLE,
+            message=message,
+            status_code=HTTPStatus.NOT_FOUND.value,
+        )
+
+    @classmethod
+    def _public_message(cls, exception: Exception | None) -> str:
+        if exception is None or isinstance(exception, Resolver404):
+            return HttpErrorTextVO.NOT_FOUND_MESSAGE
+
+        if not isinstance(exception, Http404):
+            return HttpErrorTextVO.NOT_FOUND_MESSAGE
+
+        candidate = str(exception).strip()
+        if not cls._is_safe_public_message(candidate):
+            return HttpErrorTextVO.NOT_FOUND_OBJECT_MESSAGE
+        return candidate
+
+    @classmethod
+    def _is_safe_public_message(cls, value: str) -> bool:
+        if not value or len(value) > cls.MAX_PUBLIC_MESSAGE_LENGTH:
+            return False
+        if any(character in value for character in ("<", ">", "\n", "\r")):
+            return False
+
+        normalized = value.lower()
+        technical_markers = (
+            "resolver404",
+            "tried",
+            "url_patterns",
+            "no ",
+            " matches the given query",
+            "doesnotexist",
+            "queryset",
+        )
+        return not any(marker in normalized for marker in technical_markers)
 
 
 class RateLimitErrorLogic:

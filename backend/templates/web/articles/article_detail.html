@@ -1,14 +1,8 @@
 {% extends "web/pages/base.html" %}
 {% load project_tags %}
 
-{% block title %}{{ article.seo_title }} | {{ project.display_name }}{% endblock %}
-{% block meta_description %}{{ article.seo_description }}{% endblock %}
-{% block meta_tags %}
-    <meta property="og:type" content="article">
-    <meta property="og:title" content="{{ article.seo_title }}">
-    <meta property="og:description" content="{{ article.seo_description }}">
-    {% if article.cover_image %}<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ article.cover_image.url }}">{% endif %}
-{% endblock %}
+{% block title %}{{ seo.title }}{% endblock %}
+{% block meta_description %}{{ seo.description }}{% endblock %}
 
 {% block page_styles_after %}
     <link rel="stylesheet" href="{% project_static 'Styles/articles.css' %}?v=articles-1">

@@ -12,6 +12,7 @@ class PageWebTemplateVO(StrEnum):
     ABOUT_US = "web/pages/about_us.html"
     CONTACT_US = "web/pages/contact_us.html"
     CHANNELS = "web/pages/channels.html"
+    ANDROID_APP = "web/pages/android_app.html"
 
 
 class PageWebPathVO(StrEnum):
@@ -19,6 +20,7 @@ class PageWebPathVO(StrEnum):
     ABOUT_US = "about-us/"
     CONTACT_US = "contact-us/"
     CHANNELS = "channels/"
+    ANDROID_APP = "android/"
     ANDROID_APP_DOWNLOAD = "downloads/android/"
 
 
@@ -27,6 +29,7 @@ class PageWebRouteNameVO(StrEnum):
     ABOUT_US = "about_us"
     CONTACT_US = "contact_us"
     CHANNELS = "channels"
+    ANDROID_APP = "android_app"
     ANDROID_APP_DOWNLOAD = "download_android_app"
 
 
@@ -35,6 +38,7 @@ class PageWebReverseNameVO(StrEnum):
     ABOUT_US = "pages_web:about_us"
     CONTACT_US = "pages_web:contact_us"
     CHANNELS = "pages_web:channels"
+    ANDROID_APP = "pages_web:android_app"
     ANDROID_APP_DOWNLOAD = "pages_web:download_android_app"
 
 
@@ -136,6 +140,8 @@ class PageWebContextKeyVO(StrEnum):
     TESTIMONIALS = "testimonials"
     FREQUENTLY_ASKED_QUESTIONS = "frequently_asked_questions"
     CHANNEL_LINKS = "channel_links"
+    ANDROID_VERSION = "android_version"
+    ANDROID_FILENAME = "android_filename"
 
 
 class PageWebMessageVO(StrEnum):

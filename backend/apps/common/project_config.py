@@ -59,3 +59,16 @@ def get_project_logger_name() -> str:
 
 def get_project_context() -> dict[str, str]:
     return get_project_public_config().as_context()
+
+
+REQUEST_PROJECT_CONTEXT_ATTRIBUTE = "_project_public_context"
+
+
+def get_request_project_context(request) -> dict[str, str]:
+    cached = getattr(request, REQUEST_PROJECT_CONTEXT_ATTRIBUTE, None)
+    if cached is not None:
+        return cached
+
+    project = get_project_context()
+    setattr(request, REQUEST_PROJECT_CONTEXT_ATTRIBUTE, project)
+    return project

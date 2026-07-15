@@ -12,19 +12,34 @@ class HttpErrorResponseAdapter:
     template_name = "web/errors/http_error.html"
 
     @classmethod
-    def build(cls, *, request, error: HttpErrorDTO, view=None):
+    def build(
+        cls,
+        *,
+        request,
+        error: HttpErrorDTO,
+        view=None,
+        template_name: str | None = None,
+        context: dict | None = None,
+        allow_view_override: bool = True,
+    ):
         if RequestFormatLogic.wants_json(request):
             response = cls._build_json(error)
         else:
-            resolved_view = view or cls._resolve_view(request)
+            resolved_view = None
+            if allow_view_override:
+                resolved_view = view or cls._resolve_view(request)
+
             custom_handler = getattr(resolved_view, "handle_http_error_response", None)
             if callable(custom_handler):
                 response = custom_handler(error)
             else:
+                render_context = {"http_error": error}
+                if context:
+                    render_context.update(context)
                 response = render(
                     request,
-                    cls.template_name,
-                    {"http_error": error},
+                    template_name or cls.template_name,
+                    render_context,
                     status=error.status_code,
                 )
 

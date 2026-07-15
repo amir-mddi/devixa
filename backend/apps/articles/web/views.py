@@ -5,7 +5,10 @@ from django.views.generic import TemplateView
 from rest_framework.exceptions import NotFound
 
 from backend.apps.articles.enums import ArticleTypeEnum
+from backend.apps.common.project_config import get_request_project_context
+from backend.apps.common.web.seo.mixins import SeoContextMixin
 from backend.apps.articles.logic import ArticleLogic
+from backend.apps.articles.web.seo_presenters import ArticleSeoPresenter
 from backend.apps.articles.value_objects import (
     ArticleMessageVO,
     ArticleQueryParamVO,
@@ -14,9 +17,10 @@ from backend.apps.articles.value_objects import (
 )
 
 
-class ArticlePageMixin:
+class ArticlePageMixin(SeoContextMixin):
     logic_class = ArticleLogic
     forced_type: str | None = None
+    seo_presenter_class = ArticleSeoPresenter
 
     @staticmethod
     def _query_suffix(request) -> str:
@@ -68,7 +72,17 @@ class ArticleDetailPageView(ArticlePageMixin, TemplateView):
                 ArticleWebContextKeyVO.DETAIL.value: detail,
                 ArticleWebContextKeyVO.ARTICLE.value: detail.article,
                 ArticleWebContextKeyVO.RELATED_ARTICLES.value: detail.related_articles,
-                ArticleWebContextKeyVO.RELATED_EMPTY_MESSAGE.value: ArticleMessageVO.RELATED_EMPTY.value,
+                ArticleWebContextKeyVO.RELATED_EMPTY_MESSAGE.value: (
+                    ArticleMessageVO.RELATED_EMPTY.value
+                ),
             }
         )
         return context
+
+    def get_seo_override(self, context):
+        return self.seo_presenter_class().detail(
+            request=self.request,
+            project_mapping=get_request_project_context(self.request),
+            article=context[ArticleWebContextKeyVO.ARTICLE.value],
+        )
+

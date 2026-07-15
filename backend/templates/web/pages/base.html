@@ -5,8 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#070b14">
-    <meta name="description" content="{% block meta_description %}{{ project.description }}{% endblock %}">
+    <meta name="description" content="{% block meta_description %}{{ seo.description }}{% endblock %}">
+    {% include "web/seo/_meta.html" %}
     {% block meta_tags %}{% endblock %}
+    <title>{% block title %}{{ seo.title }}{% endblock %}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     {# Global foundation: loaded for every public, basket, profile and admin page. #}
     <link rel="stylesheet" href="{% project_static 'Styles/variables.css' %}">
@@ -23,7 +25,6 @@
     <link rel="stylesheet" href="{% project_static 'Styles/course-detail-polish.css' %}">
     {% block page_styles_after %}{% endblock %}
     <link rel="stylesheet" href="{% project_static 'Styles/app-ui.css' %}?v=ui-3">
-    <title>{% block title %}{{ project.display_name }}{% endblock %}</title>
     {% include "web/shared/_message_styles.html" %}
 </head>
 <body data-project-name="{{ project.display_name }}" data-project-initial="{{ project.logo_initial }}">

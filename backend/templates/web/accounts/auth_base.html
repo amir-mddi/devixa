@@ -5,7 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#070b14">
-    <meta name="description" content="{% block meta_description %}{{ project.description }}{% endblock %}">
+    <meta name="description" content="{% block meta_description %}{{ seo.description }}{% endblock %}">
+    {% include "web/seo/_meta.html" %}
+    <title>{% block title %}{{ seo.title }}{% endblock %}</title>
     <script>
         (() => {
             let saved = null;
@@ -27,7 +29,6 @@
     <link rel="stylesheet" href="{% project_static 'Styles/reset.css' %}">
     <link rel="stylesheet" href="{% project_static 'Styles/framework.css' %}">
     <link rel="stylesheet" href="{% project_static 'Styles/forget_password.css' %}?v=auth-4">
-    <title>{% block title %}{{ project.display_name }}{% endblock %}</title>
     {% include "web/shared/_message_styles.html" %}
     {% block page_styles %}{% endblock %}
 </head>

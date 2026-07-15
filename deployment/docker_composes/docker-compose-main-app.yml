@@ -9,6 +9,8 @@ x-backend-service: &backend-service
     - /mnt/data/backend_web/media:/app/backend/apps/media
     - /mnt/data/backend_web/static:/app/deployment/staticfiles
     - /mnt/data/backend_web/postgresql_backup:/app/postgresql_backup
+    - /mnt/data/backend_web/downloads:/app/backend/static/app/downloads
+
   networks:
     - backend
   restart: unless-stopped

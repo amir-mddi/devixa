@@ -1,7 +1,8 @@
 {% extends "web/pages/base.html" %}
 {% load static project_tags course_web_tags %}
 
-{% block title %}{{ course.title }}{% endblock %}
+{% block title %}{{ seo.title }}{% endblock %}
+{% block meta_description %}{{ seo.description }}{% endblock %}
 {% block page_styles %}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css">
     <link rel="stylesheet" href="{% project_static 'Styles/single_course.css' %}">

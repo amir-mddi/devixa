@@ -1,0 +1,70 @@
+{% extends "web/pages/base.html" %}
+{% load project_tags %}
+
+{% block title %}{{ http_error.title }} | {{ project.display_name }}{% endblock %}
+{% block meta_description %}{{ http_error.message }}{% endblock %}
+
+{% block page_styles %}
+<link rel="stylesheet" href="{% project_static 'Styles/not-found.css' %}?v=not-found-1">
+{% endblock %}
+
+{% block content %}
+<main class="not-found-page" aria-labelledby="not-found-title">
+    <span class="not-found-page__orb not-found-page__orb--one" aria-hidden="true"></span>
+    <span class="not-found-page__orb not-found-page__orb--two" aria-hidden="true"></span>
+
+    <section class="not-found-card">
+        <div class="not-found-card__visual" aria-hidden="true">
+            <span class="not-found-card__code">۴۰۴</span>
+            <div class="not-found-card__compass">
+                <svg viewBox="0 0 64 64" role="presentation">
+                    <circle cx="32" cy="32" r="27" fill="none" stroke="currentColor" stroke-width="2.5"/>
+                    <circle cx="32" cy="32" r="4" fill="currentColor"/>
+                    <path d="m39.5 24.5-5.1 10-9.9 5 5-9.9 10-5.1Z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+                    <path d="M32 8v5M32 51v5M8 32h5M51 32h5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                </svg>
+            </div>
+        </div>
+
+        <div class="not-found-card__content">
+            <span class="not-found-card__eyebrow">
+                <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i>
+                {{ not_found_text.NOT_FOUND_EYEBROW }}
+            </span>
+
+            <h1 id="not-found-title">{{ http_error.title }}</h1>
+            <p class="not-found-card__message">{{ http_error.message }}</p>
+
+            <div class="not-found-card__path">
+                <span>{{ not_found_text.NOT_FOUND_PATH_LABEL }}</span>
+                <code dir="ltr">{{ request.path }}</code>
+            </div>
+
+            <div class="not-found-card__help">
+                <span class="not-found-card__help-icon" aria-hidden="true">
+                    <i class="fa-regular fa-compass"></i>
+                </span>
+                <div>
+                    <strong>{{ not_found_text.NOT_FOUND_HELP_TITLE }}</strong>
+                    <p>{{ not_found_text.NOT_FOUND_HELP_MESSAGE }}</p>
+                </div>
+            </div>
+
+            <div class="not-found-card__actions">
+                <a class="not-found-button not-found-button--primary" href="{% url 'pages_web:home' %}">
+                    <i class="fa-solid fa-house" aria-hidden="true"></i>
+                    <span>{{ not_found_text.NOT_FOUND_HOME_ACTION }}</span>
+                </a>
+                <a class="not-found-button" href="{% url 'courses_web:course_list' %}">
+                    <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i>
+                    <span>{{ not_found_text.NOT_FOUND_COURSES_ACTION }}</span>
+                </a>
+                <a class="not-found-button" href="{% url 'courses_web:roadmap_list' %}">
+                    <i class="fa-solid fa-route" aria-hidden="true"></i>
+                    <span>{{ not_found_text.NOT_FOUND_ROADMAPS_ACTION }}</span>
+                </a>
+            </div>
+        </div>
+    </section>
+</main>
+{% endblock %}

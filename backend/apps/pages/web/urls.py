@@ -6,6 +6,7 @@ from backend.apps.pages.vo.page_vo import PageWebAppNameVO, PageWebPathVO, PageW
 from backend.apps.pages.web.views import (
     AboutUsPageView,
     AndroidAppDownloadView,
+    AndroidAppPageView,
     ChannelsPageView,
     ContactUsPageView,
     HomePageView,
@@ -14,6 +15,11 @@ from backend.apps.pages.web.views import (
 app_name = PageWebAppNameVO.NAMESPACE.value
 
 urlpatterns = [
+    path(
+        PageWebPathVO.ANDROID_APP.value,
+        AndroidAppPageView.as_view(),
+        name=PageWebRouteNameVO.ANDROID_APP.value,
+    ),
     path(
         PageWebPathVO.ANDROID_APP_DOWNLOAD.value,
         AndroidAppDownloadView.as_view(),

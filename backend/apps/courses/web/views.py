@@ -4,7 +4,10 @@ from django.http import Http404
 from django.views.generic import TemplateView
 from rest_framework.exceptions import NotFound
 
+from backend.apps.common.project_config import get_request_project_context
+from backend.apps.common.web.seo.mixins import SeoContextMixin
 from backend.apps.courses.repositories.logic import CourseLogicRepository
+from backend.apps.courses.web.seo_presenters import CourseSeoPresenter
 from backend.apps.courses.vo.roadmap_vo import (
     CourseRoadmapCategoryLabelVO,
     CourseRoadmapCategoryVO,
@@ -17,8 +20,9 @@ from backend.apps.courses.vo.roadmap_vo import (
 )
 
 
-class CourseWebRepositoryMixin:
+class CourseWebRepositoryMixin(SeoContextMixin):
     logic_repository_class = CourseLogicRepository
+    seo_presenter_class = CourseSeoPresenter
 
 
 class CourseListPageView(CourseWebRepositoryMixin, TemplateView):
@@ -29,7 +33,9 @@ class CourseListPageView(CourseWebRepositoryMixin, TemplateView):
         logic = self.logic_repository_class()
         context.update(
             {
-                CourseWebContextKeyVO.CATALOG.value: logic.build_course_catalog(filters=self.request.GET),
+                CourseWebContextKeyVO.CATALOG.value: logic.build_course_catalog(
+                    filters=self.request.GET
+                ),
                 CourseWebContextKeyVO.LEVEL_FILTERS.value: logic.course_level_filters(),
                 CourseWebContextKeyVO.EMPTY_MESSAGE.value: CourseWebMessageVO.EMPTY_LIST.value,
             }
@@ -55,11 +61,22 @@ class CourseDetailPageView(CourseWebRepositoryMixin, TemplateView):
                 CourseWebContextKeyVO.COURSE.value: detail.course,
                 CourseWebContextKeyVO.REVIEWS.value: detail.reviews,
                 CourseWebContextKeyVO.RELATED_COURSES.value: detail.related_courses,
-                CourseWebContextKeyVO.RELATED_COURSES_EMPTY_MESSAGE.value: CourseWebMessageVO.RELATED_COURSES_EMPTY.value,
-                CourseWebContextKeyVO.REVIEWS_EMPTY_MESSAGE.value: CourseWebMessageVO.REVIEWS_EMPTY.value,
+                CourseWebContextKeyVO.RELATED_COURSES_EMPTY_MESSAGE.value: (
+                    CourseWebMessageVO.RELATED_COURSES_EMPTY.value
+                ),
+                CourseWebContextKeyVO.REVIEWS_EMPTY_MESSAGE.value: (
+                    CourseWebMessageVO.REVIEWS_EMPTY.value
+                ),
             }
         )
         return context
+
+    def get_seo_override(self, context):
+        return self.seo_presenter_class().course_detail(
+            request=self.request,
+            project_mapping=get_request_project_context(self.request),
+            course=context[CourseWebContextKeyVO.COURSE.value],
+        )
 
 
 class RoadmapPageContextMixin(CourseWebRepositoryMixin):
@@ -98,7 +115,9 @@ class RoadmapListPageView(RoadmapPageContextMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        catalog = self.logic_repository_class().list_learning_roadmaps(filters=self.request.GET)
+        catalog = self.logic_repository_class().list_learning_roadmaps(
+            filters=self.request.GET
+        )
         context.update(
             {
                 CourseWebContextKeyVO.CATALOG.value: catalog,
@@ -124,7 +143,17 @@ class RoadmapDetailPageView(RoadmapPageContextMixin, TemplateView):
             {
                 CourseWebContextKeyVO.DETAIL.value: detail,
                 CourseWebContextKeyVO.ROADMAP.value: detail.roadmap,
-                CourseWebContextKeyVO.RELATED_COURSES_EMPTY_MESSAGE.value: CourseRoadmapMessageVO.RELATED_COURSES_EMPTY.value,
+                CourseWebContextKeyVO.RELATED_COURSES_EMPTY_MESSAGE.value: (
+                    CourseRoadmapMessageVO.RELATED_COURSES_EMPTY.value
+                ),
             }
         )
         return context
+
+    def get_seo_override(self, context):
+        return self.seo_presenter_class().roadmap_detail(
+            request=self.request,
+            project_mapping=get_request_project_context(self.request),
+            roadmap=context[CourseWebContextKeyVO.ROADMAP.value],
+        )
+

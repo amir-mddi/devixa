@@ -1,0 +1,83 @@
+{% extends "web/pages/base.html" %}
+{% load project_tags %}
+
+{% block title %}{{ seo.title }}{% endblock %}
+{% block meta_description %}{{ seo.description }}{% endblock %}
+
+{% block page_styles_after %}
+<link rel="stylesheet" href="{% project_static 'Styles/android-app.css' %}?v=android-app-1">
+{% endblock %}
+
+{% block content %}
+<main class="android-app-page">
+    <section class="android-app-hero app-container" aria-labelledby="android-app-title">
+        <div class="android-app-hero__content">
+            <span class="android-app-eyebrow"><i class="fa-brands fa-android" aria-hidden="true"></i> نسخه رسمی اندروید</span>
+            <h1 id="android-app-title">یادگیری با <span class="brand-text">{{ project.display_name }}</span>، همیشه همراه تو</h1>
+            <p>دوره‌ها، نقشه‌های راه و محتوای آموزشی را در یک تجربه سریع و مناسب موبایل دنبال کن و هر زمان آماده بودی ادامه مسیرت را بردار.</p>
+            <div class="android-app-hero__actions">
+                <a class="android-app-button android-app-button--primary" href="{% url 'pages_web:download_android_app' %}" download>
+                    <i class="fa-solid fa-download" aria-hidden="true"></i>
+                    دانلود مستقیم APK
+                </a>
+                <a class="android-app-button" href="{% url 'courses_web:course_list' %}">
+                    مشاهده دوره‌ها
+                    <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+                </a>
+            </div>
+            <div class="android-app-meta" aria-label="اطلاعات نسخه">
+                <span><strong>نسخه</strong> {{ android_version }}</span>
+                <span><strong>فایل</strong> <bdi>{{ android_filename }}</bdi></span>
+                <span><strong>هزینه</strong> رایگان</span>
+            </div>
+        </div>
+
+        <div class="android-app-hero__visual" aria-hidden="true">
+            <div class="android-app-device">
+                <div class="android-app-device__camera"></div>
+                <div class="android-app-device__screen">
+                    <div class="android-app-device__brand">
+                        <img src="{% project_static 'images/brand/devixa-logo-512.png' %}" alt="">
+                        <span><strong>{{ project.display_name }}</strong><small>Learning App</small></span>
+                    </div>
+                    <div class="android-app-device__course">
+                        <span class="android-app-device__course-icon"><i class="fa-brands fa-python"></i></span>
+                        <div><small>مسیر فعال</small><strong>Backend با Django</strong></div>
+                    </div>
+                    <div class="android-app-device__progress"><span></span></div>
+                    <div class="android-app-device__stats">
+                        <span><strong>۱۲</strong><small>درس</small></span>
+                        <span><strong>۴</strong><small>پروژه</small></span>
+                        <span><strong>۷۸٪</strong><small>پیشرفت</small></span>
+                    </div>
+                    <div class="android-app-device__cta">ادامه یادگیری</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="android-app-features app-container" aria-labelledby="android-features-title">
+        <header class="android-app-section-heading">
+            <span>طراحی‌شده برای یادگیری روزانه</span>
+            <h2 id="android-features-title">همه چیز برای ادامه مسیر، در دسترس توست</h2>
+        </header>
+        <div class="android-app-features__grid">
+            <article>
+                <span><i class="fa-solid fa-route" aria-hidden="true"></i></span>
+                <h3>نقشه راه روشن</h3>
+                <p>قدم بعدی، وضعیت پیشرفت و محتوای مرتبط را بدون سردرگمی ببین.</p>
+            </article>
+            <article>
+                <span><i class="fa-solid fa-bolt" aria-hidden="true"></i></span>
+                <h3>تجربه سریع</h3>
+                <p>رابط سبک و بهینه برای دسترسی سریع به دوره‌ها و محتوای آموزشی.</p>
+            </article>
+            <article>
+                <span><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></span>
+                <h3>دانلود امن</h3>
+                <p>فایل رسمی اپلیکیشن را مستقیماً از دامنه {{ project.display_name }} دریافت کن.</p>
+            </article>
+        </div>
+    </section>
+</main>
+{% endblock %}
