@@ -62,7 +62,6 @@ prometheus.yml
 requirements-test.txt
 local_machine.env
 develop-eggs/
-dist/
 eggs/
 .eggs/
 lib/

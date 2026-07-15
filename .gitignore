@@ -94,7 +94,6 @@ deployment/docker_composes/docker_test_local.yml
 # Distribution / packaging
 .Python build/
 develop-eggs/
-dist/
 eggs/
 .eggs/
 lib/
