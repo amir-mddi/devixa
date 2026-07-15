@@ -24,14 +24,14 @@ codes
 media
 myvenv
 test
-dealio/docs
+backend/docs
 oauth-test
 postgresql_backup
-dealio.zip
-dealio/deployment/env
-dealio.rar
+backend.zip
+backend/deployment/env
+backend.rar
 media/coinlibrary
-dealio/settings/local.py
+backend/settings/local.py
 media/entitylibrary
 test_social_oauth.py
 media/entity_type
@@ -51,7 +51,7 @@ counter_*
 deployment/docker_composes/docker_test_local.yml
 test.py
 .local_env
-dealio/apps/accounts/middleware_prom.py
+backend/apps/accounts/middleware_prom.py
 backup.sql
 get-pip.py
 deployment/env/local.env
@@ -63,7 +63,6 @@ requirements-test.txt
 local_machine.env
 develop-eggs/
 dist/
-downloads/
 eggs/
 .eggs/
 lib/

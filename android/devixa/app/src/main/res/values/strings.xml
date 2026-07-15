@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Devixa</string>
+    <string name="connection_error_title">اتصال برقرار نشد</string>
+    <string name="connection_error">اینترنت یا سرور در دسترس نیست. اتصال خود را بررسی کنید و دوباره تلاش کنید.</string>
+    <string name="retry">تلاش دوباره</string>
+    <string name="external_link_error">برنامه‌ای امن برای باز کردن این لینک پیدا نشد.</string>
+    <string name="file_picker_error">امکان باز کردن انتخاب‌گر فایل وجود ندارد.</string>
+</resources>

@@ -24,4 +24,4 @@ RUN sed -i 's/\r$//g' /app/deployment/entrypoints/*.sh && \
 
 ENTRYPOINT ["/app/deployment/entrypoints/entrypoint.sh"]
 
-CMD ["sh", "-c", "gunicorn -w ${WORKERS:-$(( $(nproc) + 1 ))} -k gthread --threads ${THREADS:-6} dealio.project.wsgi:application -b 0.0.0.0:${PORT:-8077}"]
+CMD ["sh", "-c", "gunicorn -w ${WORKERS:-$(( $(nproc) + 1 ))} -k gthread --threads ${THREADS:-6} backend.project.wsgi:application -b 0.0.0.0:${PORT:-8077}"]

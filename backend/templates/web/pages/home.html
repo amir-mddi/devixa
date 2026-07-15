@@ -1,0 +1,482 @@
+{% extends "web/pages/base.html" %}
+{% load static project_tags course_web_tags %}
+
+{% block title %}{{ project.display_name }} | آموزش برنامه‌نویسی پروژه محور{% endblock %}
+{% block page_styles %}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css">
+    <link rel="stylesheet" href="{% project_static 'Styles/home.css' %}">
+    <link rel="stylesheet" href="{% project_static 'Styles/courses.css' %}">
+    <style>
+        .home_empty_state{width:min(720px,92%);margin:30px auto;padding:26px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface);color:var(--text-muted);text-align:center;}
+        .learning_path .paths a{text-decoration:none;color:inherit;}
+        .learning_path .paths .path_icon i{font-size:72px;color:var(--primary);display:block;margin:auto;}
+        .testimonial_card{flex:0 0 auto;}
+    </style>
+{% endblock %}
+
+{% block page_styles_after %}
+    <link rel="stylesheet" href="{% project_static 'Styles/home-v2.css' %}?v=home-v2-1">
+    <link rel="stylesheet" href="{% project_static 'Styles/home-v3.css' %}?v=home-v3-1">
+    <link rel="stylesheet" href="{% project_static 'Styles/home-v4.css' %}?v=home-v4-1">
+{% endblock %}
+
+{% block content %}
+<section class="home-hero-v2" aria-labelledby="home-hero-title">
+    <span class="home-hero-v2__orb home-hero-v2__orb--one" aria-hidden="true"></span>
+    <span class="home-hero-v2__orb home-hero-v2__orb--two" aria-hidden="true"></span>
+
+    <div class="home-hero-v2__container">
+        <div class="home-hero-v2__content">
+            <span class="home-kicker-v2">
+                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.5 12 7l4.8.7-3.5 3.4.9 4.8-4.2-2.2-4.2 2.2.9-4.8L3.2 7.7 8 7l2-4.5Z" fill="currentColor"/></svg>
+                آموزش پروژه‌محور برای بازار کار واقعی
+            </span>
+
+            <h1 id="home-hero-title" class="home-hero-v2__title">
+                یادگیری هدفمند؛
+                <span>از مسیر روشن تا پروژه‌ای که دیده می‌شود.</span>
+            </h1>
+
+            <p class="home-hero-v2__description">
+                در <span class="brand-text">{{ project.display_name }}</span> هر مهارت با یک مسیر روشن، تمرین هدفمند، پروژه واقعی و بازخورد حرفه‌ای جلو می‌رود؛ تا دقیقاً بدانی قدم بعدی چیست.
+            </p>
+
+            <div class="home-hero-v2__actions">
+                <a class="home-button-v2 home-button-v2--primary" href="{% url 'courses_web:course_list' %}">
+                    مشاهده دوره‌ها
+                    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M13.5 5 8.5 10l5 5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </a>
+                <a class="home-button-v2 home-button-v2--secondary" href="{% url 'courses_web:roadmap_list' %}">
+                    انتخاب نقشه راه
+                    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 15.5V6.8l5.8-3.3 6.2 3.3v8.7l-6.2 3-5.8-3Z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="m4.4 6.8 5.4 3 5.8-3M9.8 9.8v8.3" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+                </a>
+            </div>
+
+            <div class="home-proof-v2" aria-label="اعتماد دانشجویان">
+                <div class="home-proof-v2__members" aria-hidden="true">
+                    <span class="home-proof-v2__member home-proof-v2__member--python"><i class="devicon-python-plain"></i></span>
+                    <span class="home-proof-v2__member home-proof-v2__member--django"><i class="devicon-django-plain"></i></span>
+                    <span class="home-proof-v2__member home-proof-v2__member--code">
+                        <svg viewBox="0 0 24 24"><path d="m8.5 7-5 5 5 5M15.5 7l5 5-5 5M14 4l-4 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </span>
+                    <span class="home-proof-v2__member home-proof-v2__member--count">+2K</span>
+                </div>
+                <div class="home-proof-v2__copy">
+                    <strong>بیش از ۲۵۰۰ دانشجو</strong>
+                    <span>مسیر حرفه‌ای خود را شروع کرده‌اند</span>
+                </div>
+                <div class="home-proof-v2__rating">
+                    <span class="home-proof-v2__stars" aria-label="امتیاز ۴.۹ از ۵">
+                        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m10 1.8 2.45 4.96 5.47.8-3.96 3.85.94 5.44L10 14.3l-4.9 2.58.94-5.44-3.96-3.85 5.47-.8L10 1.8Z" fill="currentColor"/></svg>
+                        ۴.۹
+                    </span>
+                    <span>رضایت دانشجویان</span>
+                </div>
+            </div>
+
+            <div class="home-hero-v2__highlights" aria-label="ویژگی‌های اصلی">
+                <span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5.2 10.2 3 3 6.6-6.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> پروژه واقعی</span>
+                <span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5.2 10.2 3 3 6.6-6.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> بازخورد منتور</span>
+                <span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5.2 10.2 3 3 6.6-6.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> دسترسی دائمی</span>
+            </div>
+        </div>
+
+        <div class="home-hero-v2__visual" aria-label="پیش‌نمایش محیط یادگیری {{ project.display_name }}">
+            <span class="home-float-card-v2 home-float-card-v2--career">
+                <span class="home-float-card-v2__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V6a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v2M4 8h16a2 2 0 0 1 2 2v8a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3v-8a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M2 13h20M10 13v2h4v-2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+                <span><strong>آماده بازار کار</strong><small>۴ پروژه در رزومه</small></span>
+            </span>
+
+            <span class="home-float-card-v2 home-float-card-v2--streak">
+                <span class="home-float-card-v2__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.3 2.8c.8 3-1.4 4.6-2.7 6.1-1.2 1.4-1.4 2.7-.4 4.1.7-1.7 1.8-2.6 3.3-3.8 2 2.1 3.5 4.3 3.5 7A5 5 0 0 1 12 21a5.7 5.7 0 0 1-5.8-5.7c0-4.1 2.7-7.1 7.1-12.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span>
+                <span><strong>۷ روز پیوسته</strong><small>رکورد یادگیری</small></span>
+            </span>
+
+            <div class="learning-os-v2">
+                <header class="learning-os-v2__header">
+                    <div class="learning-os-v2__brand">
+                        <span class="learning-os-v2__logo">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.5h7.2A4.8 4.8 0 0 1 18 9.3v10.2h-7.2A4.8 4.8 0 0 1 6 14.7V4.5Z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M10 9h4M10 12.5h4M10 16h2.3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                        </span>
+                        <span><strong>{{ project.display_name }}</strong><small>Learning OS</small></span>
+                    </div>
+                    <span class="learning-os-v2__live"><i></i> در حال یادگیری</span>
+                </header>
+
+                <div class="learning-os-v2__body">
+                    <aside class="learning-os-v2__sidebar" aria-hidden="true">
+                        <span class="is-active"><svg viewBox="0 0 20 20"><path d="M3 9.2 10 3l7 6.2V17H5V9.2Z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 17v-5h4v5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></span>
+                        <span><svg viewBox="0 0 20 20"><path d="M4 3h12a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M6.5 7h7M6.5 10h7M6.5 13h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+                        <span><svg viewBox="0 0 20 20"><path d="M10 2.5 12 7l4.8.7-3.5 3.4.9 4.8-4.2-2.2-4.2 2.2.9-4.8L3.2 7.7 8 7l2-4.5Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span>
+                        <span><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10 2.5v2M10 15.5v2M17.5 10h-2M4.5 10h-2M15.3 4.7l-1.4 1.4M6.1 13.9l-1.4 1.4M15.3 15.3l-1.4-1.4M6.1 6.1 4.7 4.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+                    </aside>
+
+                    <main class="learning-os-v2__workspace">
+                        <div class="learning-os-v2__welcome">
+                            <div>
+                                <span>پروژه فعال</span>
+                                <h3>API فروشگاه با Django</h3>
+                            </div>
+                            <div class="learning-os-v2__stack" aria-label="فناوری‌های پروژه">
+                                <span><i class="devicon-python-plain"></i></span>
+                                <span><i class="devicon-django-plain"></i></span>
+                                <span><i class="devicon-postgresql-plain"></i></span>
+                            </div>
+                        </div>
+
+                        <div class="learning-os-v2__project-grid">
+                            <section class="learning-os-v2__project-card">
+                                <div class="learning-os-v2__project-top">
+                                    <span class="learning-os-v2__project-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m8.5 9-3 3 3 3M15.5 9l3 3-3 3M14 7l-4 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                                    <span class="learning-os-v2__project-status">مرحله ۳ از ۵</span>
+                                </div>
+                                <h4>پیاده‌سازی معماری تمیز</h4>
+                                <p>تفکیک Controller، Logic، Repository و Adapter</p>
+                                <div class="learning-os-v2__progress-meta"><span>پیشرفت پروژه</span><strong>۷۸٪</strong></div>
+                                <div class="learning-os-v2__progress"><span></span></div>
+                            </section>
+
+                            <section class="learning-os-v2__terminal" dir="ltr" aria-label="نمونه ساختار پروژه">
+                                <header><span><i></i><i></i><i></i></span><strong>architecture.py</strong><small>main</small></header>
+                                <div>
+                                    <code><b>01</b><span><em>class</em> CourseController:</span></code>
+                                    <code><b>02</b><span>&nbsp;&nbsp;<em>def</em> execute(self):</span></code>
+                                    <code class="is-active"><b>03</b><span>&nbsp;&nbsp;&nbsp;&nbsp;<mark>return</mark> self.logic.run()</span></code>
+                                    <code><b>04</b><span></span></code>
+                                    <code><b>05</b><span>repository.save(entity)</span></code>
+                                </div>
+                            </section>
+                        </div>
+
+                        <div class="learning-os-v2__metrics">
+                            <span><strong>۱۲</strong><small>تسک کامل</small></span>
+                            <span><strong>۴</strong><small>مهارت جدید</small></span>
+                            <span><strong>۸۷٪</strong><small>کیفیت پروژه</small></span>
+                            <a href="{% url 'courses_web:course_list' %}">ادامه مسیر <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M13.5 5 8.5 10l5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+                        </div>
+                    </main>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="home-impact-v3" aria-labelledby="home-impact-title">
+    <span class="home-impact-v3__glow home-impact-v3__glow--one" aria-hidden="true"></span>
+    <span class="home-impact-v3__glow home-impact-v3__glow--two" aria-hidden="true"></span>
+
+    <div class="home-impact-v3__container">
+        <header class="home-impact-v3__intro reveal">
+            <span class="home-impact-v3__eyebrow">نتیجه‌ای که قابل اندازه‌گیری است</span>
+            <h2 id="home-impact-title">اعداد فقط آمار نیستند؛ ردپای مسیرهایی هستند که به خروجی واقعی رسیده‌اند.</h2>
+            <p>از شروع اولین درس تا ساخت پروژه و انتخاب مسیر تخصصی، همه‌چیز برای حرکت پیوسته طراحی شده است.</p>
+        </header>
+
+        <div class="home-impact-v3__grid">
+            <article class="home-impact-card-v3 home-impact-card-v3--students reveal">
+                <div class="home-impact-card-v3__top">
+                    <span class="home-impact-card-v3__icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M16 20v-1.7a4.3 4.3 0 0 0-4.3-4.3H6.3A4.3 4.3 0 0 0 2 18.3V20M9 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM17 11a3.5 3.5 0 0 0 0-7M22 20v-1.6a4 4 0 0 0-3-3.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                    </span>
+                    <span class="home-impact-card-v3__badge"><i></i> جامعه فعال</span>
+                </div>
+                <div class="home-impact-card-v3__value"><strong>+۲٬۵۰۰</strong><span>دانشجو</span></div>
+                <p>یادگیرندگانی که مسیر حرفه‌ای خود را با پروژه واقعی شروع کرده‌اند.</p>
+                <div class="home-impact-card-v3__signal" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+            </article>
+
+            <article class="home-impact-card-v3 home-impact-card-v3--courses reveal">
+                <div class="home-impact-card-v3__top">
+                    <span class="home-impact-card-v3__icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M4 4.5h5.3A3.7 3.7 0 0 1 13 8.2V20a3.7 3.7 0 0 0-3.7-3.7H4V4.5ZM20 4.5h-5.3A3.7 3.7 0 0 0 11 8.2V20a3.7 3.7 0 0 1 3.7-3.7H20V4.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+                    </span>
+                    <span class="home-impact-card-v3__badge">محتوای هدفمند</span>
+                </div>
+                <div class="home-impact-card-v3__value"><strong>+۴۵</strong><span>دوره تخصصی</span></div>
+                <p>دوره‌هایی با ساختار مرحله‌ای، تمرین قابل اجرا و خروجی مشخص.</p>
+                <div class="home-impact-card-v3__signal" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+            </article>
+
+            <article class="home-impact-card-v3 home-impact-card-v3--projects reveal">
+                <div class="home-impact-card-v3__top">
+                    <span class="home-impact-card-v3__icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="m8 8-4 4 4 4M16 8l4 4-4 4M14 4l-4 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="m15.5 18.2 1.4 1.4 3.1-3.1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </span>
+                    <span class="home-impact-card-v3__badge">خروجی رزومه‌ای</span>
+                </div>
+                <div class="home-impact-card-v3__value"><strong>+۱۲۰</strong><span>پروژه عملی</span></div>
+                <p>پروژه‌هایی برای تبدیل دانش فنی به نمونه‌کار قابل ارائه.</p>
+                <div class="home-impact-card-v3__signal" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+            </article>
+
+            <article class="home-impact-card-v3 home-impact-card-v3--paths reveal">
+                <div class="home-impact-card-v3__top">
+                    <span class="home-impact-card-v3__icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><circle cx="6" cy="18" r="2" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="18" cy="6" r="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8 18h2.2a3 3 0 0 0 3-3v-6a3 3 0 0 1 3-3H16M7.5 6H4v3.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </span>
+                    <span class="home-impact-card-v3__badge">قدم بعدی روشن</span>
+                </div>
+                <div class="home-impact-card-v3__value"><strong>+۱۰</strong><span>مسیر یادگیری</span></div>
+                <p>نقشه‌راه‌هایی برای حرکت منظم از مبانی تا تخصص و بازار کار.</p>
+                <div class="home-impact-card-v3__signal" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+            </article>
+        </div>
+    </div>
+</section>
+
+<section class="learning_path home-paths-v4 text-center" aria-labelledby="home-paths-title">
+    <div class="home-paths-v4__container">
+        <header class="home-paths-v4__intro">
+            <span class="home-paths-v4__eyebrow">مسیرهای طراحی‌شده برای رشد واقعی</span>
+            <h2 id="home-paths-title" class="section-title reveal">مسیرهای <span class="gradient_word">یادگیری</span></h2>
+            <p class="subtitle mt-1 reveal_right" style="width:100%">برای هر هدف، یک مسیر مرحله‌ای، پروژه‌محور و قابل اجرا آماده شده است.</p>
+        </header>
+
+        <div class="home-paths-v4__grid">
+            {% for roadmap in featured_roadmaps %}
+                <a class="home-path-card-v4 reveal" href="{% url 'courses_web:roadmap_detail' slug=roadmap.slug %}">
+                    <div class="home-path-card-v4__top">
+                        <span class="home-path-card-v4__icon" aria-hidden="true"><i class="{{ roadmap.icon_class }}"></i></span>
+                        <span class="home-path-card-v4__duration">{{ roadmap.duration_label }}</span>
+                    </div>
+                    <h4 class="home-path-card-v4__title">{{ roadmap.title }}</h4>
+                    <p class="home-path-card-v4__description">مسیر مرحله‌ای با تمرین هدفمند و خروجی قابل ارائه برای ساخت مهارت واقعی.</p>
+                    <div class="home-path-card-v4__footer">
+                        <span>مشاهده جزئیات مسیر</span>
+                        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M13.5 5 8.5 10l5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="featured_courses home-featured-v4" aria-labelledby="home-featured-title">
+    <div class="home-featured-v4__container">
+        <h2 id="home-featured-title" class="section-title reveal">دوره‌های <span class="gradient_word">ویژه</span></h2>
+        {% if featured_courses %}
+            <section class="courses">
+                {% for course in featured_courses %}
+                    {% include "web/courses/_course_card.html" with course=course %}
+                {% endfor %}
+            </section>
+            <a class="all" href="{% url 'courses_web:course_list' %}">مشاهده همه دوره‌ها<svg class="arrow_left" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg></a>
+        {% else %}
+            <div class="home-empty-state-v4">
+                <span class="home-empty-state-v4__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M4 4.5h5.3A3.7 3.7 0 0 1 13 8.2V20a3.7 3.7 0 0 0-3.7-3.7H4V4.5ZM20 4.5h-5.3A3.7 3.7 0 0 0 11 8.2V20a3.7 3.7 0 0 1 3.7-3.7H20V4.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+                </span>
+                <div class="home-empty-state-v4__content">
+                    <h3>ویترین دوره‌های ویژه در حال آماده‌سازی است</h3>
+                    <p>هنوز دوره ویژه‌ای منتشر نشده، اما می‌توانی همین حالا از بین مسیرهای یادگیری و کل دوره‌ها، مناسب‌ترین نقطه شروع را انتخاب کنی.</p>
+                </div>
+                <div class="home-empty-state-v4__actions">
+                    <a href="{% url 'courses_web:course_list' %}">مشاهده همه دوره‌ها</a>
+                    <a class="is-secondary" href="{% url 'courses_web:roadmap_list' %}">مشاهده نقشه راه‌ها</a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</section>
+
+<section class="home-learning-v2" aria-labelledby="home-learning-title">
+    <div class="home-learning-v2__container">
+        <header class="home-learning-v2__intro reveal">
+            <span class="home-kicker-v2">
+                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 3.5h12a1.5 1.5 0 0 1 1.5 1.5v10a1.5 1.5 0 0 1-1.5 1.5H4A1.5 1.5 0 0 1 2.5 15V5A1.5 1.5 0 0 1 4 3.5Z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M6 7h8M6 10h5M6 13h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                یک سیستم یادگیری، نه مجموعه‌ای از ویدئوها
+            </span>
+            <h2 id="home-learning-title">از اولین درس تا اولین پروژه قابل ارائه، مسیرت یکپارچه است.</h2>
+            <p>هر مرحله هدف مشخص دارد، پیشرفتت قابل اندازه‌گیری است و با تمرین و بازخورد واقعی به مهارت بعدی می‌رسی.</p>
+        </header>
+
+        <div class="home-learning-v2__shell">
+            <section class="home-roadmap-v2 reveal_left" aria-label="نمونه نقشه راه توسعه Backend">
+                <header class="home-roadmap-v2__header">
+                    <div>
+                        <span class="home-roadmap-v2__eyebrow">نقشه راه پیشنهادی</span>
+                        <h3>Backend Developer با Django</h3>
+                    </div>
+                    <span class="home-roadmap-v2__level">سطح متوسط</span>
+                </header>
+
+                <div class="home-roadmap-v2__progress">
+                    <div><span>پیشرفت کل مسیر</span><strong>۶۴٪</strong></div>
+                    <div class="home-roadmap-v2__rail"><span></span></div>
+                    <small>۳ مرحله از ۵ مرحله تکمیل شده</small>
+                </div>
+
+                <div class="home-roadmap-v2__timeline">
+                    <article class="home-roadmap-step-v2 is-complete">
+                        <span class="home-roadmap-step-v2__node"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 10.2 3 3 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                        <div><strong>مبانی وب و Git</strong><small>HTML، CSS و کنترل نسخه</small></div>
+                        <span class="home-roadmap-step-v2__badge">تکمیل شد</span>
+                    </article>
+                    <article class="home-roadmap-step-v2 is-complete">
+                        <span class="home-roadmap-step-v2__node"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 10.2 3 3 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                        <div><strong>Python حرفه‌ای</strong><small>OOP، تست و طراحی تمیز</small></div>
+                        <span class="home-roadmap-step-v2__badge">تکمیل شد</span>
+                    </article>
+                    <article class="home-roadmap-step-v2 is-current">
+                        <span class="home-roadmap-step-v2__node"><i></i></span>
+                        <div><strong>Django و REST API</strong><small>مرحله فعال · ۸ از ۱۲ درس</small></div>
+                        <span class="home-roadmap-step-v2__badge">در حال یادگیری</span>
+                    </article>
+                    <article class="home-roadmap-step-v2 is-next">
+                        <span class="home-roadmap-step-v2__node"><span>۴</span></span>
+                        <div><strong>Clean Architecture</strong><small>ساخت پروژه مقیاس‌پذیر و قابل تست</small></div>
+                        <span class="home-roadmap-step-v2__badge">مرحله بعد</span>
+                    </article>
+                    <article class="home-roadmap-step-v2 is-locked">
+                        <span class="home-roadmap-step-v2__node"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="9" width="10" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M7.5 9V6.8a2.5 2.5 0 0 1 5 0V9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+                        <div><strong>Deploy و رزومه پروژه</strong><small>انتشار، مستندسازی و ارائه حرفه‌ای</small></div>
+                        <span class="home-roadmap-step-v2__badge">قفل</span>
+                    </article>
+                </div>
+
+                <footer class="home-roadmap-v2__mentor">
+                    <span class="home-roadmap-v2__mentor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 3v-3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7 9h10M7 13h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+                    <span><strong>بازخورد منتور روی پروژه</strong><small>اشکال معماری را قبل از تبدیل‌شدن به عادت اصلاح کن.</small></span>
+                    <span class="home-roadmap-v2__online"><i></i> آنلاین</span>
+                </footer>
+            </section>
+
+            <section class="home-learning-v2__content reveal_right">
+                <span class="home-learning-v2__label">چرا این مدل یادگیری نتیجه می‌دهد؟</span>
+                <h3>هر چیزی که برای حرکت مداوم لازم داری، در یک تجربه منظم کنار هم قرار گرفته است.</h3>
+                <p>به‌جای سردرگمی بین منابع، همیشه یک هدف کوچک و قابل انجام روبه‌رویت قرار دارد.</p>
+
+                <div class="home-benefits-v2">
+                    <article class="home-benefit-v2">
+                        <span class="home-benefit-v2__check"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 10.2 3 3 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                        <span><strong>پیشرفت قابل اندازه‌گیری</strong><small>درصد پیشرفت، کارهای انجام‌شده و قدم بعدی همیشه مشخص است.</small></span>
+                    </article>
+                    <article class="home-benefit-v2">
+                        <span class="home-benefit-v2__check"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 10.2 3 3 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                        <span><strong>پروژه‌های قابل ارائه</strong><small>خروجی هر مسیر به نمونه‌کاری تبدیل می‌شود که می‌توانی نشان بدهی.</small></span>
+                    </article>
+                    <article class="home-benefit-v2">
+                        <span class="home-benefit-v2__check"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 10.2 3 3 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                        <span><strong>یادگیری مرحله‌به‌مرحله</strong><small>هر مرحله روی مهارت قبلی ساخته می‌شود و مسیر پرش ندارد.</small></span>
+                    </article>
+                    <article class="home-benefit-v2">
+                        <span class="home-benefit-v2__check"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 10.2 3 3 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                        <span><strong>دسترسی و به‌روزرسانی دائمی</strong><small>برای مرور، تکمیل پروژه و دریافت نسخه‌های جدید محدودیت زمانی نداری.</small></span>
+                    </article>
+                </div>
+
+                <div class="home-learning-v2__actions">
+                    <a class="home-button-v2 home-button-v2--primary" href="{% url 'courses_web:roadmap_list' %}">
+                        پیدا کردن مسیر مناسب
+                        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M13.5 5 8.5 10l5 5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </a>
+                    <span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.2 16 5v4.7c0 3.7-2.3 6.4-6 8.1-3.7-1.7-6-4.4-6-8.1V5l6-2.8Z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="m7.2 10 1.8 1.8 3.8-4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg> انتخاب مسیر بدون ریسک</span>
+                </div>
+            </section>
+        </div>
+    </div>
+</section>
+
+<section class="student_success home-testimonials-v4" aria-labelledby="home-testimonials-title">
+    <div class="home-testimonials-v4__container">
+        <header class="home-testimonials-v4__intro">
+            <span class="home-testimonials-v4__eyebrow">بازخورد دانشجویانی که مسیر را تا خروجی ادامه داده‌اند</span>
+            <h2 id="home-testimonials-title" class="section-title reveal">داستان موفقیت دانشجویان ما</h2>
+            <p class="subtitle mt-1 reveal_right" style="width:100%">تجربه کسانی که از یادگیری مرحله‌ای، پروژه واقعی و بازخورد منتور برای ساخت مهارت استفاده کرده‌اند.</p>
+        </header>
+
+        <div class="home-testimonials-v4__viewport testimonial_wrapper" data-home-testimonials-viewport>
+            <section class="home-testimonials-v4__track testimonial_track" data-home-testimonials-track>
+                {% for testimonial in testimonials %}
+                    <article class="home-testimonial-card-v4 testimonial_card">
+                        <span class="home-testimonial-card-v4__quote" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="M9.5 7C7 8.2 5.7 10.2 5.7 13c0 2.6 1.6 4.5 4 4.5 2.1 0 3.8-1.6 3.8-3.7 0-2.2-1.7-3.7-3.8-3.7-.3 0-.6 0-.8.1.4-1 1.3-1.8 2.8-2.6L9.5 7Zm9 0c-2.5 1.2-3.8 3.2-3.8 6 0 2.6 1.6 4.5 4 4.5 2.1 0 3.8-1.6 3.8-3.7 0-2.2-1.7-3.7-3.8-3.7-.3 0-.6 0-.8.1.4-1 1.3-1.8 2.8-2.6L18.5 7Z" fill="currentColor"/></svg>
+                        </span>
+                        <p class="home-testimonial-card-v4__comment">{{ testimonial.comment }}</p>
+                        <footer class="home-testimonial-card-v4__footer">
+                            <span class="home-testimonial-card-v4__avatar" aria-hidden="true">{{ testimonial.student_name|slice:":1" }}</span>
+                            <span class="home-testimonial-card-v4__meta">
+                                <strong>{{ testimonial.student_name }}</strong>
+                                <small>{{ testimonial.student_role }}</small>
+                            </span>
+                        </footer>
+                    </article>
+                {% endfor %}
+            </section>
+        </div>
+
+        <div class="home-testimonials-v4__controls next-prev flex-center">
+            <button id="prevBtn" class="prevBtn" type="button" aria-label="نظر قبلی" data-home-testimonial-prev>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </button>
+            <button id="nextBtn" class="nextBtn" type="button" aria-label="نظر بعدی" data-home-testimonial-next>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+            </button>
+        </div>
+    </div>
+</section>
+
+<section class="home-faq-v3" aria-labelledby="home-faq-title">
+    <div class="home-faq-v3__container">
+        <aside class="home-faq-v3__intro reveal_right">
+            <span class="home-faq-v3__eyebrow">پاسخ روشن، تصمیم مطمئن</span>
+            <h2 id="home-faq-title">قبل از شروع، همه‌چیز را شفاف بدان.</h2>
+            <p>پاسخ سوال‌های پرتکرار درباره مسیرها، دوره‌ها، پروژه‌ها و پشتیبانی را اینجا پیدا می‌کنی.</p>
+
+            <div class="home-faq-v3__promise">
+                <span class="home-faq-v3__promise-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M12 3 20 6.7v5.8c0 4.6-2.9 7.7-8 9.5-5.1-1.8-8-4.9-8-9.5V6.7L12 3Z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="m8.5 12.2 2.2 2.2 4.8-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+                <span><strong>پاسخ‌های واقعی و بدون ابهام</strong><small>هر پاسخ از سوال‌های رایج دانشجویان و تجربه پشتیبانی تهیه شده است.</small></span>
+            </div>
+
+            <div class="home-faq-v3__support">
+                <div>
+                    <strong>پاسخ سوالت را پیدا نکردی؟</strong>
+                    <span>برای انتخاب مسیر مناسب، مستقیم با ما صحبت کن.</span>
+                </div>
+                <a href="{% url 'pages_web:contact_us' %}">دریافت مشاوره
+                    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M13.5 5 8.5 10l5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </a>
+            </div>
+        </aside>
+
+        <div class="home-faq-v3__list reveal_left" data-home-faq>
+            {% for faq in frequently_asked_questions %}
+                <details class="home-faq-v3__item" {% if forloop.first %}open{% endif %}>
+                    <summary>
+                        <span class="home-faq-v3__index">{{ forloop.counter|stringformat:"02d" }}</span>
+                        <span class="home-faq-v3__question">{{ faq.question }}</span>
+                        <span class="home-faq-v3__toggle" aria-hidden="true">
+                            <svg viewBox="0 0 20 20"><path d="M5 10h10M10 5v10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                        </span>
+                    </summary>
+                    <div class="home-faq-v3__answer">
+                        <div>
+                            <span class="home-faq-v3__answer-mark" aria-hidden="true"></span>
+                            <p>{{ faq.answer }}</p>
+                        </div>
+                    </div>
+                </details>
+            {% empty %}
+                <div class="home-faq-v3__empty">هنوز سوال متداولی ثبت نشده است.</div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="courses_cta">
+    <div class="courses_box flex-center">
+        <h4 class="section-title reveal">آماده شروع <span class="gradient_word">مسیر یادگیری</span> هستی؟</h4>
+        <p class="subtitle text-center mt-2" style="width:100%">همین امروز مسیر مناسب خودت را انتخاب کن و با پروژه واقعی جلو برو.</p>
+        <section class="buttons flex-center">
+            <a class="courses_link" href="{% url 'pages_web:contact_us' %}">مشاوره رایگان</a>
+            <a class="starting" href="{% url 'courses_web:course_list' %}">مشاهده دوره‌ها</a>
+        </section>
+    </div>
+</section>
+{% endblock %}
+
+{% block page_scripts %}
+    <script src="{% project_static 'js/home.js' %}?v=home-v4-1" defer></script>
+{% endblock %}

@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Devixa</string>
+    <string name="connection_error_title">Unable to connect</string>
+    <string name="connection_error">The internet connection or server is unavailable. Check your connection and try again.</string>
+    <string name="retry">Try again</string>
+    <string name="external_link_error">No trusted application is available to open this link.</string>
+    <string name="file_picker_error">The file picker could not be opened.</string>
+</resources>

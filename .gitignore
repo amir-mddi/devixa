@@ -15,11 +15,11 @@ db-test.sql
 error_handeling.json
 backup_2025_03_09.sql
 entity/management
-dealio.zip
-dealio/docs
-dealio.rar
+backend.zip
+backend/docs
+backend.rar
 oauth-test
-dealio/deployment/env
+backend/deployment/env
 test_social_oauth.py
 telegram_scraper.session
 tracing/management
@@ -27,7 +27,7 @@ local_assests
 local_infrastructure
 main.py
 guide_for_ai.txt
-dealio/apps/regulator/mock_regulation_data
+backend/apps/regulator/mock_regulation_data
 # If you are using PyCharm #
 # User-specific stuff
 media/logs
@@ -47,7 +47,7 @@ media/entitylibrary
 postgresql_backup
 requirements-test.txt
 local_machine.env
-dealio/settings/local.py
+backend/settings/local.py
 prometheus.yml
 # AWS User-specific
 .idea/**/aws.xml
@@ -60,7 +60,7 @@ venv
 test.py
 run
 get-pip.py
-dealio/apps/accounts/middleware_prom.py
+backend/apps/accounts/middleware_prom.py
 .idea/**/contentModel.xml
 media/reports/
 media/tax_reports
@@ -95,7 +95,6 @@ deployment/docker_composes/docker_test_local.yml
 .Python build/
 develop-eggs/
 dist/
-downloads/
 eggs/
 .eggs/
 lib/

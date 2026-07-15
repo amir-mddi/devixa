@@ -10,7 +10,7 @@ build_backend_prod:
   stage: build
   image: docker.arvancloud.ir/docker:latest
   variables:
-    IMAGE_NAME: $CI_REGDOCKER_API_VERSIONISTRY_IMAGE/dealio:$CI_COMMIT_SHORT_SHA
+    IMAGE_NAME: $CI_REGDOCKER_API_VERSIONISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA
   before_script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
   script:
@@ -25,7 +25,7 @@ deploy_prod_first_mock:
   stage: deploy
   image: docker.arvancloud.ir/docker:latest
   variables:
-    IMAGE_NAME: $CI_REGISTRY_IMAGE/dealio:$CI_COMMIT_SHORT_SHA
+    IMAGE_NAME: $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA
     VERSION: $BACKEND_VERSION
     PROJECT_ENV_FILE: ../env/production.env
   before_script:

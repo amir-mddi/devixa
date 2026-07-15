@@ -1,0 +1,109 @@
+import java.util.Properties
+
+plugins {
+    id "com.android.application"
+}
+
+final Properties signingProperties = new Properties()
+final File signingPropertiesFile = rootProject.file("keystore.properties")
+if (signingPropertiesFile.exists()) {
+    signingPropertiesFile.withInputStream { signingProperties.load(it) }
+}
+
+final String releaseStoreFile = System.getenv("DEVIXA_KEYSTORE_FILE") ?: signingProperties.getProperty("storeFile")
+final String releaseStorePassword = System.getenv("DEVIXA_KEYSTORE_PASSWORD") ?: signingProperties.getProperty("storePassword")
+final String releaseKeyAlias = System.getenv("DEVIXA_KEY_ALIAS") ?: signingProperties.getProperty("keyAlias")
+final String releaseKeyPassword = System.getenv("DEVIXA_KEY_PASSWORD") ?: signingProperties.getProperty("keyPassword")
+final boolean hasReleaseSigning = [
+        releaseStoreFile,
+        releaseStorePassword,
+        releaseKeyAlias,
+        releaseKeyPassword,
+].every { it != null && !it.trim().isEmpty() }
+
+android {
+    namespace = "ir.acdevixa.devixa"
+    compileSdk = 35
+
+    defaultConfig {
+        applicationId = "ir.acdevixa.devixa"
+        minSdk = 23
+        targetSdk = 35
+        versionCode = 1
+        versionName = "1.0.0"
+
+        resourceConfigurations += ["fa", "en"]
+    }
+
+    signingConfigs {
+        release {
+            if (hasReleaseSigning) {
+                storeFile = rootProject.file(releaseStoreFile)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+                enableV1Signing = true
+                enableV2Signing = true
+                enableV3Signing = true
+                enableV4Signing = true
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
+        release {
+            minifyEnabled = true
+            shrinkResources = true
+            debuggable = false
+            jniDebuggable = false
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.release
+            }
+            proguardFiles(
+                    getDefaultProguardFile("proguard-android-optimize.txt"),
+                    "proguard-rules.pro"
+            )
+        }
+    }
+
+    buildFeatures {
+        buildConfig = true
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    lint {
+        abortOnError = true
+        checkReleaseBuilds = true
+        warningsAsErrors = false
+    }
+
+    packaging {
+        resources {
+            excludes += [
+                    "META-INF/DEPENDENCIES",
+                    "META-INF/LICENSE*",
+                    "META-INF/NOTICE*",
+            ]
+        }
+    }
+
+    bundle {
+        language {
+            enableSplit = true
+        }
+        density {
+            enableSplit = true
+        }
+        abi {
+            enableSplit = true
+        }
+    }
+}

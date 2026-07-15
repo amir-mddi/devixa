@@ -1,0 +1,149 @@
+{% extends "web/pages/base.html" %}
+{% load static project_tags %}
+
+{% block title %}نقشه راه دوره‌ها{% endblock %}
+{% block page_styles %}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css">
+    <link rel="stylesheet" href="{% project_static 'Styles/roadmaps.css' %}">
+    <link rel="stylesheet" href="{% project_static 'Styles/roadmaps-v2.css' %}?v=roadmaps-v2-1">
+    <style>
+        .roadmap_filter_form {
+            width: min(760px, 92%);
+            margin: 28px auto 0;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            position: relative;
+            z-index: 2;
+        }
+        .roadmap_filter_form input {
+            width: min(420px, 100%);
+            min-height: 48px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            padding: 0 18px;
+            outline: none;
+        }
+        .roadmap_filter_form button {
+            min-height: 48px;
+            border: 0;
+            border-radius: 16px;
+            padding: 0 24px;
+            color: #fff;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            cursor: pointer;
+            font-weight: 700;
+        }
+        .roadmaps_summary {
+            width: min(760px, 92%);
+            margin: 20px auto 0;
+            color: var(--muted);
+            text-align: center;
+            font-size: 14px;
+        }
+        .roadmap_link { text-decoration: none; color: inherit; }
+        .roadmap_icon {
+            font-size: 76px;
+            margin: 48px auto;
+            display: block;
+            color: var(--primary);
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<section class="roadmaps_hero">
+    <h4 class="badge flex-center">
+        <span><svg class="lucide lucide-astroid-icon lucide-astroid" fill="var(--primary)" height="35" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="35" xmlns="http://www.w3.org/2000/svg"><path d="M12.983 21.186a1 1 0 0 1-1.966 0 10 10 0 0 0-8.203-8.203 1 1 0 0 1 0-1.966 10 10 0 0 0 8.203-8.203 1 1 0 0 1 1.966 0 10 10 0 0 0 8.203 8.203 1 1 0 0 1 0 1.966 10 10 0 0 0-8.203 8.203"></path></svg></span>
+        مسیر یادگیری شما، آینده شما
+    </h4>
+    <h4 class="section-title text-center mt-4 reveal">نقشه راه‌های یادگیری</h4>
+    <p class="subtitle text-center mt-3 reveal_right" style="width: 100%;">مسیرهای یادگیری طراحی شده برای رسیدن سریع‌تر به مهارت‌های واقعی و ورود به بازار کار</p>
+
+    <section class="category_chips chip-list mt-3 flex-around">
+        {% for category in category_filters %}
+            <div class="chip flex-center">
+                <a class="category-chip flex-center {% if category.value == catalog.selected_category %}active is-active{% endif %}"
+                   href="?category={{ category.value }}{% if catalog.search %}&search={{ catalog.search|urlencode }}{% endif %}">
+                    <p>{{ category.label }}</p>
+                </a>
+            </div>
+        {% endfor %}
+    </section>
+
+    <form class="roadmap_filter_form" method="get" action="{% url 'courses_web:roadmap_list' %}">
+        <input type="hidden" name="category" value="{{ catalog.selected_category }}">
+        <input type="search" name="search" value="{{ catalog.search }}" placeholder="جستجو در نقشه راه‌ها...">
+        <button type="submit">جستجو</button>
+    </form>
+    <p class="roadmaps_summary">{{ catalog.total_count }} مسیر یادگیری آماده نمایش است.</p>
+</section>
+
+<section class="roadmaps_categories text-center" data-catalog="roadmaps" data-catalog-type="نقشه راه">
+    <h4 class="section-title reveal">دسته‌بندی <span class="gradient_word">نقشه </span>راه‌ها</h4>
+    <p class="subtitle mt-1 reveal_right" style="width:100%;">مسیر یادگیری مناسب و علاقه خود را پیدا کنید.</p>
+
+    {% if catalog.roadmaps %}
+        <div aria-busy="false" aria-live="polite" class="categories" data-catalog-grid>
+            {% for roadmap in catalog.roadmaps %}
+                <a class="roadmap_link roadmap-card-link"
+                   data-catalog-item
+                   data-category="{{ roadmap.category }}"
+                   data-category-label="{{ roadmap.category_label }}"
+                   data-title="{{ roadmap.title }}"
+                   href="{% url 'courses_web:roadmap_detail' slug=roadmap.slug %}">
+                    <article class="card roadmap-card">
+                        <div class="card_header roadmap-card__media">
+                            <i class="{{ roadmap.icon_class }} roadmap_icon"></i>
+                        </div>
+                        <div class="card_body roadmap-card__body">
+                            <h3 class="roadmap-card__title roadmap-card-title">{{ roadmap.title }}</h3>
+                            <p class="roadmap-card__description roadmap-card-description">{{ roadmap.description }}</p>
+                        </div>
+                        <div class="card_footer roadmap-card__footer">
+                            <div class="level">
+                                <p class="subtitle" style="width: 100%; font-size: 14px;">سطح: {{ roadmap.level }}</p>
+                            </div>
+                            <div class="timing">{{ roadmap.duration_label }} <span><svg class="lucide lucide-clock-icon lucide-clock" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="margin:0 4px;vertical-align:-6px" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg></span></div>
+                        </div>
+                    </article>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <h4 class="section-title mt-5">{{ empty_message }}</h4>
+    {% endif %}
+</section>
+
+<section class="learning_process text-center roadmaps-process-v2" aria-labelledby="roadmaps-process-title">
+    <div class="roadmaps-process-v2__container">
+        <header class="roadmaps-process-v2__intro">
+            <span class="roadmaps-process-v2__eyebrow">فرایندی روشن برای رسیدن به خروجی واقعی</span>
+            <h2 id="roadmaps-process-title" class="section-title reveal">فرآیند <span class="gradient_word">یادگیری</span></h2>
+            <p class="subtitle mt-1 reveal_right" style="width: 100%;">هر نقشه راه به مرحله‌های کوچک، پروژه‌های عملی و مهارت‌های قابل اندازه‌گیری تقسیم شده است.</p>
+        </header>
+
+        <div class="roadmaps-process-v2__grid">
+            <article class="roadmaps-process-card-v2">
+                <span class="roadmaps-process-card-v2__step">۱</span>
+                <h4>انتخاب مسیر</h4>
+                <p>بر اساس هدف شغلی، سطح فعلی و علاقه خود مسیر مناسب را انتخاب کنید.</p>
+            </article>
+            <article class="roadmaps-process-card-v2">
+                <span class="roadmaps-process-card-v2__step">۲</span>
+                <h4>یادگیری مرحله‌ای</h4>
+                <p>هر مرحله شامل مهارت‌های مشخص، تمرین‌های عملی و خروجی واضح است.</p>
+            </article>
+            <article class="roadmaps-process-card-v2">
+                <span class="roadmaps-process-card-v2__step">۳</span>
+                <h4>ساخت پروژه</h4>
+                <p>با پروژه‌های واقعی، نمونه‌کار قابل ارائه برای بازار کار بسازید.</p>
+            </article>
+        </div>
+    </div>
+</section>
+{% endblock %}

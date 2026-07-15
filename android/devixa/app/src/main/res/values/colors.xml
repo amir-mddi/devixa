@@ -1,0 +1,7 @@
+<resources>
+    <color name="devixa_background">#070B14</color>
+    <color name="devixa_surface">#101827</color>
+    <color name="devixa_accent">#5B4CF6</color>
+    <color name="devixa_icon_background">#5B4CF6</color>
+    <color name="devixa_white">#FFFFFF</color>
+</resources>

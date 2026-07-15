@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-MANAGE="python -m dealio.project.manage"
+MANAGE="python -m backend.project.manage"
 MAX_ATTEMPTS="${DJANGO_MIGRATION_MAX_ATTEMPTS:-30}"
 RETRY_DELAY="${DJANGO_MIGRATION_RETRY_DELAY:-2}"
 ATTEMPT=1
@@ -30,4 +30,4 @@ esac
 
 $MANAGE collectstatic --noinput
 
-printf '%s\n' "Dealio bootstrap completed successfully."
+printf '%s\n' "Backend bootstrap completed successfully."

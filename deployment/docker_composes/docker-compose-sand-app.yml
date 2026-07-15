@@ -1,4 +1,4 @@
-x-dealio-service: &dealio-service
+x-backend-service: &backend-service
   build:
     context: ../..
     dockerfile: deployment/Dockerfiles/DockerfileDev
@@ -7,10 +7,11 @@ x-dealio-service: &dealio-service
   environment:
     PORT: ${PORT:-8077}
   volumes:
-    - /mnt/data/backend_web/media:/app/dealio/apps/media
+    - /mnt/data/backend_web/media:/app/backend/apps/media
     - /mnt/data/backend_web/static:/app/deployment/staticfiles
     - /mnt/data/backend_web/db:/app/db
     - /mnt/data/backend_web/postgresql_backup:/app/postgresql_backup
+    - /mnt/data/backend_web/downloads:/app/backend/static/app/downloads
   networks:
     - backend
   restart: unless-stopped
@@ -19,22 +20,22 @@ x-dealio-service: &dealio-service
 
 x-after-bootstrap: &after-bootstrap
   depends_on:
-    dealio_init:
+    backend_init:
       condition: service_completed_successfully
 
 services:
-  dealio_init:
-    <<: *dealio-service
-    container_name: dealio_sand_init
+  backend_init:
+    <<: *backend-service
+    container_name: backend_sand_init
     restart: "no"
     command:
       - /app/deployment/entrypoints/bootstrap.sh
 
-  dealio_backend:
+  backend_backend:
     <<:
-      - *dealio-service
+      - *backend-service
       - *after-bootstrap
-    container_name: dealio_application
+    container_name: backend_application
     ports:
       - "8077:8077"
     healthcheck:
@@ -52,16 +53,16 @@ services:
 
   telegram_bot:
     <<:
-      - *dealio-service
+      - *backend-service
       - *after-bootstrap
-    container_name: dealio_telegram_bot
+    container_name: backend_telegram_bot
     profiles:
       - bots
       - telegram
     command:
       - python
       - -m
-      - dealio.project.manage
+      - backend.project.manage
       - telegram_polling
       - --timeout
       - "30"
@@ -70,16 +71,16 @@ services:
 
   bale_bot:
     <<:
-      - *dealio-service
+      - *backend-service
       - *after-bootstrap
-    container_name: dealio_bale_bot
+    container_name: backend_bale_bot
     profiles:
       - bots
       - bale
     command:
       - python
       - -m
-      - dealio.project.manage
+      - backend.project.manage
       - bale_polling
       - --timeout
       - "30"
@@ -90,16 +91,16 @@ services:
 
   rubika_bot:
     <<:
-      - *dealio-service
+      - *backend-service
       - *after-bootstrap
-    container_name: dealio_rubika_bot
+    container_name: backend_rubika_bot
     profiles:
       - bots
       - rubika
     command:
       - python
       - -m
-      - dealio.project.manage
+      - backend.project.manage
       - rubika_polling
       - --limit
       - "50"
@@ -108,15 +109,15 @@ services:
 
   channel_sync:
     <<:
-      - *dealio-service
+      - *backend-service
       - *after-bootstrap
-    container_name: dealio_channel_sync
+    container_name: backend_channel_sync
     profiles:
       - channel-sync
     command:
       - python
       - -m
-      - dealio.project.manage
+      - backend.project.manage
       - channel_sync_polling
       - --provider
       - all

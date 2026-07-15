@@ -1,0 +1,9 @@
+Devixa gives you convenient access to practical programming education from your Android device.
+
+• Browse programming courses and structured learning roadmaps
+• Read technical articles, weblog posts, and news
+• Access your profile, purchases, tickets, and course content
+• Upload payment receipts and other supported files securely
+• Continue using the same Devixa account as the website
+
+The application connects securely to acdevixa.ir and always shows the latest published content.

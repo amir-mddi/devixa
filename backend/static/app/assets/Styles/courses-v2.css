@@ -1,0 +1,20 @@
+/* Courses page benefit refresh */
+.courses-benefits-v2{display:block;padding:88px 0;background:var(--bg)}
+.courses-benefits-v2__intro{width:min(980px,92%);margin:0 auto 26px;text-align:center}
+.courses-benefits-v2__eyebrow{
+    display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:0 16px;border-radius:999px;border:1px solid color-mix(in srgb,var(--primary) 18%,var(--border));
+    background:color-mix(in srgb,var(--primary) 8%,var(--surface));color:var(--primary);font-size:13px;font-weight:800;margin-bottom:12px
+}
+.courses-benefits-v2__grid{width:min(1240px,92%);margin:0 auto;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+.courses-benefit-card-v2{
+    position:relative;padding:26px;border-radius:28px;border:1px solid var(--border);background:linear-gradient(180deg,color-mix(in srgb,var(--surface) 98%,transparent),color-mix(in srgb,var(--primary) 4%,var(--surface)));
+    box-shadow:0 18px 50px rgba(15,23,42,.06);min-height:260px;text-align:center;transition:.25s ease;overflow:hidden
+}
+.courses-benefit-card-v2::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at top center,color-mix(in srgb,var(--primary) 16%,transparent),transparent 60%);opacity:.9;pointer-events:none}
+.courses-benefit-card-v2:hover{transform:translateY(-6px);border-color:color-mix(in srgb,var(--primary) 28%,var(--border));box-shadow:0 26px 60px rgba(79,123,255,.14)}
+.courses-benefit-card-v2__icon{position:relative;z-index:1;display:grid;place-items:center;width:76px;height:76px;border-radius:24px;margin:0 auto 18px;background:linear-gradient(135deg,color-mix(in srgb,var(--primary) 12%,var(--surface)),color-mix(in srgb,var(--secondary) 15%,var(--surface)));color:var(--text);border:1px solid color-mix(in srgb,var(--primary) 16%,var(--border))}
+.courses-benefit-card-v2__icon svg{width:38px;height:38px}
+.courses-benefit-card-v2 h4{position:relative;z-index:1;margin:0 0 14px;font-size:clamp(24px,2.2vw,36px);line-height:1.35;color:var(--text)}
+.courses-benefit-card-v2 p{position:relative;z-index:1;margin:0;color:var(--text-muted);font-size:15px;line-height:2;width:100%}
+@media (max-width: 1100px){.courses-benefits-v2__grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width: 640px){.courses-benefits-v2{padding:64px 0}.courses-benefits-v2__grid{grid-template-columns:1fr;gap:14px}.courses-benefit-card-v2{min-height:auto;padding:22px;border-radius:24px}.courses-benefit-card-v2__icon{width:68px;height:68px;border-radius:20px}.courses-benefit-card-v2 h4{font-size:clamp(22px,6vw,30px)}}
