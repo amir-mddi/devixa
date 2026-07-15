@@ -3,7 +3,6 @@ from __future__ import annotations
 from django.urls import path
 
 from backend.apps.pages.vo.page_vo import PageWebAppNameVO, PageWebPathVO, PageWebRouteNameVO
-from backend.apps.pages.web.pwa.views import ServiceWorkerView, WebAppManifestView
 from backend.apps.pages.web.views import (
     AboutUsPageView,
     AndroidAppDownloadView,
@@ -16,16 +15,6 @@ from backend.apps.pages.web.views import (
 app_name = PageWebAppNameVO.NAMESPACE.value
 
 urlpatterns = [
-    path(
-        PageWebPathVO.WEB_APP_MANIFEST.value,
-        WebAppManifestView(),
-        name=PageWebRouteNameVO.WEB_APP_MANIFEST.value,
-    ),
-    path(
-        PageWebPathVO.SERVICE_WORKER.value,
-        ServiceWorkerView(),
-        name=PageWebRouteNameVO.SERVICE_WORKER.value,
-    ),
     path(
         PageWebPathVO.ANDROID_APP.value,
         AndroidAppPageView.as_view(),

@@ -18,7 +18,7 @@
             </section>
         </section>
         <section class="footer_links footer_section">
-            <h2 class="title">لینک‌های سریع</h2>
+            <h4 class="title">لینک‌های سریع</h4>
             <ul class="submenu">
                 <li><a class="flex" href="{% url 'pages_web:home' %}"><div class="circle"></div>خانه</a></li>
                 <li><a class="flex" href="{% url 'courses_web:course_list' %}"><div class="circle"></div>دوره‌ها</a></li>
@@ -31,7 +31,7 @@
             </ul>
         </section>
         <section class="path_learning footer_section">
-            <h2 class="title">مسیرهای یادگیری</h2>
+            <h4 class="title">مسیرهای یادگیری</h4>
             <ul class="submenu">
                 <li><a class="flex" href="{% url 'courses_web:roadmap_detail' slug='frontend' %}"><div class="circle"></div>فرانت‌اند</a></li>
                 <li><a class="flex" href="{% url 'courses_web:roadmap_detail' slug='backend' %}"><div class="circle"></div>بک‌اند</a></li>
@@ -42,7 +42,7 @@
             </ul>
         </section>
         <section class="contact footer_section">
-            <h2 class="title">ارتباط با ما</h2>
+            <h4 class="title">ارتباط با ما</h4>
             <ul class="submenu">
                 <li><a class="flex" href="mailto:{{ project.support_email }}"><div class="circle"></div><p>{{ project.support_email }}</p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg></a></li>
                 <li><a class="flex" href="{% url 'pages_web:contact_us' %}"><div class="circle"></div><p>پشتیبانی</p><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5Zm0 0a9 9 0 1 1 18 0m0 0v5a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3Z"/><path d="M21 16v2a4 4 0 0 1-4 4h-5"/></svg></a></li>

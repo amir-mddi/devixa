@@ -5,8 +5,7 @@
 {% block meta_description %}{{ http_error.message }}{% endblock %}
 
 {% block page_styles %}
-<link rel="preload" as="style" fetchpriority="high" href="{% project_static 'Styles/not-found.css' %}?v=not-found-1" data-deferred-stylesheet>
-<noscript><link rel="stylesheet" href="{% project_static 'Styles/not-found.css' %}?v=not-found-1"></noscript>
+<link rel="stylesheet" href="{% project_static 'Styles/not-found.css' %}?v=not-found-1">
 {% endblock %}
 
 {% block content %}

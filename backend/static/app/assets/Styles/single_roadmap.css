@@ -167,7 +167,7 @@
 .roadmap_skills .skill_cards .card .logo_skill i{
     font-size: 50px;
 }
-.roadmap_skills .skill_cards .card h3{font-size:24px;}
+.roadmap_skills .skill_cards .card h4{font-size:24px;}
 .roadmap_skills .skill_cards .card p{font-size:16px;}
 @media(max-width:1199px){
     .roadmap_skills .skill_cards{
@@ -220,7 +220,7 @@
     border-top: 1px solid var(--border);
     padding-top: 10px;
 }
-.roadmap_projects h2{font-size:24px;}
+.roadmap_projects h4{font-size:24px;}
 .roadmap_projects p{font-size: 16px;}
 @media(max-width:1199px){
     .roadmap_projects .projects{

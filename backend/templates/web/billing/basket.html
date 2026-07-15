@@ -2,10 +2,7 @@
 {% load project_tags billing_web_tags %}
 
 {% block title %}سبد خرید | {{ project.display_name }}{% endblock %}
-{% block page_styles %}
-<link rel="preload" as="style" fetchpriority="high" href="{% project_static 'Styles/basket.css' %}?v=perf-2" data-deferred-stylesheet>
-<noscript><link rel="stylesheet" href="{% project_static 'Styles/basket.css' %}?v=perf-2"></noscript>
-{% endblock %}
+{% block page_styles %}<link rel="stylesheet" href="{% project_static 'Styles/basket.css' %}">{% endblock %}
 
 {% block content %}
 <main class="commerce-page">
@@ -46,7 +43,7 @@
                     <div class="basket-items__header">
                         <div><h2>دوره‌های انتخاب‌شده</h2><p>{{ basket.item_count }} مورد در این سفارش</p></div>
                         {% if not basket.is_locked %}
-                            <form method="post" action="{% url 'billing_web:clear' %}" data-confirm-message="همه دوره‌ها از سبد حذف شوند؟">
+                            <form method="post" action="{% url 'billing_web:clear' %}" onsubmit="return confirm('همه دوره‌ها از سبد حذف شوند؟');">
                                 {% csrf_token %}
                                 <button type="submit" class="commerce-text-button is-danger"><i class="fa-regular fa-trash-can"></i>پاک کردن سبد</button>
                             </form>
@@ -57,7 +54,7 @@
                         <article class="basket-item">
                             <a href="{% url 'courses_web:course_detail' slug=item.course.slug %}" class="basket-item__media" aria-label="{{ item.course_title }}">
                                 {% if item.course.thumbnail %}
-                                    <img src="{{ item.course.thumbnail.url }}" alt="{{ item.course_title }}" loading="lazy" decoding="async" width="320" height="180">
+                                    <img src="{{ item.course.thumbnail.url }}" alt="{{ item.course_title }}" loading="lazy">
                                 {% else %}
                                     <i class="fa-solid fa-graduation-cap"></i>
                                 {% endif %}

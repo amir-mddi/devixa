@@ -1,7 +1,7 @@
 <article class="article-card">
     <a class="article-card__media" href="{% url 'articles_web:article_detail' slug=article.slug %}" aria-label="{{ article.title }}">
         {% if article.cover_image %}
-            <img src="{{ article.cover_image.url }}" alt="{{ article.title }}" loading="lazy" decoding="async" width="960" height="540">
+            <img src="{{ article.cover_image.url }}" alt="{{ article.title }}" loading="lazy">
         {% else %}
             <span class="article-card__placeholder" aria-hidden="true">
                 {% if article.article_type == 'news' %}

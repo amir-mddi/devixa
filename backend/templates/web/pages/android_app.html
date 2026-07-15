@@ -5,8 +5,7 @@
 {% block meta_description %}{{ seo.description }}{% endblock %}
 
 {% block page_styles_after %}
-<link rel="preload" as="style" fetchpriority="high" href="{% project_static 'Styles/android-app.css' %}?v=android-app-1" data-deferred-stylesheet>
-<noscript><link rel="stylesheet" href="{% project_static 'Styles/android-app.css' %}?v=android-app-1"></noscript>
+<link rel="stylesheet" href="{% project_static 'Styles/android-app.css' %}?v=android-app-1">
 {% endblock %}
 
 {% block content %}
@@ -38,7 +37,7 @@
                 <div class="android-app-device__camera"></div>
                 <div class="android-app-device__screen">
                     <div class="android-app-device__brand">
-                        <img src="{% project_static 'images/brand/devixa-logo-512.png' %}" alt="" width="512" height="512" decoding="async">
+                        <img src="{% project_static 'images/brand/devixa-logo-512.png' %}" alt="">
                         <span><strong>{{ project.display_name }}</strong><small>Learning App</small></span>
                     </div>
                     <div class="android-app-device__course">

@@ -209,7 +209,7 @@
     overflow:hidden;
 }
 
-.course-overview-card h2{
+.course-overview-card h4{
     margin:0 0 18px !important;
     color:var(--primary) !important;
     font-size:clamp(20px, 1.8vw, 28px) !important;
@@ -354,7 +354,7 @@
     border-bottom:1px solid var(--border-soft) !important;
 }
 
-.curriculum .items .lesson_item .left_faq .faq_item .row_1 h3{
+.curriculum .items .lesson_item .left_faq .faq_item .row_1 h4{
     margin:0 !important;
     font-size:15px !important;
     line-height:1.7 !important;

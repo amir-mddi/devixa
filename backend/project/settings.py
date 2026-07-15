@@ -57,14 +57,6 @@ PROJECT_LOGGER_NAME = general_config.project_logger_name
 PROJECT_STATIC_ASSET_ROOT = general_config.static_asset_root
 PROJECT_SERVE_STATIC_FILES = general_config.serve_static_files
 SEO_CANONICAL_ORIGIN = os.environ.get("SEO_CANONICAL_ORIGIN", "").strip()
-CONTENT_SECURITY_POLICY_ENABLED = env_bool(
-    os.environ.get("CONTENT_SECURITY_POLICY_ENABLED"),
-    default=IS_PROD,
-)
-CONTENT_SECURITY_POLICY_REPORT_ONLY = env_bool(
-    os.environ.get("CONTENT_SECURITY_POLICY_REPORT_ONLY"),
-    default=False,
-)
 
 INSTALLED_APPS = [
     # pre-required apps
@@ -104,8 +96,6 @@ if DEBUG:
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "backend.apps.common.web.security.middleware.SecurityHeadersMiddleware",
-    "backend.apps.common.web.performance.middleware.PublicPageCachePolicyMiddleware",
     "backend.apps.common.web.seo.middleware.SeoRobotsHeaderMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",

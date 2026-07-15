@@ -38,7 +38,7 @@
         <div class="admin-actions">
             <a class="admin-button admin-button--primary" href="{% url 'admin_panel:article_edit' article.id %}">ویرایش</a>
             {% if article.is_published %}<a class="admin-button admin-button--ghost" href="{{ article.get_absolute_url }}" target="_blank" rel="noopener">مشاهده</a>{% endif %}
-            <form method="post" action="{% url 'admin_panel:article_delete' article.id %}" data-confirm-message="این مطلب حذف شود؟">{% csrf_token %}<button class="admin-button admin-button--danger">حذف</button></form>
+            <form method="post" action="{% url 'admin_panel:article_delete' article.id %}" onsubmit="return confirm('این مطلب حذف شود؟')">{% csrf_token %}<button class="admin-button admin-button--danger">حذف</button></form>
         </div>
     </div>
 </article>

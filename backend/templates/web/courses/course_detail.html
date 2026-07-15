@@ -4,24 +4,22 @@
 {% block title %}{{ seo.title }}{% endblock %}
 {% block meta_description %}{{ seo.description }}{% endblock %}
 {% block page_styles %}
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <link rel="stylesheet" media="print" href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css" data-deferred-stylesheet>
-    <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css"></noscript>
-    <link rel="preload" as="style" fetchpriority="high" href="{% project_static 'dist/course-detail.bundle.css' %}?v=perf-2" data-deferred-stylesheet>
-    <noscript><link rel="stylesheet" href="{% project_static 'dist/course-detail.bundle.css' %}?v=perf-2"></noscript>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css">
+    <link rel="stylesheet" href="{% project_static 'Styles/single_course.css' %}">
+    <link rel="stylesheet" href="{% project_static 'Styles/courses.css' %}">
     <style>
-        .course_description_box{width:min(980px,92%);margin:30px auto;padding:28px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-muted);line-height:2}
-        .related_courses_title{padding-top:60px;background:var(--bg)}
-        .course_empty_state{width:min(720px,92%);margin:35px auto;padding:28px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);text-align:center;color:var(--text-muted)}
-        .lesson_lock{color:var(--secondary)}
-        .lesson_preview{color:var(--primary)}
+        .course_description_box{width:min(980px,92%);margin:30px auto;padding:28px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-muted);line-height:2;}
+        .related_courses_title{padding-top:60px;background:var(--bg);}
+        .course_empty_state{width:min(720px,92%);margin:35px auto;padding:28px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);text-align:center;color:var(--text-muted);}
+        .lesson_lock{color:var(--secondary);}
+        .lesson_preview{color:var(--primary);}
     </style>
 {% endblock %}
 
 {% block content %}
 <section class="single_course_hero course-detail-hero">
     <section class="introduction course-detail-hero__content reveal_right">
-        <div class="badge flex-center"><span class="circle_gradient"></span>{{ course.category.title|default:"دوره آموزشی" }}</div>
+        <h4 class="badge flex-center"><span class="circle_gradient"></span>{{ course.category.title|default:"دوره آموزشی" }}</h4>
         <h1 class="title mt-3">{{ course.title }}</h1>
         <p class="subtitle mt-2" style="width:100%">{{ course.short_description|default:course.description|truncatechars:220 }}</p>
         <section class="extra_info flex-around">
@@ -51,7 +49,7 @@
         </section>
     </section>
     <section class="dashboard_mockup course-overview-card reveal_left">
-        <h2>نمای کلی دوره</h2>
+        <h4>نمای کلی دوره</h4>
         <div class="card completed flex-between"><span>شروع مسیر</span><span>✅</span></div>
         <div class="card completed flex-between"><span>تمرین‌های عملی</span><span>✅</span></div>
         <div class="card locked flex-between"><span>پروژه نهایی</span><span>🔒</span></div>
@@ -60,12 +58,12 @@
 </section>
 
 <section class="course_description_box course-detail-card">
-    <h2 class="title">درباره این دوره</h2>
+    <h4 class="title">درباره این دوره</h4>
     <p class="subtitle mt-2" style="width:100%;text-align:right;">{{ course.description|default:course.short_description }}</p>
 </section>
 
 <section class="curriculum course-detail-section course-detail-curriculum text-center">
-    <h2 class="title reveal">سرفصل‌های <span class="gradient_word">دوره</span></h2>
+    <h4 class="title reveal">سرفصل‌های <span class="gradient_word">دوره</span></h4>
     <p class="subtitle mt-1 reveal_right" style="width:100%">لیست درس‌ها و بخش‌هایی که در این دوره یاد می‌گیرید.</p>
     <section class="summery_badges flex-around">
         <div class="badge flex-center">{{ course.lessons.count }} درس</div>
@@ -80,7 +78,7 @@
                         <input type="checkbox" id="chck{{ forloop.counter }}">
                         <div class="faq_item item{{ forloop.counter }}">
                             <div class="row_1 flex-between">
-                                <h3>{{ forloop.counter }}. {{ lesson.title }}</h3>
+                                <h4>{{ forloop.counter }}. {{ lesson.title }}</h4>
                                 <div class="btn"><label for="chck{{ forloop.counter }}">جزئیات</label></div>
                             </div>
                             <div class="row_2">
@@ -101,7 +99,7 @@
 </section>
 
 <section class="will_learn course-detail-section course-detail-learning">
-    <h2 class="title reveal">در این دوره چه چیزی <span class="gradient_word">یاد می‌گیری؟</span></h2>
+    <h4 class="title reveal">در این دوره چه چیزی <span class="gradient_word">یاد می‌گیری؟</span></h4>
     <p class="subtitle mt-1 reveal_right" style="width:100%">تمرکز این دوره روی خروجی قابل ارائه و مهارت واقعی است.</p>
     <section class="card_learn mt-4">
         <div class="card course-outcome-card flex-center"><p class="course-outcome-card__title">کدنویسی تمیز و قابل توسعه</p></div>
@@ -111,12 +109,12 @@
 </section>
 
 <section class="instructor course-detail-section course-detail-instructor">
-    <h2 class="badge flex-center">مدرس دوره</h2>
+    <h4 class="badge flex-center">مدرس دوره</h4>
     <section class="teacher">
         <section class="intro_teacher">
             <section class="resume">
-                <h3 class="name title">{{ course|course_instructor_label }}</h3>
-                <p class="subtitle mt-1" style="width:100%">مدرس و منتور <span class="brand-text">{{ project.display_name }}</span></p>
+                <h5 class="name title">{{ course|course_instructor_label }}</h5>
+                <h6 class="subtitle mt-1" style="width:100%">مدرس و منتور <span class="brand-text">{{ project.display_name }}</span></h6>
                 <p class="subtitle mt-2" style="width:100%">این دوره با تمرکز روی پروژه، تمرین و ساخت نمونه‌کار طراحی شده است.</p>
             </section>
             <section class="picture flex-center">
@@ -127,7 +125,7 @@
 </section>
 
 <section class="student_reviews course-detail-section course-detail-reviews">
-    <h2 class="title text-center reveal">نظر دانشجوها</h2>
+    <h4 class="title text-center reveal">نظر دانشجوها</h4>
     {% if reviews %}
         <section class="carousel_wrapper">
             <section class="review_cards">
@@ -146,7 +144,7 @@
 </section>
 
 <section class="related_courses_title course-detail-section text-center">
-    <h2 class="title reveal">دوره‌های <span class="gradient_word">مرتبط</span></h2>
+    <h4 class="title reveal">دوره‌های <span class="gradient_word">مرتبط</span></h4>
 </section>
 {% if related_courses %}
     <section class="courses related-courses-grid">

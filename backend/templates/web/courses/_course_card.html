@@ -2,7 +2,7 @@
 <article class="course_card course-card" data-catalog-item data-category="{{ course.category.slug|default:'general' }}" data-title="{{ course.title }}">
     <section class="card_header course-card__media{% if course.thumbnail %} card_header--image{% endif %}">
         {% if course.thumbnail %}
-            <img src="{{ course.thumbnail.url }}" alt="{{ course.title }}" loading="lazy" decoding="async" width="640" height="360" class="course_card__thumbnail course-card__thumbnail">
+            <img src="{{ course.thumbnail.url }}" alt="{{ course.title }}" loading="lazy" class="course_card__thumbnail course-card__thumbnail">
         {% endif %}
     </section>
 

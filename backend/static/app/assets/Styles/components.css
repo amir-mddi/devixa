@@ -252,7 +252,7 @@
     background: var(--primary);
     transform: translateY(-3px);
 }
-.footer .footer_top h2{
+.footer .footer_top h4{
     font-size: 18px;
     font-weight: normal;
     margin-bottom: 15px;
@@ -428,10 +428,11 @@
     position: relative;
 }
 .gradient_word{
-    background:none;
-    color:var(--accent);
-    -webkit-text-fill-color:currentColor;
-    font-weight:800;
+    background: linear-gradient(-195deg, #ffffff87, var(--primary));
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
 }
 .buttons{
     width: 450px;

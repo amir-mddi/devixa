@@ -22,8 +22,6 @@ class PageWebPathVO(StrEnum):
     CHANNELS = "channels/"
     ANDROID_APP = "android/"
     ANDROID_APP_DOWNLOAD = "downloads/android/"
-    WEB_APP_MANIFEST = "manifest.webmanifest"
-    SERVICE_WORKER = "service-worker.js"
 
 
 class PageWebRouteNameVO(StrEnum):
@@ -33,8 +31,6 @@ class PageWebRouteNameVO(StrEnum):
     CHANNELS = "channels"
     ANDROID_APP = "android_app"
     ANDROID_APP_DOWNLOAD = "download_android_app"
-    WEB_APP_MANIFEST = "web_app_manifest"
-    SERVICE_WORKER = "service_worker"
 
 
 class PageWebReverseNameVO(StrEnum):
@@ -44,8 +40,6 @@ class PageWebReverseNameVO(StrEnum):
     CHANNELS = "pages_web:channels"
     ANDROID_APP = "pages_web:android_app"
     ANDROID_APP_DOWNLOAD = "pages_web:download_android_app"
-    WEB_APP_MANIFEST = "pages_web:web_app_manifest"
-    SERVICE_WORKER = "pages_web:service_worker"
 
 
 class PageAndroidAppVO(StrEnum):

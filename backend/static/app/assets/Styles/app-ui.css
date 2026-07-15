@@ -15,12 +15,15 @@ body{background:var(--bg-page);color:var(--text-primary)}
 }
 
 .brand-text,.project-name,.brand-highlight{font-weight:800;color:var(--accent)}
-.brand-text,.project-name,.brand-highlight{
-    background:none;
-    color:var(--accent);
-    -webkit-text-fill-color:currentColor;
+@supports (-webkit-background-clip:text){
+    .brand-text,.project-name,.brand-highlight{
+        background:linear-gradient(135deg,var(--accent),var(--brand-accent-2));
+        -webkit-background-clip:text;
+        background-clip:text;
+        color:transparent;
+    }
 }
-.brand-text--glow{text-shadow:0 8px 28px color-mix(in srgb,var(--accent) 20%,transparent)}
+.brand-text--glow{text-shadow:0 8px 28px color-mix(in srgb,var(--accent) 24%,transparent)}
 
 .clamp-1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .clamp-2,.clamp-3{display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden}
@@ -234,45 +237,5 @@ body{background:var(--bg-page);color:var(--text-primary)}
         animation-iteration-count:1!important;
         transition-duration:.01ms!important;
         scroll-behavior:auto!important;
-    }
-}
-
-
-/* Lighthouse accessibility/performance invariants */
-:where(.subtitle,.body-text,.courses_summary,.roadmaps_summary,small){color:var(--text-secondary)}
-:where(a,button,input,select,textarea,summary):focus-visible{outline:3px solid var(--accent);outline-offset:3px}
-:where(.gradient_word){background:none!important;color:var(--accent)!important;-webkit-text-fill-color:currentColor!important;animation:none!important}
-:where(.navbar .logo .x,.course_card .card_header::before,.roadmaps_categories .card_header::before){animation:none!important}
-@media (max-width:768px){
-    :where(.home-float-card-v2,.project-ambient,.cursor-glow,.site-scroll-progress){display:none!important}
-}
-
-/* Keep content available without animation-driven visibility. */
-:where(.reveal,.reveal_left,.reveal_right,[data-premium-reveal]){
-    opacity:1!important;
-    transform:none!important;
-    transition:none!important;
-}
-
-/* Stable high-contrast fallbacks for automated and manual accessibility checks. */
-:where(.subtitle,.course-card__description,.roadmap-card__description,.feature-card__description,.contact-card__description,.channel_card p){
-    color:var(--text-secondary)!important;
-}
-:where(.badge,.category-chip,.filter-chip,.tab,.mobile-bottom-nav__item){
-    text-shadow:none!important;
-}
-:where(.badge){
-    color:var(--accent)!important;
-    background-color:var(--bg-card)!important;
-}
-:where(.category-chip.active,.category-chip.is-active,.filter-chip.active,.filter-chip.is-active,.tab.is-active){
-    color:var(--text-on-accent)!important;
-}
-
-/* Lighthouse mobile runs should not spend time on decorative transitions. */
-@media(max-width:768px){
-    *,*::before,*::after{
-        animation:none!important;
-        transition:none!important;
     }
 }

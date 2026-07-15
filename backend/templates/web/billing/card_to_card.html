@@ -2,10 +2,7 @@
 {% load project_tags billing_web_tags %}
 
 {% block title %}ثبت رسید پرداخت | {{ project.display_name }}{% endblock %}
-{% block page_styles %}
-<link rel="preload" as="style" fetchpriority="high" href="{% project_static 'Styles/basket.css' %}?v=perf-2" data-deferred-stylesheet>
-<noscript><link rel="stylesheet" href="{% project_static 'Styles/basket.css' %}?v=perf-2"></noscript>
-{% endblock %}
+{% block page_styles %}<link rel="stylesheet" href="{% project_static 'Styles/basket.css' %}">{% endblock %}
 
 {% block content %}
 <main class="commerce-page">
@@ -88,4 +85,4 @@
 </main>
 {% endblock %}
 
-{% block page_scripts %}<script nonce="{{ request.csp_nonce }}" src="{% project_static 'js/basket.js' %}" defer></script>{% endblock %}
+{% block page_scripts %}<script src="{% project_static 'js/basket.js' %}"></script>{% endblock %}

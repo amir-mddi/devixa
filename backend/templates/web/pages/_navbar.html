@@ -16,7 +16,7 @@
         <a class="nav-link" href="{% url 'pages_web:contact_us' %}"><span>تماس</span></a>
         <a class="nav-link" href="{% url 'pages_web:about_us' %}"><span>درباره‌ما</span></a>
     </nav>
-    <button type="button" class="bars" data-menu-toggle aria-label="باز کردن منو" aria-controls="navmenu" aria-expanded="false">
+    <button type="button" onclick="respo();" class="bars" aria-label="باز کردن منو" aria-controls="navmenu" aria-expanded="false">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-menu-icon lucide-menu"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/></svg>
     </button>
     <section class="nav_cta flex">
@@ -32,7 +32,7 @@
             <div class="auth-menu" tabindex="0">
                 <button type="button" class="auth-menu__trigger" aria-label="منوی حساب کاربری">
                     {% if request.user.profile_photo %}
-                        <img src="{{ request.user.profile_photo.url }}" alt="" class="auth-menu__avatar" width="40" height="40" decoding="async">
+                        <img src="{{ request.user.profile_photo.url }}" alt="" class="auth-menu__avatar">
                     {% else %}
                         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M20 21a8 8 0 0 0-16 0"/>

@@ -9,36 +9,33 @@
     {% include "web/seo/_meta.html" %}
     {% block meta_tags %}{% endblock %}
     <title>{% block title %}{{ seo.title }}{% endblock %}</title>
-
-    <link rel="manifest" href="{% url 'pages_web:web_app_manifest' %}">
-    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-    <script nonce="{{ request.csp_nonce }}" src="{% project_static 'js/theme-init.js' %}?v=perf-1"></script>
-
-    <link rel="stylesheet" href="{% project_static 'dist/critical.bundle.css' %}?v=perf-2">
-    <link rel="preload" as="style" fetchpriority="high" href="{% project_static 'dist/site.bundle.css' %}?v=perf-2" data-deferred-stylesheet>
-    <link rel="stylesheet" media="print" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" data-deferred-stylesheet>
-    <link rel="stylesheet" media="print" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" data-deferred-stylesheet>
-    <noscript>
-        <link rel="stylesheet" href="{% project_static 'dist/site.bundle.css' %}?v=perf-2">
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-    </noscript>
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    {# Global foundation: loaded for every public, basket, profile and admin page. #}
+    <link rel="stylesheet" href="{% project_static 'Styles/variables.css' %}">
+    <link rel="stylesheet" href="{% project_static 'Styles/fonts.css' %}?v=font-4">
+    <link rel="stylesheet" href="{% project_static 'Styles/reset.css' %}">
+    <link rel="stylesheet" href="{% project_static 'Styles/framework.css' %}">
+    <link rel="stylesheet" href="{% project_static 'Styles/components.css' %}">
     {% block page_styles %}{% endblock %}
+    <link rel="stylesheet" href="{% project_static 'Styles/theme.css' %}">
+    <link rel="stylesheet" href="{% project_static 'Styles/premium.css' %}">
+    <link rel="stylesheet" href="{% project_static 'Styles/responsive.css' %}">
+    <link rel="stylesheet" href="{% project_static 'Styles/design-system-fixes.css' %}">
+    <link rel="stylesheet" href="{% project_static 'Styles/mobile-theme-system.css' %}?v=mobile-nav-2">
+    <link rel="stylesheet" href="{% project_static 'Styles/course-detail-polish.css' %}">
     {% block page_styles_after %}{% endblock %}
+    <link rel="stylesheet" href="{% project_static 'Styles/app-ui.css' %}?v=ui-3">
     {% include "web/shared/_message_styles.html" %}
-
-    <script nonce="{{ request.csp_nonce }}" src="{% project_static 'js/deferred-styles.js' %}?v=perf-2" defer></script>
 </head>
 <body data-project-name="{{ project.display_name }}" data-project-initial="{{ project.logo_initial }}">
     {% include "web/pages/_navbar.html" %}
     {% include "web/shared/_flash_messages.html" with placement="page" %}
     {% block content %}{% endblock %}
     {% include "web/pages/_footer.html" %}
-    <script nonce="{{ request.csp_nonce }}" src="{% project_static 'dist/site.bundle.js' %}?v=perf-2" defer></script>
+    <script src="{% project_static 'js/main.js' %}?v=mobile-nav-3"></script>
+    <script src="{% project_static 'js/theme.js' %}"></script>
+    <script src="{% project_static 'js/effects.js' %}"></script>
+    <script src="{% project_static 'js/premium.js' %}"></script>
     {% block page_scripts %}{% endblock %}
 </body>
 </html>

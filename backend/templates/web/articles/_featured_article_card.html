@@ -1,7 +1,7 @@
 <article class="featured-article-card{% if forloop.first %} featured-article-card--primary{% endif %}">
     <a class="featured-article-card__media" href="{% url 'articles_web:article_detail' slug=article.slug %}" aria-label="{{ article.title }}">
         {% if article.cover_image %}
-            <img src="{{ article.cover_image.url }}" alt="{{ article.title }}" loading="{% if forloop.first %}eager{% else %}lazy{% endif %}" decoding="async" width="1200" height="675"{% if forloop.first %} fetchpriority="high"{% endif %}>
+            <img src="{{ article.cover_image.url }}" alt="{{ article.title }}" loading="{% if forloop.first %}eager{% else %}lazy{% endif %}">
         {% else %}
             <span class="featured-article-card__placeholder" aria-hidden="true">
                 <i class="fa-solid {% if article.article_type == 'news' %}fa-newspaper{% else %}fa-pen-nib{% endif %}"></i>

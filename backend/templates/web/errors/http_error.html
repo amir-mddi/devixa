@@ -4,8 +4,7 @@
 {% block title %}{{ http_error.title }}{% endblock %}
 
 {% block page_styles %}
-<link rel="preload" as="style" fetchpriority="high" href="{% project_static 'Styles/http-errors.css' %}?v=errors-1" data-deferred-stylesheet>
-<noscript><link rel="stylesheet" href="{% project_static 'Styles/http-errors.css' %}?v=errors-1"></noscript>
+<link rel="stylesheet" href="{% project_static 'Styles/http-errors.css' %}?v=errors-1">
 {% endblock %}
 
 {% block content %}
