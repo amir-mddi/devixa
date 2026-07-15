@@ -4,8 +4,11 @@
 {% block title %}{{ seo.title }}{% endblock %}
 {% block meta_description %}{{ seo.description }}{% endblock %}
 {% block page_styles %}
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css">
-    <link rel="stylesheet" href="{% project_static 'Styles/single_roadmap.css' %}">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="stylesheet" media="print" href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css" data-deferred-stylesheet>
+    <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css"></noscript>
+    <link rel="preload" as="style" fetchpriority="high" href="{% project_static 'Styles/single_roadmap.css' %}" data-deferred-stylesheet>
+    <noscript><link rel="stylesheet" href="{% project_static 'Styles/single_roadmap.css' %}"></noscript>
     <style>
         .roadmap_hero { position: relative; }
         .roadmap_icon_large {
@@ -71,10 +74,10 @@
             <span>/</span>
             <a href="#">{{ roadmap.title }}</a>
         </div>
-        <h4 class="badge">
+        <div class="badge">
             <i class="{{ roadmap.icon_class }} roadmap_icon_large"></i>
             {{ roadmap.category_label }}
-        </h4>
+        </div>
         <h1 class="title mt-2">{{ roadmap.title }}</h1>
         <p class="subtitle mt-3" style="width: 100%;">{{ roadmap.description }}</p>
 
@@ -102,13 +105,13 @@
 </section>
 
 <section class="roadmap_skills text-center">
-    <h4 class="badge">مهارت‌هایی که در این مسیر یاد می‌گیرید</h4>
-    <h4 class="title">مهارت‌های <span class="gradient_word">اصلی</span></h4>
+    <div class="badge">مهارت‌هایی که در این مسیر یاد می‌گیرید</div>
+    <h2 class="title">مهارت‌های <span class="gradient_word">اصلی</span></h2>
     <div class="skill_cards">
         {% for skill in roadmap.skills %}
             <div class="card flex-center">
                 <div class="logo_skill"><i class="{{ skill.icon_class }}"></i></div>
-                <h4>{{ skill.title }}</h4>
+                <h3>{{ skill.title }}</h3>
                 <p class="subtitle" style="width:100%;">{{ skill.description }}</p>
             </div>
         {% endfor %}
@@ -116,12 +119,12 @@
 </section>
 
 <section class="roadmap_projects text-center">
-    <h4 class="title">مراحل <span class="gradient_word">یادگیری</span></h4>
+    <h2 class="title">مراحل <span class="gradient_word">یادگیری</span></h2>
     <p class="subtitle mt-1" style="width: 100%;">هر مرحله خروجی مشخص و قابل تمرین دارد.</p>
     <div class="projects">
         {% for step in roadmap.steps %}
             <div class="card flex-center">
-                <h4>{{ step.number }}. {{ step.title }}</h4>
+                <h3>{{ step.number }}. {{ step.title }}</h3>
                 <p class="subtitle mt-2" style="width:100%;">{{ step.description }}</p>
                 <div class="info mt-2">
                     <p>{{ step.duration }}</p>
@@ -135,12 +138,12 @@
 </section>
 
 <section class="roadmap_projects text-center">
-    <h4 class="title">پروژه‌های <span class="gradient_word">پیشنهادی</span></h4>
+    <h2 class="title">پروژه‌های <span class="gradient_word">پیشنهادی</span></h2>
     <p class="subtitle mt-1" style="width: 100%;">برای ساخت نمونه‌کار واقعی این پروژه‌ها را انجام دهید.</p>
     <div class="projects">
         {% for project in roadmap.projects %}
             <div class="card flex-center">
-                <h4>{{ project.title }}</h4>
+                <h3>{{ project.title }}</h3>
                 <p class="subtitle mt-2" style="width:100%;">{{ project.description }}</p>
             </div>
         {% endfor %}
@@ -148,13 +151,13 @@
 </section>
 
 <section class="related_courses text-center">
-    <h4 class="title">دوره‌های <span class="gradient_word">مرتبط</span></h4>
+    <h2 class="title">دوره‌های <span class="gradient_word">مرتبط</span></h2>
     <p class="subtitle mt-1" style="width: 100%;">اگر دوره‌ای با این مسیر منتشر شده باشد، اینجا نمایش داده می‌شود.</p>
     {% if detail.related_courses %}
         <div class="courses_grid">
             {% for course in detail.related_courses %}
                 <article class="course_card">
-                    <h4 class="title">{{ course.title }}</h4>
+                    <h3 class="title">{{ course.title }}</h3>
                     <p class="subtitle mt-2" style="width:100%;">{{ course.short_description|default:course.description|truncatechars:150 }}</p>
                     <p class="course_meta">سطح: {{ course.get_level_display }} | مدت: {{ course.duration_minutes }} دقیقه</p>
                 </article>

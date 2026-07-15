@@ -199,11 +199,10 @@
 }
 
 .home-hero-v2__title span {
-    display: block;
-    color: transparent;
-    background: linear-gradient(125deg, #22d3ee 0%, var(--primary) 45%, #a855f7 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
+    display:block;
+    color:var(--accent-hover);
+    background:none;
+    -webkit-text-fill-color:currentColor;
 }
 
 .home-hero-v2__description {
@@ -566,7 +565,8 @@
     font-size: 9px;
 }
 
-.learning-os-v2__welcome h3 {
+.learning-os-v2__welcome h3,
+.learning-os-v2__project-name {
     margin: 4px 0 0;
     overflow: hidden;
     color: #f8fafc;
@@ -657,7 +657,8 @@
     white-space: nowrap;
 }
 
-.learning-os-v2__project-card h4 {
+.learning-os-v2__project-card h4,
+.learning-os-v2__task-name {
     margin: 17px 0 0;
     color: #f8fafc;
     font-size: 13px;
@@ -1792,7 +1793,8 @@
         padding: 12px;
     }
 
-    .learning-os-v2__welcome h3 {
+    .learning-os-v2__welcome h3,
+.learning-os-v2__project-name {
         font-size: 13px;
     }
 

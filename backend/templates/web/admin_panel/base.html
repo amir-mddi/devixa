@@ -3,7 +3,8 @@
 
 {% block title %}{% block admin_title %}پنل مدیریت{% endblock %} | {{ project.display_name }}{% endblock %}
 {% block page_styles_after %}
-<link rel="stylesheet" href="{% project_static 'Styles/admin-panel.css' %}">
+<link rel="preload" as="style" fetchpriority="high" href="{% project_static 'Styles/admin-panel.css' %}" data-deferred-stylesheet>
+<noscript><link rel="stylesheet" href="{% project_static 'Styles/admin-panel.css' %}"></noscript>
 {% endblock %}
 
 {% block content %}

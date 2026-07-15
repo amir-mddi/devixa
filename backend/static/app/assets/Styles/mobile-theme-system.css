@@ -419,7 +419,7 @@ body:not(.light-theme){
     text-shadow:none !important;
 }
 
-:where(.course-card__title,.course-card-title,.roadmap-card__title,.roadmap-card-title,.feature-card__title,.feature-card-title,.contact-card__title,.contact-card-title,.stats .stat_card .card_info h4,.channel_card h4,.faq_question p){
+:where(.course-card__title,.course-card-title,.roadmap-card__title,.roadmap-card-title,.feature-card__title,.feature-card-title,.contact-card__title,.contact-card-title,.stats .stat_card .card_info h4,.channel_card h2,.faq_question p){
     color:var(--text-primary) !important;
 }
 
@@ -745,7 +745,7 @@ body:not(.light-theme){
     border-color:var(--border-soft) !important;
 }
 
-.footer .footer_top h4,
+.footer .footer_top h2,
 .footer .logo span{
     color:var(--text-primary) !important;
 }
@@ -836,7 +836,7 @@ body:not(.light-theme){
 .contact-card :where(h1,h2,h3,h4,.title),
 .stats .stat_card .card_info h4,
 .why_us.stats .stat_card .card_info h4,
-.channel_card h4,
+.channel_card h2,
 .faq_question p{
     color:var(--text-primary) !important;
 }
@@ -890,14 +890,12 @@ body:not(.light-theme){
     display:inline-block;
 }
 
-@supports (-webkit-background-clip:text){
-    :where(.brand-text,.project-name,.brand-highlight){
-        background:linear-gradient(135deg,var(--accent),var(--brand-accent-2,var(--secondary)));
-        -webkit-background-clip:text;
-        background-clip:text;
-        color:transparent;
-    }
+:where(.brand-text,.project-name,.brand-highlight){
+    background:none;
+    color:var(--accent);
+    -webkit-text-fill-color:currentColor;
 }
+
 
 .brand-text--glow{
     text-shadow:0 8px 28px color-mix(in srgb, var(--accent) 22%, transparent);

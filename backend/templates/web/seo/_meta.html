@@ -15,5 +15,5 @@
 <meta name="twitter:description" content="{{ seo.description }}">
 <meta name="twitter:image" content="{{ seo.image_url }}">
 {% for schema_json in seo.structured_data_json %}
-<script type="application/ld+json">{{ schema_json|safe }}</script>
+<script nonce="{{ request.csp_nonce }}" type="application/ld+json">{{ schema_json|safe }}</script>
 {% endfor %}

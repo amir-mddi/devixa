@@ -4,7 +4,8 @@
 {% block title %}{{ seo.title }}{% endblock %}
 {% block meta_description %}{{ seo.description }}{% endblock %}
 {% block page_styles %}
-    <link rel="stylesheet" href="{% project_static 'Styles/contact_us.css' %}">
+    <link rel="preload" as="style" fetchpriority="high" href="{% project_static 'Styles/contact_us.css' %}" data-deferred-stylesheet>
+    <noscript><link rel="stylesheet" href="{% project_static 'Styles/contact_us.css' %}"></noscript>
     <style>
         .channels_hero{min-height:520px;padding:120px 6% 70px;background:radial-gradient(circle at 50% 0%, rgba(79,124,255,.18), transparent 48%), var(--bg);}
         .channels_grid{width:min(960px,92%);margin:44px auto 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;}
@@ -21,7 +22,7 @@
 
 {% block content %}
 <section class="channels_hero text-center">
-    <h4 class="badge flex-center" style="margin:auto;width:max-content;">ثبت‌نام و خرید دوره</h4>
+    <div class="badge flex-center" style="margin:auto;width:max-content;">ثبت‌نام و خرید دوره</div>
     <h1 class="title mt-3">کانال‌ها و ربات‌های <span class="brand-text">{{ project.display_name }}</span></h1>
     <p class="subtitle mt-2" style="width:100%;">برای ثبت‌نام، خرید دوره و پیگیری سفارش می‌توانید از ربات‌های رسمی استفاده کنید.</p>
 
@@ -30,7 +31,7 @@
             <article class="channel_card">
                 <div class="channel_icon"><i class="{{ channel.icon_class }}"></i></div>
                 <span class="channel_badge">{{ channel.badge }}</span>
-                <h4 class="title">{{ channel.title }}</h4>
+                <h2 class="title">{{ channel.title }}</h2>
                 <p class="subtitle mt-2" style="width:100%;">{{ channel.description }}</p>
                 {% if channel.is_available %}
                     <a class="channel_btn" href="{{ channel.url }}" target="_blank" rel="noopener noreferrer">ورود به ربات <i class="fa-solid fa-arrow-up-right-from-square"></i></a>

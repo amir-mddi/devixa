@@ -5,7 +5,8 @@
 {% block meta_description %}{{ seo.description }}{% endblock %}
 
 {% block page_styles_after %}
-    <link rel="stylesheet" href="{% project_static 'Styles/articles.css' %}?v=articles-1">
+    <link rel="preload" as="style" fetchpriority="high" href="{% project_static 'Styles/articles.css' %}?v=articles-1" data-deferred-stylesheet>
+    <noscript><link rel="stylesheet" href="{% project_static 'Styles/articles.css' %}?v=articles-1"></noscript>
 {% endblock %}
 
 {% block content %}
@@ -36,7 +37,7 @@
 
         {% if article.cover_image %}
             <figure class="article-detail__cover">
-                <img src="{{ article.cover_image.url }}" alt="{{ article.title }}">
+                <img src="{{ article.cover_image.url }}" alt="{{ article.title }}" width="1200" height="675" decoding="async" fetchpriority="high">
             </figure>
         {% endif %}
 

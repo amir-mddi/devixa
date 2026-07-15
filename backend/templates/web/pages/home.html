@@ -4,21 +4,15 @@
 {% block title %}{{ seo.title }}{% endblock %}
 {% block meta_description %}{{ seo.description }}{% endblock %}
 {% block page_styles %}
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css">
-    <link rel="stylesheet" href="{% project_static 'Styles/home.css' %}">
-    <link rel="stylesheet" href="{% project_static 'Styles/courses.css' %}">
-    <style>
-        .home_empty_state{width:min(720px,92%);margin:30px auto;padding:26px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface);color:var(--text-muted);text-align:center;}
-        .learning_path .paths a{text-decoration:none;color:inherit;}
-        .learning_path .paths .path_icon i{font-size:72px;color:var(--primary);display:block;margin:auto;}
-        .testimonial_card{flex:0 0 auto;}
-    </style>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="stylesheet" media="print" href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css" data-deferred-stylesheet>
+    <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css"></noscript>
+    <link rel="preload" as="style" fetchpriority="high" href="{% project_static 'dist/home.bundle.css' %}?v=perf-2" data-deferred-stylesheet>
+    <noscript><link rel="stylesheet" href="{% project_static 'dist/home.bundle.css' %}?v=perf-2"></noscript>
 {% endblock %}
 
 {% block page_styles_after %}
-    <link rel="stylesheet" href="{% project_static 'Styles/home-v2.css' %}?v=home-v2-1">
-    <link rel="stylesheet" href="{% project_static 'Styles/home-v3.css' %}?v=home-v3-1">
-    <link rel="stylesheet" href="{% project_static 'Styles/home-v4.css' %}?v=home-v4-1">
+
 {% endblock %}
 
 {% block content %}
@@ -116,7 +110,7 @@
                         <div class="learning-os-v2__welcome">
                             <div>
                                 <span>پروژه فعال</span>
-                                <h3>API فروشگاه با Django</h3>
+                                <strong class="learning-os-v2__project-name">API فروشگاه با Django</strong>
                             </div>
                             <div class="learning-os-v2__stack" aria-label="فناوری‌های پروژه">
                                 <span><i class="devicon-python-plain"></i></span>
@@ -131,7 +125,7 @@
                                     <span class="learning-os-v2__project-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m8.5 9-3 3 3 3M15.5 9l3 3-3 3M14 7l-4 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
                                     <span class="learning-os-v2__project-status">مرحله ۳ از ۵</span>
                                 </div>
-                                <h4>پیاده‌سازی معماری تمیز</h4>
+                                <strong class="learning-os-v2__task-name">پیاده‌سازی معماری تمیز</strong>
                                 <p>تفکیک Controller، Logic، Repository و Adapter</p>
                                 <div class="learning-os-v2__progress-meta"><span>پیشرفت پروژه</span><strong>۷۸٪</strong></div>
                                 <div class="learning-os-v2__progress"><span></span></div>
@@ -240,7 +234,7 @@
                         <span class="home-path-card-v4__icon" aria-hidden="true"><i class="{{ roadmap.icon_class }}"></i></span>
                         <span class="home-path-card-v4__duration">{{ roadmap.duration_label }}</span>
                     </div>
-                    <h4 class="home-path-card-v4__title">{{ roadmap.title }}</h4>
+                    <h3 class="home-path-card-v4__title">{{ roadmap.title }}</h3>
                     <p class="home-path-card-v4__description">مسیر مرحله‌ای با تمرین هدفمند و خروجی قابل ارائه برای ساخت مهارت واقعی.</p>
                     <div class="home-path-card-v4__footer">
                         <span>مشاهده جزئیات مسیر</span>
@@ -468,7 +462,7 @@
 
 <section class="courses_cta">
     <div class="courses_box flex-center">
-        <h4 class="section-title reveal">آماده شروع <span class="gradient_word">مسیر یادگیری</span> هستی؟</h4>
+        <h2 class="section-title reveal">آماده شروع <span class="gradient_word">مسیر یادگیری</span> هستی؟</h2>
         <p class="subtitle text-center mt-2" style="width:100%">همین امروز مسیر مناسب خودت را انتخاب کن و با پروژه واقعی جلو برو.</p>
         <section class="buttons flex-center">
             <a class="courses_link" href="{% url 'pages_web:contact_us' %}">مشاوره رایگان</a>
@@ -479,5 +473,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-    <script src="{% project_static 'js/home.js' %}?v=home-v4-1" defer></script>
+    <script nonce="{{ request.csp_nonce }}" src="{% project_static 'js/home.js' %}?v=home-v4-1" defer></script>
 {% endblock %}

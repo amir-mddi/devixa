@@ -5,7 +5,8 @@
 {% block meta_description %}{{ seo.description }}{% endblock %}
 
 {% block page_styles_after %}
-    <link rel="stylesheet" href="{% project_static 'Styles/articles.css' %}?v=articles-1">
+    <link rel="preload" as="style" fetchpriority="high" href="{% project_static 'Styles/articles.css' %}?v=articles-1" data-deferred-stylesheet>
+    <noscript><link rel="stylesheet" href="{% project_static 'Styles/articles.css' %}?v=articles-1"></noscript>
 {% endblock %}
 
 {% block content %}

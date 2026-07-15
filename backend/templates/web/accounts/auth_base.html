@@ -8,29 +8,23 @@
     <meta name="description" content="{% block meta_description %}{{ seo.description }}{% endblock %}">
     {% include "web/seo/_meta.html" %}
     <title>{% block title %}{{ seo.title }}{% endblock %}</title>
-    <script>
-        (() => {
-            let saved = null;
-            try {
-                saved = localStorage.getItem("theme");
-            } catch (error) {
-                saved = null;
-            }
-            const light = saved
-                ? saved === "light"
-                : window.matchMedia("(prefers-color-scheme: light)").matches;
-            document.documentElement.dataset.theme = light ? "light" : "dark";
-            document.documentElement.style.colorScheme = light ? "light" : "dark";
-        })();
-    </script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-    <link rel="stylesheet" href="{% project_static 'Styles/variables.css' %}">
-    <link rel="stylesheet" href="{% project_static 'Styles/fonts.css' %}?v=font-4">
-    <link rel="stylesheet" href="{% project_static 'Styles/reset.css' %}">
-    <link rel="stylesheet" href="{% project_static 'Styles/framework.css' %}">
-    <link rel="stylesheet" href="{% project_static 'Styles/forget_password.css' %}?v=auth-4">
+    <link rel="manifest" href="{% url 'pages_web:web_app_manifest' %}">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <script nonce="{{ request.csp_nonce }}" src="{% project_static 'js/theme-init.js' %}?v=perf-1"></script>
+    <link rel="stylesheet" href="{% project_static 'dist/critical.bundle.css' %}?v=perf-2">
+    <link rel="preload" as="style" fetchpriority="high" href="{% project_static 'dist/auth.bundle.css' %}?v=perf-2" data-deferred-stylesheet>
+    <link rel="stylesheet" media="print" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" data-deferred-stylesheet>
+    <link rel="stylesheet" media="print" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" data-deferred-stylesheet>
+    <noscript>
+        <link rel="stylesheet" href="{% project_static 'dist/auth.bundle.css' %}?v=perf-2">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    </noscript>
     {% include "web/shared/_message_styles.html" %}
     {% block page_styles %}{% endblock %}
+    <script nonce="{{ request.csp_nonce }}" src="{% project_static 'js/deferred-styles.js' %}?v=perf-2" defer></script>
 </head>
 <body class="auth-page" data-project-name="{{ project.display_name }}" data-project-initial="{{ project.logo_initial }}"{% if recaptcha_enabled %} data-recaptcha-enabled="true" data-recaptcha-site-key="{{ recaptcha_site_key }}" data-recaptcha-error-message="{{ recaptcha_client_error_message }}"{% endif %}>
     {% include "web/shared/_flash_messages.html" with placement="auth" %}
@@ -53,9 +47,9 @@
     </main>
 
     {% if recaptcha_enabled %}
-        <script src="https://www.google.com/recaptcha/api.js?render={{ recaptcha_site_key|urlencode }}&trustedtypes=true" async defer></script>
+        <script nonce="{{ request.csp_nonce }}" src="https://www.google.com/recaptcha/api.js?render={{ recaptcha_site_key|urlencode }}&trustedtypes=true" async defer></script>
     {% endif %}
-    <script src="{% project_static 'js/auth.js' %}?v=auth-5"></script>
+    <script nonce="{{ request.csp_nonce }}" src="{% project_static 'js/auth.js' %}?v=auth-6" defer></script>
     {% block page_scripts %}{% endblock %}
 </body>
 </html>

@@ -8,7 +8,7 @@
 </article>
 <aside class="admin-card admin-ticket-side">
     <div class="admin-detail-list"><div><span>کاربر</span><strong>{{ ticket.user.get_full_name|default:ticket.user.username|default:ticket.profile.username|default:"نامشخص" }}</strong></div><div><span>ایمیل</span><strong dir="ltr">{{ ticket.user.email|default:"-" }}</strong></div><div><span>پیام‌رسان</span><strong>{{ ticket.provider }}</strong></div><div><span>ایجاد</span><strong>{{ ticket.created_at|date:"Y/m/d H:i" }}</strong></div></div>
-    {% if ticket.status != 'closed' %}<form method="post" action="{% url 'admin_panel:ticket_reply' ticket.id %}" class="admin-form">{% csrf_token %}{{ reply_form.as_p }}<button class="admin-button admin-button--primary" type="submit">ارسال پاسخ</button></form><form method="post" action="{% url 'admin_panel:ticket_close' ticket.id %}" class="admin-inline-form" onsubmit="return confirm('این تیکت بسته شود؟')">{% csrf_token %}<button class="admin-button admin-button--danger admin-button--block" type="submit">بستن تیکت</button></form>{% else %}<div class="admin-note">این تیکت بسته شده است.</div>{% endif %}
+    {% if ticket.status != 'closed' %}<form method="post" action="{% url 'admin_panel:ticket_reply' ticket.id %}" class="admin-form">{% csrf_token %}{{ reply_form.as_p }}<button class="admin-button admin-button--primary" type="submit">ارسال پاسخ</button></form><form method="post" action="{% url 'admin_panel:ticket_close' ticket.id %}" class="admin-inline-form" data-confirm-message="این تیکت بسته شود؟">{% csrf_token %}<button class="admin-button admin-button--danger admin-button--block" type="submit">بستن تیکت</button></form>{% else %}<div class="admin-note">این تیکت بسته شده است.</div>{% endif %}
 </aside>
 </section>
 {% endblock %}

@@ -2,7 +2,10 @@
 {% load project_tags billing_web_tags %}
 
 {% block title %}انتخاب روش پرداخت | {{ project.display_name }}{% endblock %}
-{% block page_styles %}<link rel="stylesheet" href="{% project_static 'Styles/basket.css' %}">{% endblock %}
+{% block page_styles %}
+<link rel="preload" as="style" fetchpriority="high" href="{% project_static 'Styles/basket.css' %}?v=perf-2" data-deferred-stylesheet>
+<noscript><link rel="stylesheet" href="{% project_static 'Styles/basket.css' %}?v=perf-2"></noscript>
+{% endblock %}
 
 {% block content %}
 <main class="commerce-page">

@@ -4,7 +4,8 @@
 {% block title %}پنل کاربری | {{ project.display_name }}{% endblock %}
 
 {% block page_styles_after %}
-    <link rel="stylesheet" href="{% project_static 'Styles/profile.css' %}">
+    <link rel="preload" as="style" fetchpriority="high" href="{% project_static 'Styles/profile.css' %}" data-deferred-stylesheet>
+    <noscript><link rel="stylesheet" href="{% project_static 'Styles/profile.css' %}"></noscript>
 {% endblock %}
 
 {% block content %}
@@ -470,5 +471,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-    <script src="{% project_static 'js/profile.js' %}"></script>
+    <script nonce="{{ request.csp_nonce }}" src="{% project_static 'js/profile.js' %}" defer></script>
 {% endblock %}
