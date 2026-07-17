@@ -141,6 +141,34 @@ class ArticlePostgresAdapter(metaclass=Singleton):
     def increment_view_count(article_id: object) -> None:
         Article.objects.filter(id=article_id).update(view_count=F("view_count") + 1)
 
+
+    async def get_public_article_async(self, article_id_or_slug: object):
+        lookup_value = str(article_id_or_slug or "").strip()
+        try:
+            UUID(lookup_value)
+            lookup = Q(id=lookup_value)
+        except (TypeError, ValueError):
+            lookup = Q(slug=lookup_value)
+
+        article = await self._public_articles().filter(lookup).afirst()
+        if article is None:
+            raise NotFound(ArticleMessageVO.NOT_FOUND.value)
+        return article
+
+    async def list_related_articles_async(self, article: Article, *, limit: int):
+        queryset = self._public_articles().exclude(id=article.id)
+        if article.category_id:
+            queryset = queryset.filter(category_id=article.category_id)
+        else:
+            queryset = queryset.filter(article_type=article.article_type)
+        return tuple([item async for item in queryset.order_by("-published_at")[:limit]])
+
+    @staticmethod
+    async def increment_view_count_async(article_id: object) -> None:
+        await Article.objects.filter(id=article_id).aupdate(
+            view_count=F("view_count") + 1
+        )
+
     def list_public_queryset(self, filters: dict | None = None):
         filters = filters or {}
         dto = ArticleCatalogFilterDTO.from_mapping(

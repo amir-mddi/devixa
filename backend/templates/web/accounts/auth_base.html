@@ -8,7 +8,7 @@
     <meta name="description" content="{% block meta_description %}{{ seo.description }}{% endblock %}">
     {% include "web/seo/_meta.html" %}
     <title>{% block title %}{{ seo.title }}{% endblock %}</title>
-    <script>
+    <script type="application/x-devixa-ajax-module" data-ajax-module="auth-theme-bootstrap">
         (() => {
             let saved = null;
             try {
@@ -30,7 +30,11 @@
     <link rel="stylesheet" href="{% project_static 'Styles/framework.css' %}">
     <link rel="stylesheet" href="{% project_static 'Styles/forget_password.css' %}?v=auth-4">
     {% include "web/shared/_message_styles.html" %}
+    <link rel="stylesheet" href="{% project_static 'Styles/ajax-forms.css' %}?v=ajax-2">
     {% block page_styles %}{% endblock %}
+    <meta data-ajax-style-boundary>
+    <script src="{% project_static 'vendor/jquery/jquery-3.7.1.min.js' %}" defer></script>
+    <script src="{% project_static 'js/ajax_forms.js' %}?v=ajax-2" defer></script>
 </head>
 <body class="auth-page" data-project-name="{{ project.display_name }}" data-project-initial="{{ project.logo_initial }}"{% if recaptcha_enabled %} data-recaptcha-enabled="true" data-recaptcha-site-key="{{ recaptcha_site_key }}" data-recaptcha-error-message="{{ recaptcha_client_error_message }}"{% endif %}>
     {% include "web/shared/_flash_messages.html" with placement="auth" %}
@@ -53,9 +57,9 @@
     </main>
 
     {% if recaptcha_enabled %}
-        <script src="https://www.google.com/recaptcha/api.js?render={{ recaptcha_site_key|urlencode }}&trustedtypes=true" async defer></script>
+        <script type="application/x-devixa-ajax-module" data-ajax-module="recaptcha" src="https://www.google.com/recaptcha/api.js?render={{ recaptcha_site_key|urlencode }}&trustedtypes=true" async defer></script>
     {% endif %}
-    <script src="{% project_static 'js/auth.js' %}?v=auth-5"></script>
+    <script type="application/x-devixa-ajax-module" data-ajax-module="auth" src="{% project_static 'js/auth.js' %}?v=auth-6"></script>
     {% block page_scripts %}{% endblock %}
 </body>
 </html>

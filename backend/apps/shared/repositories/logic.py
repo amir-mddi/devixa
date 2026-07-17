@@ -1,3 +1,4 @@
+from asgiref.sync import sync_to_async
 import json
 
 from backend.apps.common.helpers.metaclasses.singleton import Singleton
@@ -52,6 +53,22 @@ class SharedApplicationLogic(metaclass=Singleton):
 
     def add_new_metric(self, metric_data: MetricDataDto):
         return self.metric_provider_adapter.add_new_metric(metric_data)
+
+    async def get_project_config_async(self) -> ProjectConfigDTO | None:
+        return await sync_to_async(
+            self.get_project_config,
+            thread_sensitive=True,
+        )()
+
+    async def change_project_config_async(
+        self,
+        data: dict,
+        user=None,
+    ) -> ProjectConfigDTO:
+        return await sync_to_async(
+            self.change_project_config,
+            thread_sensitive=True,
+        )(data=data, user=user)
 
     def get_project_config(self) -> ProjectConfigDTO | None:
         project_config = self.postgres_adapter.fetch_project_config()

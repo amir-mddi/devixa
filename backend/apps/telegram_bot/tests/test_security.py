@@ -16,30 +16,63 @@ from backend.apps.telegram_bot.repositories.adapters.postgres_bot_adapter import
 )
 
 
-class _FakeResponse:
+class _FakeAsyncResponse:
     def __init__(self, payload, *, status_code=200, headers=None):
         self.status_code = status_code
         self.encoding = "utf-8"
         self.headers = headers or {}
         self.closed = False
-        self._body = payload if isinstance(payload, bytes) else json.dumps(payload).encode()
+        self._body = (
+            payload
+            if isinstance(payload, bytes)
+            else json.dumps(payload).encode("utf-8")
+        )
 
-    def iter_content(self, chunk_size=64 * 1024):
+    async def aiter_bytes(self, chunk_size=64 * 1024):
         for offset in range(0, len(self._body), chunk_size):
-            yield self._body[offset:offset + chunk_size]
+            yield self._body[offset : offset + chunk_size]
 
-    def close(self):
-        self.closed = True
+
+class _FakeStreamContext:
+    def __init__(self, response: _FakeAsyncResponse):
+        self.response = response
+
+    async def __aenter__(self):
+        return self.response
+
+    async def __aexit__(self, exc_type, exc, tb):
+        self.response.closed = True
+
+
+class _FakeAsyncClient:
+    def __init__(self, response: _FakeAsyncResponse):
+        self.response = response
+        self.stream_kwargs = None
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return None
+
+    def stream(self, *args, **kwargs):
+        self.stream_kwargs = kwargs
+        return _FakeStreamContext(self.response)
 
 
 class BotProviderHttpTransportSecurityTests(SimpleTestCase):
-    @patch("backend.apps.telegram_bot.repositories.adapters.bot_http_transport.requests.post")
-    def test_provider_error_does_not_expose_tokenized_url_or_response_body(self, post_mock):
-        response = _FakeResponse(
+    @patch(
+        "backend.apps.telegram_bot.repositories.adapters.bot_http_transport.httpx.AsyncClient"
+    )
+    def test_provider_error_does_not_expose_tokenized_url_or_response_body(
+        self,
+        client_mock,
+    ):
+        response = _FakeAsyncResponse(
             {"description": "provider-body-secret"},
             status_code=500,
         )
-        post_mock.return_value = response
+        client_mock.return_value = _FakeAsyncClient(response)
 
         with self.assertRaises(BotProviderTransportError) as raised:
             BotProviderHttpTransport.post_json(
@@ -57,10 +90,12 @@ class BotProviderHttpTransportSecurityTests(SimpleTestCase):
         self.assertTrue(response.closed)
 
     @override_settings(BOT_PROVIDER_MAX_RESPONSE_BYTES=1024)
-    @patch("backend.apps.telegram_bot.repositories.adapters.bot_http_transport.requests.post")
-    def test_oversized_bot_provider_response_is_rejected(self, post_mock):
-        response = _FakeResponse(b"{" + b"x" * 2048 + b"}")
-        post_mock.return_value = response
+    @patch(
+        "backend.apps.telegram_bot.repositories.adapters.bot_http_transport.httpx.AsyncClient"
+    )
+    def test_oversized_bot_provider_response_is_rejected(self, client_mock):
+        response = _FakeAsyncResponse(b"{" + b"x" * 2048 + b"}")
+        client_mock.return_value = _FakeAsyncClient(response)
 
         with self.assertRaises(BotProviderTransportError):
             BotProviderHttpTransport.post_json(
@@ -119,7 +154,10 @@ class BotUpdateLogPrivacyTests(TestCase):
 
 
 class BotWebhookPayloadSecurityTests(APITestCase):
-    @patch("backend.apps.telegram_bot.views.BotRuntimeConfigProvider.get_env", return_value="expected-secret")
+    @patch(
+        "backend.apps.telegram_bot.views.BotRuntimeConfigProvider.get_env",
+        return_value="expected-secret",
+    )
     def test_missing_update_id_is_rejected_before_processing(self, _secret_mock):
         response = self.client.post(
             reverse("telegram-webhook"),

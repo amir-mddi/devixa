@@ -1,10 +1,11 @@
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
+from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.shortcuts import redirect
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
-from rest_framework.exceptions import NotFound, ValidationError
-from rest_framework.views import APIView
 
 from backend.apps.billing.dtos import (
     CheckoutDTO,
@@ -29,13 +30,24 @@ from backend.apps.billing.serializers import (
 )
 from backend.apps.billing.vo import BillingMessagesVO
 from backend.apps.common.response_utils import ResponseUtil
+from backend.apps.common.utils.async_api import AsyncAPIView as APIView
+from backend.apps.common.utils.async_drf import serializer_data, validate_serializer
 from backend.apps.common.utils.common_utils import CommonUtils
-from backend.apps.common.utils.network_security import UnsafeOutboundUrlError, validate_public_https_url
+from backend.apps.common.utils.network_security import (
+    UnsafeOutboundUrlError,
+    validate_public_https_url,
+)
 from backend.apps.common.utils.pagination_response_mixin import PaginatedResponseMixin
 from backend.apps.core_models.constants.common_vo import ResponseVO
 from backend.apps.shared.throttling import PaymentCallbackThrottle
 
 logger = CommonUtils.get_project_logger(__name__)
+
+
+async def _serialize(serializer_class, instance, *, request):
+    return await serializer_data(
+        serializer_class(instance, context={"request": request})
+    )
 
 
 class CheckoutAPIView(APIView):
@@ -46,10 +58,10 @@ class CheckoutAPIView(APIView):
         super().__init__(**kwargs)
         self.logic = BillingLogicRepository()
 
-    def post(self, request):
-        serializer = CheckoutSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        order, created = self.logic.create_checkout_order(
+    async def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        await validate_serializer(serializer)
+        order, created = await self.logic.create_checkout_order_async(
             user=request.user,
             dto=CheckoutDTO(**serializer.validated_data),
         )
@@ -57,7 +69,7 @@ class CheckoutAPIView(APIView):
             data={
                 "created": created,
                 "requires_payment": order.total_amount > 0 and order.status != "paid",
-                "order": OrderSerializer(order, context={"request": request}).data,
+                "order": await _serialize(OrderSerializer, order, request=request),
             },
             status_code=ResponseVO.http_201 if created else ResponseVO.http_200,
         )
@@ -70,12 +82,20 @@ class MyOrdersAPIView(PaginatedResponseMixin, APIView):
         super().__init__(**kwargs)
         self.logic = BillingLogicRepository()
 
-    def get(self, request, order_id=None):
+    async def get(self, request, order_id=None):
         if order_id:
-            order = self.logic.get_order_for_user(order_id=order_id, user=request.user)
-            return ResponseUtil(data=OrderSerializer(order, context={"request": request}).data)
-        queryset = self.logic.list_user_orders(request.user)
-        return self.paginated_response(request, queryset, OrderSerializer)
+            order = await self.logic.get_order_for_user_async(
+                order_id=order_id,
+                user=request.user,
+            )
+            return ResponseUtil(
+                data=await _serialize(OrderSerializer, order, request=request)
+            )
+        queryset = await self.logic.list_user_orders_async(request.user)
+        return await sync_to_async(
+            self.paginated_response,
+            thread_sensitive=True,
+        )(request, queryset, OrderSerializer)
 
 
 class MyPaymentsAPIView(PaginatedResponseMixin, APIView):
@@ -85,12 +105,20 @@ class MyPaymentsAPIView(PaginatedResponseMixin, APIView):
         super().__init__(**kwargs)
         self.logic = BillingLogicRepository()
 
-    def get(self, request, payment_id=None):
+    async def get(self, request, payment_id=None):
         if payment_id:
-            payment = self.logic.get_payment_for_user(payment_id=payment_id, user=request.user)
-            return ResponseUtil(data=PaymentSerializer(payment, context={"request": request}).data)
-        queryset = self.logic.list_user_payments(request.user)
-        return self.paginated_response(request, queryset, PaymentSerializer)
+            payment = await self.logic.get_payment_for_user_async(
+                payment_id=payment_id,
+                user=request.user,
+            )
+            return ResponseUtil(
+                data=await _serialize(PaymentSerializer, payment, request=request)
+            )
+        queryset = await self.logic.list_user_payments_async(request.user)
+        return await sync_to_async(
+            self.paginated_response,
+            thread_sensitive=True,
+        )(request, queryset, PaymentSerializer)
 
 
 class PaymentStartAPIView(APIView):
@@ -101,17 +129,21 @@ class PaymentStartAPIView(APIView):
         super().__init__(**kwargs)
         self.logic = BillingLogicRepository()
 
-    def post(self, request):
-        serializer = PaymentStartSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        payment = self.logic.start_payment(
+    async def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        await validate_serializer(serializer)
+        payment = await self.logic.start_payment_async(
             user=request.user,
             dto=PaymentStartDTO(**serializer.validated_data),
         )
         return ResponseUtil(
             data={
                 "detail": BillingMessagesVO.PAYMENT_CREATED,
-                "payment": PaymentSerializer(payment, context={"request": request}).data,
+                "payment": await _serialize(
+                    PaymentSerializer,
+                    payment,
+                    request=request,
+                ),
             },
             status_code=ResponseVO.http_201,
         )
@@ -125,17 +157,21 @@ class PaymentConfirmAPIView(APIView):
         super().__init__(**kwargs)
         self.logic = BillingLogicRepository()
 
-    def post(self, request):
-        serializer = PaymentConfirmSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        payment = self.logic.confirm_payment(
+    async def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        await validate_serializer(serializer)
+        payment = await self.logic.confirm_payment_async(
             actor=request.user,
             dto=PaymentConfirmDTO(**serializer.validated_data),
         )
         return ResponseUtil(
             data={
                 "detail": BillingMessagesVO.PAYMENT_CONFIRMED,
-                "payment": PaymentSerializer(payment, context={"request": request}).data,
+                "payment": await _serialize(
+                    PaymentSerializer,
+                    payment,
+                    request=request,
+                ),
             },
             status_code=ResponseVO.http_200,
         )
@@ -150,10 +186,10 @@ class PaymentReceiptUploadAPIView(APIView):
         super().__init__(**kwargs)
         self.logic = BillingLogicRepository()
 
-    def post(self, request):
-        serializer = PaymentReceiptUploadSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        receipt = self.logic.upload_receipt(
+    async def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        await validate_serializer(serializer)
+        receipt = await self.logic.upload_receipt_async(
             user=request.user,
             dto=PaymentReceiptUploadDTO(
                 **serializer.validated_data,
@@ -163,7 +199,11 @@ class PaymentReceiptUploadAPIView(APIView):
         return ResponseUtil(
             data={
                 "detail": BillingMessagesVO.RECEIPT_CREATED,
-                "receipt": PaymentReceiptSerializer(receipt, context={"request": request}).data,
+                "receipt": await _serialize(
+                    PaymentReceiptSerializer,
+                    receipt,
+                    request=request,
+                ),
             },
             status_code=ResponseVO.http_201,
         )
@@ -178,19 +218,29 @@ class PaymentGatewayCallbackAPIView(APIView):
         super().__init__(**kwargs)
         self.logic = BillingLogicRepository()
 
-    def get(self, request, provider: str = PaymentProviderEnum.PARDAKHTYAR.value):
-        return self._handle(request, provider)
+    async def get(
+        self,
+        request,
+        provider: str = PaymentProviderEnum.PARDAKHTYAR.value,
+    ):
+        return await self._handle(request, provider)
 
-    def post(self, request, provider: str = PaymentProviderEnum.PARDAKHTYAR.value):
-        return self._handle(request, provider)
+    async def post(
+        self,
+        request,
+        provider: str = PaymentProviderEnum.PARDAKHTYAR.value,
+    ):
+        return await self._handle(request, provider)
 
-    def _handle(self, request, provider: str):
+    async def _handle(self, request, provider: str):
         payload = request.query_params.dict()
         if isinstance(request.data, dict):
             payload.update(request.data)
         try:
-            payment, verification_result = self.logic.confirm_gateway_callback(
-                PaymentGatewayCallbackDTO(provider=provider, payload=payload)
+            payment, verification_result = (
+                await self.logic.confirm_gateway_callback_async(
+                    PaymentGatewayCallbackDTO(provider=provider, payload=payload)
+                )
             )
         except (NotFound, ValidationError):
             return ResponseUtil(
@@ -204,6 +254,7 @@ class PaymentGatewayCallbackAPIView(APIView):
             response = redirect(redirect_url)
             response["Cache-Control"] = "no-store"
             return response
+
         response = ResponseUtil(
             data={
                 "detail": BillingMessagesVO.GATEWAY_VERIFIED,
@@ -224,8 +275,9 @@ class PaymentGatewayCallbackAPIView(APIView):
         configured_url = str(configured_url or "").strip()
         if not configured_url:
             return ""
-
-        allowed_hosts = getattr(settings, "PARDAKHTYAR_FRONTEND_ALLOWED_HOSTS", ()) or ()
+        allowed_hosts = (
+            getattr(settings, "PARDAKHTYAR_FRONTEND_ALLOWED_HOSTS", ()) or ()
+        )
         try:
             safe_url = validate_public_https_url(
                 configured_url,
@@ -235,7 +287,6 @@ class PaymentGatewayCallbackAPIView(APIView):
         except UnsafeOutboundUrlError:
             logger.error("Configured payment frontend redirect URL is unsafe.")
             return ""
-
         parsed = urlsplit(safe_url)
         query = dict(parse_qsl(parsed.query, keep_blank_values=True))
         query.update(
@@ -250,40 +301,38 @@ class PaymentGatewayCallbackAPIView(APIView):
         )
 
 
-class AdminOrdersAPIView(PaginatedResponseMixin, APIView):
+class _AdminPaginatedBillingAPIView(PaginatedResponseMixin, APIView):
     permission_classes = [IsAdminUser]
+    serializer_class = None
+    logic_method_name = ""
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.logic = BillingLogicRepository()
 
-    def get(self, request):
-        queryset = self.logic.list_orders_for_admin(status=request.query_params.get("status"))
-        return self.paginated_response(request, queryset, OrderSerializer)
+    async def get(self, request):
+        queryset = await getattr(self.logic, self.logic_method_name)(
+            status=request.query_params.get("status")
+        )
+        return await sync_to_async(
+            self.paginated_response,
+            thread_sensitive=True,
+        )(request, queryset, self.serializer_class)
 
 
-class AdminPaymentsAPIView(PaginatedResponseMixin, APIView):
-    permission_classes = [IsAdminUser]
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.logic = BillingLogicRepository()
-
-    def get(self, request):
-        queryset = self.logic.list_payments_for_admin(status=request.query_params.get("status"))
-        return self.paginated_response(request, queryset, PaymentSerializer)
+class AdminOrdersAPIView(_AdminPaginatedBillingAPIView):
+    serializer_class = OrderSerializer
+    logic_method_name = "list_orders_for_admin_async"
 
 
-class AdminPaymentReceiptsAPIView(PaginatedResponseMixin, APIView):
-    permission_classes = [IsAdminUser]
+class AdminPaymentsAPIView(_AdminPaginatedBillingAPIView):
+    serializer_class = PaymentSerializer
+    logic_method_name = "list_payments_for_admin_async"
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.logic = BillingLogicRepository()
 
-    def get(self, request):
-        queryset = self.logic.list_receipts_for_admin(status=request.query_params.get("status"))
-        return self.paginated_response(request, queryset, AdminPaymentReceiptSerializer)
+class AdminPaymentReceiptsAPIView(_AdminPaginatedBillingAPIView):
+    serializer_class = AdminPaymentReceiptSerializer
+    logic_method_name = "list_receipts_for_admin_async"
 
 
 class AdminPaymentReceiptReviewAPIView(APIView):
@@ -294,18 +343,33 @@ class AdminPaymentReceiptReviewAPIView(APIView):
         super().__init__(**kwargs)
         self.logic = BillingLogicRepository()
 
-    def post(self, request, receipt_id):
-        serializer = PaymentReceiptReviewSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        receipt, payment = self.logic.review_receipt(
+    async def post(self, request, receipt_id):
+        serializer = self.serializer_class(data=request.data)
+        await validate_serializer(serializer)
+        receipt, payment = await self.logic.review_receipt_async(
             actor=request.user,
-            dto=PaymentReceiptReviewDTO(receipt_id=receipt_id, **serializer.validated_data),
+            dto=PaymentReceiptReviewDTO(
+                receipt_id=receipt_id,
+                **serializer.validated_data,
+            ),
         )
         return ResponseUtil(
             data={
-                "detail": BillingMessagesVO.RECEIPT_APPROVED if serializer.validated_data["approve"] else BillingMessagesVO.RECEIPT_REJECTED,
-                "receipt": AdminPaymentReceiptSerializer(receipt, context={"request": request}).data,
-                "payment": PaymentSerializer(payment, context={"request": request}).data,
+                "detail": (
+                    BillingMessagesVO.RECEIPT_APPROVED
+                    if serializer.validated_data["approve"]
+                    else BillingMessagesVO.RECEIPT_REJECTED
+                ),
+                "receipt": await _serialize(
+                    AdminPaymentReceiptSerializer,
+                    receipt,
+                    request=request,
+                ),
+                "payment": await _serialize(
+                    PaymentSerializer,
+                    payment,
+                    request=request,
+                ),
             },
             status_code=ResponseVO.http_200,
         )

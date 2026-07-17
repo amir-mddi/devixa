@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import hmac
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from backend.apps.telegram_bot.controllers.update_controller import BotUpdateController
 
 
 class BotWebhookService:
-    """Webhook application service for Telegram/Bale/Rubika."""
+    """Async webhook application service for Telegram, Bale, and Rubika."""
 
     def __init__(
         self,
@@ -28,5 +29,5 @@ class BotWebhookService:
             return False
         return hmac.compare_digest(provided_secret or "", expected_secret)
 
-    def process(self, update: dict[str, Any]) -> bool:
-        return self.controller.handle(update)
+    async def process(self, update: dict[str, Any]) -> bool:
+        return await self.controller.handle(update)

@@ -1,3 +1,4 @@
+from asgiref.sync import sync_to_async
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -56,6 +57,117 @@ class AccountLogicRepository(metaclass=Singleton):
         self.gmail_adapter = AccountEmailAdapter()
         self.verification_code_cache = VerificationCodeCacheAdapter()
         self.shared_logic = SharedApplicationLogic()
+
+    async def async_authenticate_user_by_identifier(self, request, dto: LoginUserDTO) -> AuthResultDTO:
+        return await sync_to_async(
+            self.authenticate_user_by_identifier,
+            thread_sensitive=True,
+        )(request, dto)
+
+    async def async_register_user_account(self, dto: RegisterUserDTO) -> AuthResultDTO:
+        return await sync_to_async(
+            self.register_user_account,
+            thread_sensitive=True,
+        )(dto)
+
+    async def async_send_verification_email_code(self, user: User) -> bool:
+        return await sync_to_async(
+            self.send_verification_email_code,
+            thread_sensitive=True,
+        )(user)
+
+    async def async_send_verification_forget_password_code(self, user: User) -> bool:
+        return await sync_to_async(
+            self.send_verification_forget_password_code,
+            thread_sensitive=True,
+        )(user)
+
+    async def async_check_email_validation_code(self, user: User, code: str) -> bool:
+        return await sync_to_async(
+            self.check_email_validation_code,
+            thread_sensitive=True,
+        )(user, code)
+
+    async def async_check_forget_password_code(self, user: User, code: str) -> bool:
+        return await sync_to_async(
+            self.check_forget_password_code,
+            thread_sensitive=True,
+        )(user, code)
+
+    async def async_send_forget_password_code_by_email(
+        self,
+        dto: SendPasswordRecoveryCodeDTO,
+    ) -> PasswordRecoveryResultDTO:
+        return await sync_to_async(
+            self.send_forget_password_code_by_email,
+            thread_sensitive=True,
+        )(dto)
+
+    async def async_reset_forget_password_by_email(
+        self,
+        dto: ResetPasswordDTO,
+    ) -> PasswordRecoveryResultDTO:
+        return await sync_to_async(
+            self.reset_forget_password_by_email,
+            thread_sensitive=True,
+        )(dto)
+
+    async def async_send_phone_verification_code(
+        self,
+        dto: SendPhoneVerificationCodeDTO,
+    ) -> PhoneVerificationResultDTO:
+        return await sync_to_async(
+            self.send_phone_verification_code,
+            thread_sensitive=True,
+        )(dto)
+
+    async def async_verify_phone_number(
+        self,
+        dto: VerifyPhoneNumberDTO,
+    ) -> PhoneVerificationResultDTO:
+        return await sync_to_async(
+            self.verify_phone_number,
+            thread_sensitive=True,
+        )(dto)
+
+    async def async_verify_phone_number_by_telegram(
+        self,
+        dto: VerifyPhoneNumberByTelegramDTO,
+    ) -> PhoneVerificationResultDTO:
+        return await sync_to_async(
+            self.verify_phone_number_by_telegram,
+            thread_sensitive=True,
+        )(dto)
+
+    async def async_send_forget_password_code_by_sms(
+        self,
+        dto: SendSmsPasswordRecoveryCodeDTO,
+    ) -> PasswordRecoveryResultDTO:
+        return await sync_to_async(
+            self.send_forget_password_code_by_sms,
+            thread_sensitive=True,
+        )(dto)
+
+    async def async_reset_forget_password_by_sms(
+        self,
+        dto: ResetPasswordBySmsDTO,
+    ) -> PasswordRecoveryResultDTO:
+        return await sync_to_async(
+            self.reset_forget_password_by_sms,
+            thread_sensitive=True,
+        )(dto)
+
+    async def async_change_password(self, *, user, new_password: str) -> None:
+        await sync_to_async(
+            self.change_password,
+            thread_sensitive=True,
+        )(user=user, new_password=new_password)
+
+    async def async_update_user_role(self, role_id, user) -> None:
+        await sync_to_async(
+            self.update_user_role,
+            thread_sensitive=True,
+        )(role_id, user)
 
     def authenticate_user_by_identifier(self, request, dto: LoginUserDTO) -> AuthResultDTO:
         username = dto.identifier.strip()

@@ -152,7 +152,8 @@
         const candidates = $$([
             '.course_card', '.roadmap_link', '.stat_card', '.card_process', '.about_cards .card',
             '.history_cards .card', '.contact_cards .card', '.curriculum .card', '.card_learn',
-            '.roadmap_skills .card', '.roadmap_projects .card', '.faq_item', '.footer_section'
+            '.roadmap_skills .card', '.roadmap_projects .card', '.faq_item', '.footer_section',
+            '[data-premium-reveal]'
         ].join(','));
 
         candidates.forEach((item, index) => {
@@ -396,11 +397,11 @@
         createBackToTop();
         createCursorGlow();
         addRippleEffect();
+        polishCourseMetrics();
         revealEverything();
         addTilt();
         improveForms();
         improveFilterFeedback();
-        polishCourseMetrics();
         animateNumbers();
         keyboardShortcuts();
     });

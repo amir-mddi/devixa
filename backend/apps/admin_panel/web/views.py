@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from asgiref.sync import sync_to_async
+from backend.apps.common.web.async_view import AsyncWebViewMixin
+
 from django.contrib import messages
 from django.http import Http404
 from django.core.exceptions import ValidationError
@@ -71,286 +74,201 @@ class AdminPanelContextMixin:
         return AdminPanelMessageVO.OPERATION_FAILED.value
 
 
-class AdminDashboardView(AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
+class AdminDashboardView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
     dashboard_logic_class = AdminDashboardLogic
     action_logic_class = AdminPanelActionLogic
 
-    def get(self, request):
+    async def get(self, request):
+        return await sync_to_async(self._sync_get, thread_sensitive=True)(request)
+
+    def _sync_get(self, request):
         action_logic = self.action_logic_class()
-        context = self.base_context(
-            active_section=AdminPanelSectionEnum.DASHBOARD,
-            stats=self.dashboard_logic_class().get_stats(),
-            recent_tickets=action_logic.list_tickets(status="", provider="", search="")[
-                :5
-            ],
-            pending_receipts=action_logic.list_receipts(
-                status=PaymentReceiptStatusEnum.PENDING.value
-            )[:5],
-            pending_reviews=action_logic.list_reviews(
-                status=ReviewStatusEnum.PENDING.value
-            )[:5],
-            recipient_counts=action_logic.recipient_counts(),
-        )
-        return render(request, f"{self.template_root}/dashboard.html", context)
+        context = self.base_context(active_section=AdminPanelSectionEnum.DASHBOARD, stats=self.dashboard_logic_class().get_stats(), recent_tickets=action_logic.list_tickets(status='', provider='', search='')[:5], pending_receipts=action_logic.list_receipts(status=PaymentReceiptStatusEnum.PENDING.value)[:5], pending_reviews=action_logic.list_reviews(status=ReviewStatusEnum.PENDING.value)[:5], recipient_counts=action_logic.recipient_counts())
+        return render(request, f'{self.template_root}/dashboard.html', context)
 
 
-class AdminTicketListView(AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
+class AdminTicketListView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
     logic_class = AdminPanelActionLogic
 
-    def get(self, request):
-        filters = {
-            "status": request.GET.get("status", "").strip(),
-            "provider": request.GET.get("provider", "").strip(),
-            "search": request.GET.get("search", "").strip(),
-        }
+    async def get(self, request):
+        return await sync_to_async(self._sync_get, thread_sensitive=True)(request)
+
+    def _sync_get(self, request):
+        filters = {'status': request.GET.get('status', '').strip(), 'provider': request.GET.get('provider', '').strip(), 'search': request.GET.get('search', '').strip()}
         tickets = self.logic_class().list_tickets(**filters)
-        context = self.base_context(
-            active_section=AdminPanelSectionEnum.TICKETS,
-            tickets_page=self.page(tickets, request),
-            filters=filters,
-            ticket_statuses=BotSupportTicket.STATUS_CHOICES,
-            providers=[
-                (BotSupportProviderEnum.WEB.value, "وب"),
-                (BotSupportProviderEnum.TELEGRAM.value, "تلگرام"),
-                (BotSupportProviderEnum.BALE.value, "بله"),
-                (BotSupportProviderEnum.RUBIKA.value, "روبیکا"),
-            ],
-        )
-        return render(request, f"{self.template_root}/tickets.html", context)
+        context = self.base_context(active_section=AdminPanelSectionEnum.TICKETS, tickets_page=self.page(tickets, request), filters=filters, ticket_statuses=BotSupportTicket.STATUS_CHOICES, providers=[(BotSupportProviderEnum.WEB.value, 'وب'), (BotSupportProviderEnum.TELEGRAM.value, 'تلگرام'), (BotSupportProviderEnum.BALE.value, 'بله'), (BotSupportProviderEnum.RUBIKA.value, 'روبیکا')])
+        return render(request, f'{self.template_root}/tickets.html', context)
 
 
-class AdminTicketDetailView(AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
+class AdminTicketDetailView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
     logic_class = AdminPanelActionLogic
 
-    def get(self, request, ticket_id):
+    async def get(self, request, ticket_id):
+        return await sync_to_async(self._sync_get, thread_sensitive=True)(request, ticket_id)
+
+    def _sync_get(self, request, ticket_id):
         ticket = self.logic_class().get_ticket(ticket_id)
-        return render(
-            request,
-            f"{self.template_root}/ticket_detail.html",
-            self.base_context(
-                active_section=AdminPanelSectionEnum.TICKETS,
-                ticket=ticket,
-                reply_form=AdminTicketReplyForm(),
-            ),
-        )
+        return render(request, f'{self.template_root}/ticket_detail.html', self.base_context(active_section=AdminPanelSectionEnum.TICKETS, ticket=ticket, reply_form=AdminTicketReplyForm()))
 
 
-class AdminTicketReplyView(AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
+class AdminTicketReplyView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
     logic_class = AdminPanelActionLogic
 
-    def post(self, request, ticket_id):
+    async def post(self, request, ticket_id):
+        return await sync_to_async(self._sync_post, thread_sensitive=True)(request, ticket_id)
+
+    def _sync_post(self, request, ticket_id):
         form = AdminTicketReplyForm(request.POST)
         if form.is_valid():
             try:
-                self.logic_class().reply_ticket(
-                    actor=request.user,
-                    ticket_id=ticket_id,
-                    message=form.cleaned_data["message"],
-                )
+                self.logic_class().reply_ticket(actor=request.user, ticket_id=ticket_id, message=form.cleaned_data['message'])
                 messages.success(request, AdminPanelMessageVO.TICKET_REPLIED.value)
             except (ValidationError, APIException) as exc:
                 messages.error(request, self.error_text(exc))
         else:
             messages.error(request, AdminPanelMessageVO.OPERATION_FAILED.value)
-        return redirect("admin_panel:ticket_detail", ticket_id=ticket_id)
+        return redirect('admin_panel:ticket_detail', ticket_id=ticket_id)
 
 
-class AdminTicketCloseView(AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
+class AdminTicketCloseView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
     logic_class = AdminPanelActionLogic
 
-    def post(self, request, ticket_id):
+    async def post(self, request, ticket_id):
+        return await sync_to_async(self._sync_post, thread_sensitive=True)(request, ticket_id)
+
+    def _sync_post(self, request, ticket_id):
         try:
             self.logic_class().close_ticket(actor=request.user, ticket_id=ticket_id)
             messages.success(request, AdminPanelMessageVO.TICKET_CLOSED.value)
         except (ValidationError, APIException) as exc:
             messages.error(request, self.error_text(exc))
-        return redirect("admin_panel:ticket_detail", ticket_id=ticket_id)
+        return redirect('admin_panel:ticket_detail', ticket_id=ticket_id)
 
 
-class AdminReviewListView(AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
+class AdminReviewListView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
     logic_class = AdminPanelActionLogic
 
-    def get(self, request):
-        status = request.GET.get("status", ReviewStatusEnum.PENDING.value).strip()
+    async def get(self, request):
+        return await sync_to_async(self._sync_get, thread_sensitive=True)(request)
+
+    def _sync_get(self, request):
+        status = request.GET.get('status', ReviewStatusEnum.PENDING.value).strip()
         reviews = self.logic_class().list_reviews(status=status)
-        return render(
-            request,
-            f"{self.template_root}/reviews.html",
-            self.base_context(
-                active_section=AdminPanelSectionEnum.REVIEWS,
-                reviews_page=self.page(reviews, request),
-                selected_status=status,
-                review_statuses=ReviewStatusEnum.choices(),
-                moderation_form=AdminReviewModerationForm(),
-            ),
-        )
+        return render(request, f'{self.template_root}/reviews.html', self.base_context(active_section=AdminPanelSectionEnum.REVIEWS, reviews_page=self.page(reviews, request), selected_status=status, review_statuses=ReviewStatusEnum.choices(), moderation_form=AdminReviewModerationForm()))
 
 
-class AdminReviewModerateView(
+class AdminReviewModerateView(AsyncWebViewMixin, 
     AdminPanelProtectedViewMixin, AdminPanelContextMixin, View
 ):
     logic_class = AdminPanelActionLogic
 
-    def post(self, request, review_id):
+    async def post(self, request, review_id):
+        return await sync_to_async(self._sync_post, thread_sensitive=True)(request, review_id)
+
+    def _sync_post(self, request, review_id):
         form = AdminReviewModerationForm(request.POST)
         if form.is_valid():
             try:
-                self.logic_class().moderate_review(
-                    actor=request.user,
-                    review_id=review_id,
-                    status=form.cleaned_data["status"],
-                    admin_note=form.cleaned_data["admin_note"],
-                )
+                self.logic_class().moderate_review(actor=request.user, review_id=review_id, status=form.cleaned_data['status'], admin_note=form.cleaned_data['admin_note'])
                 messages.success(request, AdminPanelMessageVO.REVIEW_UPDATED.value)
             except (ValidationError, APIException, ValueError) as exc:
                 messages.error(request, self.error_text(exc))
         else:
             messages.error(request, AdminPanelMessageVO.OPERATION_FAILED.value)
-        return redirect(
-            f'{reverse("admin_panel:reviews")}?status={request.POST.get("status", "pending")}'
-        )
+        return redirect(f"{reverse('admin_panel:reviews')}?status={request.POST.get('status', 'pending')}")
 
 
-class AdminBillingView(AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
+class AdminBillingView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
     logic_class = AdminPanelActionLogic
 
-    def get(self, request):
-        receipt_status = request.GET.get(
-            "receipt_status", PaymentReceiptStatusEnum.PENDING.value
-        ).strip()
-        order_status = request.GET.get("order_status", "").strip()
-        payment_status = request.GET.get("payment_status", "").strip()
+    async def get(self, request):
+        return await sync_to_async(self._sync_get, thread_sensitive=True)(request)
+
+    def _sync_get(self, request):
+        receipt_status = request.GET.get('receipt_status', PaymentReceiptStatusEnum.PENDING.value).strip()
+        order_status = request.GET.get('order_status', '').strip()
+        payment_status = request.GET.get('payment_status', '').strip()
         logic = self.logic_class()
-        context = self.base_context(
-            active_section=AdminPanelSectionEnum.BILLING,
-            receipts_page=self.page(
-                logic.list_receipts(status=receipt_status), request, 12
-            ),
-            orders=logic.list_orders(status=order_status)[:40],
-            payments=logic.list_payments(status=payment_status)[:40],
-            receipt_status=receipt_status,
-            order_status=order_status,
-            payment_status=payment_status,
-            receipt_statuses=PaymentReceiptStatusEnum.choices(),
-            order_statuses=OrderStatusEnum.choices(),
-            payment_statuses=PaymentStatusEnum.choices(),
-            receipt_form=AdminReceiptReviewForm(),
-        )
-        return render(request, f"{self.template_root}/billing.html", context)
+        context = self.base_context(active_section=AdminPanelSectionEnum.BILLING, receipts_page=self.page(logic.list_receipts(status=receipt_status), request, 12), orders=logic.list_orders(status=order_status)[:40], payments=logic.list_payments(status=payment_status)[:40], receipt_status=receipt_status, order_status=order_status, payment_status=payment_status, receipt_statuses=PaymentReceiptStatusEnum.choices(), order_statuses=OrderStatusEnum.choices(), payment_statuses=PaymentStatusEnum.choices(), receipt_form=AdminReceiptReviewForm())
+        return render(request, f'{self.template_root}/billing.html', context)
 
 
-class AdminReceiptReviewView(
+class AdminReceiptReviewView(AsyncWebViewMixin, 
     AdminPanelProtectedViewMixin, AdminPanelContextMixin, View
 ):
     logic_class = AdminPanelActionLogic
 
-    def post(self, request, receipt_id):
+    async def post(self, request, receipt_id):
+        return await sync_to_async(self._sync_post, thread_sensitive=True)(request, receipt_id)
+
+    def _sync_post(self, request, receipt_id):
         form = AdminReceiptReviewForm(request.POST)
         if form.is_valid():
             try:
-                self.logic_class().review_receipt(
-                    actor=request.user,
-                    receipt_id=receipt_id,
-                    approve=form.cleaned_data["action"] == "approve",
-                    admin_note=form.cleaned_data["admin_note"],
-                    transaction_id=form.cleaned_data["transaction_id"],
-                )
+                self.logic_class().review_receipt(actor=request.user, receipt_id=receipt_id, approve=form.cleaned_data['action'] == 'approve', admin_note=form.cleaned_data['admin_note'], transaction_id=form.cleaned_data['transaction_id'])
                 messages.success(request, AdminPanelMessageVO.RECEIPT_UPDATED.value)
             except (ValidationError, APIException) as exc:
                 messages.error(request, self.error_text(exc))
         else:
             messages.error(request, AdminPanelMessageVO.OPERATION_FAILED.value)
-        return redirect("admin_panel:billing")
+        return redirect('admin_panel:billing')
 
 
-class AdminReceiptFileView(AdminPanelProtectedViewMixin, View):
+class AdminReceiptFileView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, View):
     logic_class = AdminPanelActionLogic
 
-    def get(self, request, receipt_id):
+    async def get(self, request, receipt_id):
+        return await sync_to_async(self._sync_get, thread_sensitive=True)(request, receipt_id)
+
+    def _sync_get(self, request, receipt_id):
         receipt = self.logic_class().get_receipt(receipt_id)
         if not receipt.receipt_file:
             raise Http404
         try:
-            return FileResponse(
-                receipt.receipt_file.open("rb"),
-                as_attachment=False,
-                filename=receipt.receipt_file.name.rsplit("/", 1)[-1],
-            )
+            return FileResponse(receipt.receipt_file.open('rb'), as_attachment=False, filename=receipt.receipt_file.name.rsplit('/', 1)[-1])
         except FileNotFoundError as exc:
             raise Http404 from exc
 
 
-class AdminUserListView(AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
+class AdminUserListView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
     logic_class = AdminUserLogic
 
-    def get(self, request):
-        filters = {
-            "search": request.GET.get("search", "").strip(),
-            "role_id": request.GET.get("role", "").strip(),
-            "active": request.GET.get("active", "").strip(),
-        }
+    async def get(self, request):
+        return await sync_to_async(self._sync_get, thread_sensitive=True)(request)
+
+    def _sync_get(self, request):
+        filters = {'search': request.GET.get('search', '').strip(), 'role_id': request.GET.get('role', '').strip(), 'active': request.GET.get('active', '').strip()}
         logic = self.logic_class()
-        return render(
-            request,
-            f"{self.template_root}/users.html",
-            self.base_context(
-                active_section=AdminPanelSectionEnum.USERS,
-                users_page=self.page(logic.list_users(**filters), request),
-                roles=logic.list_roles(actor=request.user),
-                filters=filters,
-            ),
-        )
+        return render(request, f'{self.template_root}/users.html', self.base_context(active_section=AdminPanelSectionEnum.USERS, users_page=self.page(logic.list_users(**filters), request), roles=logic.list_roles(actor=request.user), filters=filters))
 
 
-class AdminUserCreateView(AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
+class AdminUserCreateView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
     logic_class = AdminUserLogic
 
-    def get(self, request):
-        logic = self.logic_class()
-        return render(
-            request,
-            f"{self.template_root}/user_form.html",
-            self.base_context(
-                active_section=AdminPanelSectionEnum.USERS,
-                form=AdminUserForm(
-                    roles=logic.list_roles(actor=request.user),
-                    require_password=True,
-                    allow_staff=request.user.is_superuser,
-                ),
-                page_title="ایجاد کاربر جدید",
-                submit_label="ایجاد کاربر",
-            ),
-        )
+    async def get(self, request):
+        return await sync_to_async(self._sync_get, thread_sensitive=True)(request)
 
-    def post(self, request):
+    def _sync_get(self, request):
         logic = self.logic_class()
-        form = AdminUserForm(
-            request.POST,
-            roles=logic.list_roles(actor=request.user),
-            require_password=True,
-            allow_staff=request.user.is_superuser,
-        )
+        return render(request, f'{self.template_root}/user_form.html', self.base_context(active_section=AdminPanelSectionEnum.USERS, form=AdminUserForm(roles=logic.list_roles(actor=request.user), require_password=True, allow_staff=request.user.is_superuser), page_title='ایجاد کاربر جدید', submit_label='ایجاد کاربر'))
+
+    async def post(self, request):
+        return await sync_to_async(self._sync_post, thread_sensitive=True)(request)
+
+    def _sync_post(self, request):
+        logic = self.logic_class()
+        form = AdminUserForm(request.POST, roles=logic.list_roles(actor=request.user), require_password=True, allow_staff=request.user.is_superuser)
         if form.is_valid():
             try:
                 logic.create_user(actor=request.user, dto=form.to_create_dto())
                 messages.success(request, AdminPanelMessageVO.USER_CREATED.value)
-                return redirect("admin_panel:users")
+                return redirect('admin_panel:users')
             except ValidationError as exc:
                 form.add_domain_errors(exc)
-        return render(
-            request,
-            f"{self.template_root}/user_form.html",
-            self.base_context(
-                active_section=AdminPanelSectionEnum.USERS,
-                form=form,
-                page_title="ایجاد کاربر جدید",
-                submit_label="ایجاد کاربر",
-            ),
-            status=400,
-        )
+        return render(request, f'{self.template_root}/user_form.html', self.base_context(active_section=AdminPanelSectionEnum.USERS, form=form, page_title='ایجاد کاربر جدید', submit_label='ایجاد کاربر'), status=400)
 
 
-class AdminUserEditView(AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
+class AdminUserEditView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
     logic_class = AdminUserLogic
 
     def form_initial(self, user):
@@ -367,105 +285,71 @@ class AdminUserEditView(AdminPanelProtectedViewMixin, AdminPanelContextMixin, Vi
             "phone_number_verified": user.phone_number_verified,
         }
 
-    def get(self, request, user_id):
-        logic = self.logic_class()
-        user = logic.get_user(user_id, actor=request.user)
-        return render(
-            request,
-            f"{self.template_root}/user_form.html",
-            self.base_context(
-                active_section=AdminPanelSectionEnum.USERS,
-                form=AdminUserForm(
-                    initial=self.form_initial(user),
-                    roles=logic.list_roles(actor=request.user),
-                    allow_staff=request.user.is_superuser,
-                ),
-                managed_user=user,
-                page_title="ویرایش کاربر",
-                submit_label="ذخیره تغییرات",
-            ),
-        )
+    async def get(self, request, user_id):
+        return await sync_to_async(self._sync_get, thread_sensitive=True)(request, user_id)
 
-    def post(self, request, user_id):
+    def _sync_get(self, request, user_id):
         logic = self.logic_class()
         user = logic.get_user(user_id, actor=request.user)
-        form = AdminUserForm(
-            request.POST,
-            roles=logic.list_roles(actor=request.user),
-            allow_staff=request.user.is_superuser,
-        )
+        return render(request, f'{self.template_root}/user_form.html', self.base_context(active_section=AdminPanelSectionEnum.USERS, form=AdminUserForm(initial=self.form_initial(user), roles=logic.list_roles(actor=request.user), allow_staff=request.user.is_superuser), managed_user=user, page_title='ویرایش کاربر', submit_label='ذخیره تغییرات'))
+
+    async def post(self, request, user_id):
+        return await sync_to_async(self._sync_post, thread_sensitive=True)(request, user_id)
+
+    def _sync_post(self, request, user_id):
+        logic = self.logic_class()
+        user = logic.get_user(user_id, actor=request.user)
+        form = AdminUserForm(request.POST, roles=logic.list_roles(actor=request.user), allow_staff=request.user.is_superuser)
         if form.is_valid():
             try:
                 logic.update_user(actor=request.user, dto=form.to_update_dto(user.id))
                 messages.success(request, AdminPanelMessageVO.USER_UPDATED.value)
-                return redirect("admin_panel:users")
+                return redirect('admin_panel:users')
             except ValidationError as exc:
                 form.add_domain_errors(exc)
-        return render(
-            request,
-            f"{self.template_root}/user_form.html",
-            self.base_context(
-                active_section=AdminPanelSectionEnum.USERS,
-                form=form,
-                managed_user=user,
-                page_title="ویرایش کاربر",
-                submit_label="ذخیره تغییرات",
-            ),
-            status=400,
-        )
+        return render(request, f'{self.template_root}/user_form.html', self.base_context(active_section=AdminPanelSectionEnum.USERS, form=form, managed_user=user, page_title='ویرایش کاربر', submit_label='ذخیره تغییرات'), status=400)
 
 
-class AdminUserToggleView(AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
+class AdminUserToggleView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
     logic_class = AdminUserLogic
 
-    def post(self, request, user_id):
+    async def post(self, request, user_id):
+        return await sync_to_async(self._sync_post, thread_sensitive=True)(request, user_id)
+
+    def _sync_post(self, request, user_id):
         try:
             self.logic_class().toggle_user(actor=request.user, user_id=user_id)
             messages.success(request, AdminPanelMessageVO.USER_STATUS_UPDATED.value)
         except ValidationError as exc:
             messages.error(request, self.error_text(exc))
-        return redirect("admin_panel:users")
+        return redirect('admin_panel:users')
 
 
-class AdminUserDeleteView(AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
+class AdminUserDeleteView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
     logic_class = AdminUserLogic
 
-    def post(self, request, user_id):
+    async def post(self, request, user_id):
+        return await sync_to_async(self._sync_post, thread_sensitive=True)(request, user_id)
+
+    def _sync_post(self, request, user_id):
         try:
             self.logic_class().delete_user(actor=request.user, user_id=user_id)
             messages.success(request, AdminPanelMessageVO.USER_DELETED.value)
         except ValidationError as exc:
             messages.error(request, self.error_text(exc))
-        return redirect("admin_panel:users")
+        return redirect('admin_panel:users')
 
 
-class AdminArticleListView(AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
+class AdminArticleListView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
     logic_class = AdminArticleLogic
 
-    def get(self, request):
-        filters = {
-            "search": request.GET.get("search", "").strip(),
-            "article_type": request.GET.get("article_type", "").strip(),
-            "status": request.GET.get("status", "").strip(),
-            "category_id": request.GET.get("category_id", "").strip(),
-        }
+    async def get(self, request):
+        return await sync_to_async(self._sync_get, thread_sensitive=True)(request)
+
+    def _sync_get(self, request):
+        filters = {'search': request.GET.get('search', '').strip(), 'article_type': request.GET.get('article_type', '').strip(), 'status': request.GET.get('status', '').strip(), 'category_id': request.GET.get('category_id', '').strip()}
         logic = self.logic_class()
-        return render(
-            request,
-            f"{self.template_root}/articles.html",
-            self.base_context(
-                active_section=AdminPanelSectionEnum.ARTICLES,
-                articles_page=logic.paginate_articles(
-                    filters,
-                    page=request.GET.get("page", 1),
-                    page_size=20,
-                ),
-                categories=logic.list_categories(),
-                filters=filters,
-                article_types=ArticleTypeEnum.choices(),
-                article_statuses=ArticleStatusEnum.choices(),
-            ),
-        )
+        return render(request, f'{self.template_root}/articles.html', self.base_context(active_section=AdminPanelSectionEnum.ARTICLES, articles_page=logic.paginate_articles(filters, page=request.GET.get('page', 1), page_size=20), categories=logic.list_categories(), filters=filters, article_types=ArticleTypeEnum.choices(), article_statuses=ArticleStatusEnum.choices()))
 
 
 class AdminArticleFormMixin(AdminPanelContextMixin):
@@ -514,25 +398,31 @@ class AdminArticleFormMixin(AdminPanelContextMixin):
         )
 
 
-class AdminArticleCreateView(AdminPanelProtectedViewMixin, AdminArticleFormMixin, View):
-    def get(self, request):
+class AdminArticleCreateView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, AdminArticleFormMixin, View):
+    async def get(self, request):
+        return await sync_to_async(self._sync_get, thread_sensitive=True)(request)
+
+    def _sync_get(self, request):
         logic = self.logic_class()
         return self.render_form(request, form=self.build_form(logic))
 
-    def post(self, request):
+    async def post(self, request):
+        return await sync_to_async(self._sync_post, thread_sensitive=True)(request)
+
+    def _sync_post(self, request):
         logic = self.logic_class()
         form = self.build_form(logic, request.POST, request.FILES)
         if form.is_valid():
             try:
                 logic.create_article(actor=request.user, data=form.to_domain_data())
                 messages.success(request, AdminPanelMessageVO.ARTICLE_CREATED.value)
-                return redirect("admin_panel:articles")
+                return redirect('admin_panel:articles')
             except (ValidationError, APIException) as exc:
                 self.add_form_exception(form, exc)
         return self.render_form(request, form=form, status=400)
 
 
-class AdminArticleEditView(AdminPanelProtectedViewMixin, AdminArticleFormMixin, View):
+class AdminArticleEditView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, AdminArticleFormMixin, View):
     @staticmethod
     def initial(article, tag_ids):
         published_at = article.published_at
@@ -553,70 +443,56 @@ class AdminArticleEditView(AdminPanelProtectedViewMixin, AdminArticleFormMixin, 
             "meta_description": article.meta_description,
         }
 
-    def get(self, request, article_id):
+    async def get(self, request, article_id):
+        return await sync_to_async(self._sync_get, thread_sensitive=True)(request, article_id)
+
+    def _sync_get(self, request, article_id):
         logic = self.logic_class()
         article = self.get_article_or_404(logic, article_id)
-        return self.render_form(
-            request,
-            form=self.build_form(
-                logic,
-                initial=self.initial(
-                    article,
-                    logic.list_article_tag_ids(article.id),
-                ),
-            ),
-            article=article,
-        )
+        return self.render_form(request, form=self.build_form(logic, initial=self.initial(article, logic.list_article_tag_ids(article.id))), article=article)
 
-    def post(self, request, article_id):
+    async def post(self, request, article_id):
+        return await sync_to_async(self._sync_post, thread_sensitive=True)(request, article_id)
+
+    def _sync_post(self, request, article_id):
         logic = self.logic_class()
         article = self.get_article_or_404(logic, article_id)
         form = self.build_form(logic, request.POST, request.FILES)
         if form.is_valid():
             try:
-                logic.update_article(
-                    actor=request.user,
-                    article_id=article.id,
-                    data=form.to_domain_data(),
-                )
+                logic.update_article(actor=request.user, article_id=article.id, data=form.to_domain_data())
                 messages.success(request, AdminPanelMessageVO.ARTICLE_UPDATED.value)
-                return redirect("admin_panel:articles")
+                return redirect('admin_panel:articles')
             except (ValidationError, APIException) as exc:
                 self.add_form_exception(form, exc)
         return self.render_form(request, form=form, article=article, status=400)
 
 
-class AdminArticleDeleteView(AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
+class AdminArticleDeleteView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
     logic_class = AdminArticleLogic
 
-    def post(self, request, article_id):
+    async def post(self, request, article_id):
+        return await sync_to_async(self._sync_post, thread_sensitive=True)(request, article_id)
+
+    def _sync_post(self, request, article_id):
         try:
             self.logic_class().delete_article(actor=request.user, article_id=article_id)
             messages.success(request, AdminPanelMessageVO.ARTICLE_DELETED.value)
         except (ValidationError, APIException) as exc:
             messages.error(request, self.error_text(exc))
-        return redirect("admin_panel:articles")
+        return redirect('admin_panel:articles')
 
 
-class AdminCourseListView(AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
+class AdminCourseListView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
     logic_class = AdminCourseLogic
 
-    def get(self, request):
-        filters = {
-            "search": request.GET.get("search", "").strip(),
-            "status": request.GET.get("status", "").strip(),
-        }
+    async def get(self, request):
+        return await sync_to_async(self._sync_get, thread_sensitive=True)(request)
+
+    def _sync_get(self, request):
+        filters = {'search': request.GET.get('search', '').strip(), 'status': request.GET.get('status', '').strip()}
         courses = self.logic_class().list_courses(filters)
-        return render(
-            request,
-            f"{self.template_root}/courses.html",
-            self.base_context(
-                active_section=AdminPanelSectionEnum.COURSES,
-                courses_page=self.page(courses, request),
-                filters=filters,
-                course_statuses=CourseStatusEnum.choices(),
-            ),
-        )
+        return render(request, f'{self.template_root}/courses.html', self.base_context(active_section=AdminPanelSectionEnum.COURSES, courses_page=self.page(courses, request), filters=filters, course_statuses=CourseStatusEnum.choices()))
 
 
 class AdminCourseFormMixin(AdminPanelContextMixin):
@@ -638,34 +514,32 @@ class AdminCourseFormMixin(AdminPanelContextMixin):
         )
 
 
-class AdminCourseCreateView(AdminPanelProtectedViewMixin, AdminCourseFormMixin, View):
-    def get(self, request):
-        logic = self.logic_class()
-        return self.render_form(
-            request, form=AdminCourseForm(categories=logic.list_categories())
-        )
+class AdminCourseCreateView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, AdminCourseFormMixin, View):
+    async def get(self, request):
+        return await sync_to_async(self._sync_get, thread_sensitive=True)(request)
 
-    def post(self, request):
+    def _sync_get(self, request):
         logic = self.logic_class()
-        form = AdminCourseForm(
-            request.POST, request.FILES, categories=logic.list_categories()
-        )
+        return self.render_form(request, form=AdminCourseForm(categories=logic.list_categories()))
+
+    async def post(self, request):
+        return await sync_to_async(self._sync_post, thread_sensitive=True)(request)
+
+    def _sync_post(self, request):
+        logic = self.logic_class()
+        form = AdminCourseForm(request.POST, request.FILES, categories=logic.list_categories())
         if form.is_valid():
             try:
                 data = form.to_domain_data()
-                logic.create_course(
-                    actor=request.user,
-                    data=data,
-                    thumbnail=form.cleaned_data["thumbnail"],
-                )
+                logic.create_course(actor=request.user, data=data, thumbnail=form.cleaned_data['thumbnail'])
                 messages.success(request, AdminPanelMessageVO.COURSE_CREATED.value)
-                return redirect("admin_panel:courses")
+                return redirect('admin_panel:courses')
             except (ValidationError, APIException) as exc:
                 form.add_error(None, self.error_text(exc))
         return self.render_form(request, form=form, status=400)
 
 
-class AdminCourseEditView(AdminPanelProtectedViewMixin, AdminCourseFormMixin, View):
+class AdminCourseEditView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, AdminCourseFormMixin, View):
     def initial(self, course):
         return {
             "title": course.title,
@@ -680,190 +554,161 @@ class AdminCourseEditView(AdminPanelProtectedViewMixin, AdminCourseFormMixin, Vi
             "is_featured": course.is_featured,
         }
 
-    def get(self, request, course_id):
+    async def get(self, request, course_id):
+        return await sync_to_async(self._sync_get, thread_sensitive=True)(request, course_id)
+
+    def _sync_get(self, request, course_id):
         logic = self.logic_class()
         course = logic.get_course(course_id)
-        form = AdminCourseForm(
-            initial=self.initial(course), categories=logic.list_categories()
-        )
+        form = AdminCourseForm(initial=self.initial(course), categories=logic.list_categories())
         return self.render_form(request, form=form, course=course)
 
-    def post(self, request, course_id):
+    async def post(self, request, course_id):
+        return await sync_to_async(self._sync_post, thread_sensitive=True)(request, course_id)
+
+    def _sync_post(self, request, course_id):
         logic = self.logic_class()
         course = logic.get_course(course_id)
-        form = AdminCourseForm(
-            request.POST, request.FILES, categories=logic.list_categories()
-        )
+        form = AdminCourseForm(request.POST, request.FILES, categories=logic.list_categories())
         if form.is_valid():
             try:
                 data = form.to_domain_data()
-                status = data.pop("status")
-                logic.update_course(
-                    actor=request.user,
-                    course_id=course.id,
-                    data=data,
-                    thumbnail=form.cleaned_data["thumbnail"],
-                )
+                status = data.pop('status')
+                logic.update_course(actor=request.user, course_id=course.id, data=data, thumbnail=form.cleaned_data['thumbnail'])
                 if status != course.status:
-                    logic.update_status(
-                        actor=request.user, course_id=course.id, status=status
-                    )
+                    logic.update_status(actor=request.user, course_id=course.id, status=status)
                 messages.success(request, AdminPanelMessageVO.COURSE_UPDATED.value)
-                return redirect("admin_panel:courses")
+                return redirect('admin_panel:courses')
             except (ValidationError, APIException) as exc:
                 form.add_error(None, self.error_text(exc))
         return self.render_form(request, form=form, course=course, status=400)
 
 
-class AdminCourseDeleteView(AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
+class AdminCourseDeleteView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
     logic_class = AdminCourseLogic
 
-    def post(self, request, course_id):
+    async def post(self, request, course_id):
+        return await sync_to_async(self._sync_post, thread_sensitive=True)(request, course_id)
+
+    def _sync_post(self, request, course_id):
         try:
             self.logic_class().delete_course(actor=request.user, course_id=course_id)
             messages.success(request, AdminPanelMessageVO.COURSE_DELETED.value)
         except (ValidationError, APIException) as exc:
             messages.error(request, self.error_text(exc))
-        return redirect("admin_panel:courses")
+        return redirect('admin_panel:courses')
 
 
-class AdminCourseLessonCreateView(
+class AdminCourseLessonCreateView(AsyncWebViewMixin, 
     AdminPanelProtectedViewMixin, AdminPanelContextMixin, View
 ):
     logic_class = AdminCourseLogic
 
-    def post(self, request, course_id):
+    async def post(self, request, course_id):
+        return await sync_to_async(self._sync_post, thread_sensitive=True)(request, course_id)
+
+    def _sync_post(self, request, course_id):
         form = AdminCourseLessonForm(request.POST)
         if form.is_valid():
             try:
-                self.logic_class().create_lesson(
-                    actor=request.user,
-                    course_id=course_id,
-                    data=form.to_domain_data(),
-                )
+                self.logic_class().create_lesson(actor=request.user, course_id=course_id, data=form.to_domain_data())
                 messages.success(request, AdminPanelMessageVO.LESSON_CREATED.value)
             except (ValidationError, APIException) as exc:
                 messages.error(request, self.error_text(exc))
         else:
             messages.error(request, AdminPanelMessageVO.OPERATION_FAILED.value)
-        return redirect("admin_panel:course_edit", course_id=course_id)
+        return redirect('admin_panel:course_edit', course_id=course_id)
 
 
-class AdminDiscountListView(AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
+class AdminDiscountListView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
     action_logic_class = AdminPanelActionLogic
     course_logic_class = AdminCourseLogic
 
-    def get(self, request):
-        return render(
-            request,
-            f"{self.template_root}/discounts.html",
-            self.base_context(
-                active_section=AdminPanelSectionEnum.DISCOUNTS,
-                discounts=self.action_logic_class().list_discounts(),
-                form=AdminDiscountForm(
-                    courses=self.course_logic_class().list_courses({})
-                ),
-            ),
-        )
+    async def get(self, request):
+        return await sync_to_async(self._sync_get, thread_sensitive=True)(request)
+
+    def _sync_get(self, request):
+        return render(request, f'{self.template_root}/discounts.html', self.base_context(active_section=AdminPanelSectionEnum.DISCOUNTS, discounts=self.action_logic_class().list_discounts(), form=AdminDiscountForm(courses=self.course_logic_class().list_courses({}))))
 
 
-class AdminDiscountCreateView(
+class AdminDiscountCreateView(AsyncWebViewMixin, 
     AdminPanelProtectedViewMixin, AdminPanelContextMixin, View
 ):
     action_logic_class = AdminPanelActionLogic
     course_logic_class = AdminCourseLogic
 
-    def post(self, request):
-        form = AdminDiscountForm(
-            request.POST, courses=self.course_logic_class().list_courses({})
-        )
+    async def post(self, request):
+        return await sync_to_async(self._sync_post, thread_sensitive=True)(request)
+
+    def _sync_post(self, request):
+        form = AdminDiscountForm(request.POST, courses=self.course_logic_class().list_courses({}))
         if form.is_valid():
             try:
-                self.action_logic_class().create_discount(
-                    actor=request.user,
-                    data=form.to_domain_data(),
-                )
+                self.action_logic_class().create_discount(actor=request.user, data=form.to_domain_data())
                 messages.success(request, AdminPanelMessageVO.DISCOUNT_CREATED.value)
             except (ValidationError, APIException) as exc:
                 messages.error(request, self.error_text(exc))
         else:
             messages.error(request, AdminPanelMessageVO.OPERATION_FAILED.value)
-        return redirect("admin_panel:discounts")
+        return redirect('admin_panel:discounts')
 
 
-class AdminDiscountDeleteView(
+class AdminDiscountDeleteView(AsyncWebViewMixin, 
     AdminPanelProtectedViewMixin, AdminPanelContextMixin, View
 ):
     logic_class = AdminPanelActionLogic
 
-    def post(self, request, discount_id):
+    async def post(self, request, discount_id):
+        return await sync_to_async(self._sync_post, thread_sensitive=True)(request, discount_id)
+
+    def _sync_post(self, request, discount_id):
         try:
-            self.logic_class().delete_discount(
-                actor=request.user, discount_id=discount_id
-            )
+            self.logic_class().delete_discount(actor=request.user, discount_id=discount_id)
             messages.success(request, AdminPanelMessageVO.DISCOUNT_DELETED.value)
         except (ValidationError, APIException) as exc:
             messages.error(request, self.error_text(exc))
-        return redirect("admin_panel:discounts")
+        return redirect('admin_panel:discounts')
 
 
-class AdminNotificationListView(
+class AdminNotificationListView(AsyncWebViewMixin, 
     AdminPanelProtectedViewMixin, AdminPanelContextMixin, View
 ):
     logic_class = AdminPanelActionLogic
 
-    def get(self, request):
-        provider = request.GET.get("provider", "").strip()
-        status = request.GET.get("status", "").strip()
+    async def get(self, request):
+        return await sync_to_async(self._sync_get, thread_sensitive=True)(request)
+
+    def _sync_get(self, request):
+        provider = request.GET.get('provider', '').strip()
+        status = request.GET.get('status', '').strip()
         logic = self.logic_class()
-        return render(
-            request,
-            f"{self.template_root}/notifications.html",
-            self.base_context(
-                active_section=AdminPanelSectionEnum.NOTIFICATIONS,
-                notifications_page=self.page(
-                    logic.list_notifications(provider=provider, status=status),
-                    request,
-                ),
-                recipient_counts=logic.recipient_counts(),
-                form=AdminNotificationForm(),
-                selected_provider=provider,
-                selected_status=status,
-                notification_statuses=BotScheduledNotification.STATUS_CHOICES,
-            ),
-        )
+        return render(request, f'{self.template_root}/notifications.html', self.base_context(active_section=AdminPanelSectionEnum.NOTIFICATIONS, notifications_page=self.page(logic.list_notifications(provider=provider, status=status), request), recipient_counts=logic.recipient_counts(), form=AdminNotificationForm(), selected_provider=provider, selected_status=status, notification_statuses=BotScheduledNotification.STATUS_CHOICES))
 
 
-class AdminNotificationCreateView(
+class AdminNotificationCreateView(AsyncWebViewMixin, 
     AdminPanelProtectedViewMixin, AdminPanelContextMixin, View
 ):
     logic_class = AdminPanelActionLogic
 
-    def post(self, request):
+    async def post(self, request):
+        return await sync_to_async(self._sync_post, thread_sensitive=True)(request)
+
+    def _sync_post(self, request):
         form = AdminNotificationForm(request.POST)
         if form.is_valid():
             dto = form.to_dto()
             try:
-                _, sent_now = self.logic_class().create_notification(
-                    actor=request.user,
-                    provider=dto.provider,
-                    message=dto.message,
-                    scheduled_at=dto.scheduled_at,
-                )
-                message = (
-                    AdminPanelMessageVO.NOTIFICATION_SENT.value
-                    if sent_now
-                    else AdminPanelMessageVO.NOTIFICATION_SCHEDULED.value
-                )
+                _, sent_now = self.logic_class().create_notification(actor=request.user, provider=dto.provider, message=dto.message, scheduled_at=dto.scheduled_at)
+                message = AdminPanelMessageVO.NOTIFICATION_SENT.value if sent_now else AdminPanelMessageVO.NOTIFICATION_SCHEDULED.value
                 messages.success(request, message)
             except (ValidationError, APIException, RuntimeError, ValueError) as exc:
                 messages.error(request, self.error_text(exc))
         else:
             messages.error(request, AdminPanelMessageVO.OPERATION_FAILED.value)
-        return redirect("admin_panel:notifications")
+        return redirect('admin_panel:notifications')
 
 
-class AdminBotSettingsView(AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
+class AdminBotSettingsView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
     logic_class = AdminBotSettingLogic
 
     def selected_provider(self, request, logic: AdminBotSettingLogic) -> str:
@@ -890,48 +735,42 @@ class AdminBotSettingsView(AdminPanelProtectedViewMixin, AdminPanelContextMixin,
             status=status,
         )
 
-    def get(self, request):
+    async def get(self, request):
+        return await sync_to_async(self._sync_get, thread_sensitive=True)(request)
+
+    def _sync_get(self, request):
         return self.render_page(request)
 
-    def post(self, request):
+    async def post(self, request):
+        return await sync_to_async(self._sync_post, thread_sensitive=True)(request)
+
+    def _sync_post(self, request):
         logic = self.logic_class()
         provider = self.selected_provider(request, logic)
         provider_data = logic.get_provider_settings(provider)
-        form = AdminBotSettingsForm(
-            request.POST,
-            settings_data=provider_data["settings"],
-        )
+        form = AdminBotSettingsForm(request.POST, settings_data=provider_data['settings'])
         if form.is_valid():
             try:
-                logic.update_provider_settings(
-                    actor=request.user,
-                    provider=provider,
-                    values=form.cleaned_settings(),
-                )
-                messages.success(
-                    request, AdminPanelMessageVO.BOT_SETTINGS_UPDATED.value
-                )
-                return redirect(
-                    f'{reverse("admin_panel:bot_settings")}?provider={provider}'
-                )
+                logic.update_provider_settings(actor=request.user, provider=provider, values=form.cleaned_settings())
+                messages.success(request, AdminPanelMessageVO.BOT_SETTINGS_UPDATED.value)
+                return redirect(f"{reverse('admin_panel:bot_settings')}?provider={provider}")
             except (ValidationError, APIException) as exc:
                 form.add_domain_errors(exc)
         return self.render_page(request, form=form, status=400)
 
 
-class AdminBotSettingDeleteView(
+class AdminBotSettingDeleteView(AsyncWebViewMixin, 
     AdminPanelProtectedViewMixin, AdminPanelContextMixin, View
 ):
     logic_class = AdminBotSettingLogic
 
-    def post(self, request, provider, key):
+    async def post(self, request, provider, key):
+        return await sync_to_async(self._sync_post, thread_sensitive=True)(request, provider, key)
+
+    def _sync_post(self, request, provider, key):
         try:
-            self.logic_class().delete_provider_setting(
-                actor=request.user,
-                provider=provider,
-                key=key,
-            )
+            self.logic_class().delete_provider_setting(actor=request.user, provider=provider, key=key)
             messages.success(request, AdminPanelMessageVO.BOT_SETTING_RESET.value)
         except (ValidationError, APIException) as exc:
             messages.error(request, self.error_text(exc))
-        return redirect(f'{reverse("admin_panel:bot_settings")}?provider={provider}')
+        return redirect(f"{reverse('admin_panel:bot_settings')}?provider={provider}")

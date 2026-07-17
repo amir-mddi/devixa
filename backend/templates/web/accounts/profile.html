@@ -470,5 +470,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-    <script src="{% project_static 'js/profile.js' %}"></script>
+    <script type="application/x-devixa-ajax-module" data-ajax-module="profile" src="{% project_static 'js/profile.js' %}?v=ajax-1"></script>
 {% endblock %}

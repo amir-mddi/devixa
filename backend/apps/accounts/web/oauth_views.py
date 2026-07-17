@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from asgiref.sync import sync_to_async
+from backend.apps.common.web.async_view import AsyncWebViewMixin
+
 import secrets
 import time
 from hmac import compare_digest
@@ -48,29 +51,19 @@ class OAuthWebFlowMixin:
 
 
 @method_decorator(rate_limit(authenticated_limit=10, anonymous_limit=10, period=300), name="dispatch")
-class OAuthWebStartView(OAuthWebFlowMixin, View):
-    def get(self, request, *args, **kwargs):
+class OAuthWebStartView(AsyncWebViewMixin, OAuthWebFlowMixin, View):
+    async def get(self, request, *args, **kwargs):
+        return await sync_to_async(self._sync_get, thread_sensitive=True)(request, *args, **kwargs)
+
+    def _sync_get(self, request, *args, **kwargs):
         state = secrets.token_urlsafe(32)
         redirect_uri = self.get_redirect_uri()
-        next_url = self.safe_next_url(request.GET.get("next"))
-        session_payload = {
-            OAuthSessionKeyEnum.STATE.value: state,
-            OAuthSessionKeyEnum.PROVIDER.value: self.provider.value,
-            OAuthSessionKeyEnum.CREATED_AT.value: int(time.time()),
-            OAuthSessionKeyEnum.NEXT_URL.value: next_url,
-            OAuthSessionKeyEnum.REDIRECT_URI.value: redirect_uri,
-        }
+        next_url = self.safe_next_url(request.GET.get('next'))
+        session_payload = {OAuthSessionKeyEnum.STATE.value: state, OAuthSessionKeyEnum.PROVIDER.value: self.provider.value, OAuthSessionKeyEnum.CREATED_AT.value: int(time.time()), OAuthSessionKeyEnum.NEXT_URL.value: next_url, OAuthSessionKeyEnum.REDIRECT_URI.value: redirect_uri}
         request.session[OAuthSessionKeyEnum.FLOW.value] = session_payload
         request.session.modified = True
-
         try:
-            authorization_url = self.oauth_logic_class().build_authorization_url(
-                OAuthAuthorizationRequestDTO(
-                    provider=self.provider.value,
-                    redirect_uri=redirect_uri,
-                    state=state,
-                )
-            )
+            authorization_url = self.oauth_logic_class().build_authorization_url(OAuthAuthorizationRequestDTO(provider=self.provider.value, redirect_uri=redirect_uri, state=state))
         except OAuthProviderError as exc:
             messages.error(request, exc.public_message)
             return redirect(AccountWebReverseNameVO.LOGIN.value)
@@ -78,36 +71,30 @@ class OAuthWebStartView(OAuthWebFlowMixin, View):
 
 
 @method_decorator(rate_limit(authenticated_limit=20, anonymous_limit=20, period=300), name="dispatch")
-class OAuthWebCallbackView(OAuthWebFlowMixin, View):
-    def get(self, request, *args, **kwargs):
+class OAuthWebCallbackView(AsyncWebViewMixin, OAuthWebFlowMixin, View):
+    async def get(self, request, *args, **kwargs):
+        return await sync_to_async(self._sync_get, thread_sensitive=True)(request, *args, **kwargs)
+
+    def _sync_get(self, request, *args, **kwargs):
         payload = request.session.get(OAuthSessionKeyEnum.FLOW.value)
-        if not self._valid_state(payload, request.GET.get("state")):
+        if not self._valid_state(payload, request.GET.get('state')):
             messages.error(request, OAuthMessageVO.INVALID_STATE.value)
             return redirect(AccountWebReverseNameVO.LOGIN.value)
-
         request.session.pop(OAuthSessionKeyEnum.FLOW.value, None)
         request.session.modified = True
-
-        if request.GET.get("error"):
+        if request.GET.get('error'):
             messages.error(request, OAuthMessageVO.AUTHORIZATION_CANCELLED.value)
             return redirect(AccountWebReverseNameVO.LOGIN.value)
-
-        code = str(request.GET.get("code") or "").strip()
+        code = str(request.GET.get('code') or '').strip()
         if not code:
             messages.error(request, OAuthMessageVO.PROVIDER_INVALID_RESPONSE.value)
             return redirect(AccountWebReverseNameVO.LOGIN.value)
-
         try:
-            result = self.oauth_service_class().authenticate(
-                provider=self.provider.value,
-                code=code,
-                redirect_uri=payload[OAuthSessionKeyEnum.REDIRECT_URI.value],
-            )
+            result = self.oauth_service_class().sync_authenticate(provider=self.provider.value, code=code, redirect_uri=payload[OAuthSessionKeyEnum.REDIRECT_URI.value])
         except OAuthProviderError as exc:
             messages.error(request, exc.public_message)
             return redirect(AccountWebReverseNameVO.LOGIN.value)
-
-        django_login(request, result.user, backend="django.contrib.auth.backends.ModelBackend")
+        django_login(request, result.user, backend='django.contrib.auth.backends.ModelBackend')
         messages.success(request, OAuthMessageVO.LOGIN_SUCCESS.value)
         return redirect(self.safe_next_url(payload.get(OAuthSessionKeyEnum.NEXT_URL.value)))
 

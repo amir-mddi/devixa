@@ -3638,13 +3638,23 @@ class TelegramBotService:
         code = VerificationCodeCacheAdapter.generate_code()
         if not self.set_bot_setting_email_code(profile.chat_id, code):
             return False
+        language = self.lang(profile)
+        subject = self.t(profile, "bot_settings_email_subject")
         send_html_email_async(
-            subject="تایید تغییر تنظیمات بات",
-            template_name="emails/fa_verification_code.html",
+            subject=subject,
+            template_name=(
+                "emails/fa_verification_code.html"
+                if language == self.LANG_FA
+                else "emails/verification_code.html"
+            ),
             context={
-                "subject": "کد تایید تغییر تنظیمات بات",
+                "subject": subject,
                 "app_name": get_project_name(),
-                "user_name": user.first_name or user.username or "there",
+                "user_name": (
+                    user.first_name
+                    or user.username
+                    or TelegramBotMessageTextVO.DEFAULT_USER_NAME[language]
+                ),
                 "code": code,
                 "expiration_minutes": self.BOT_SETTING_CONFIRM_CODE_EXPIRATION_MINUTES,
                 "current_year": datetime.now().year,

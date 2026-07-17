@@ -1,17 +1,17 @@
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
+
+from backend.apps.common.async_utils import call_maybe_async
 
 
 class BotRuntimeAdapter:
-    """Adapter that executes the concrete bot runtime/service.
-
-    The application logic depends on this adapter instead of importing a concrete
-    Telegram/Bale/Rubika service in controllers or webhook views.
-    """
+    """Execute a concrete bot runtime behind an async application boundary."""
 
     def __init__(self, service_factory: Callable[[], Any]):
         self.service_factory = service_factory
 
-    def process_update(self, update: dict[str, Any]) -> None:
-        self.service_factory().handle_update(update)
+    async def process_update(self, update: dict[str, Any]) -> None:
+        service = self.service_factory()
+        await call_maybe_async(service.handle_update, update)

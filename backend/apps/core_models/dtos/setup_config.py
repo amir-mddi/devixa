@@ -341,6 +341,23 @@ class BackupSettings(BaseDTO):
         frozen = True
 
 
+class RagConfiguration(BaseDTO):
+    enabled: bool = env_bool("RAG_ENABLED", True)
+    embedding_provider: str = os.environ.get("RAG_EMBEDDING_PROVIDER", "openai").strip().lower()
+    llm_provider: str = os.environ.get("RAG_LLM_PROVIDER", "openai").strip().lower()
+    openai_api_key: str = os.environ.get("OPENAI_API_KEY", "").strip()
+    openai_base_url: str = os.environ.get("OPENAI_BASE_URL", "").strip()
+    embedding_model: str = os.environ.get("RAG_EMBEDDING_MODEL", "text-embedding-3-small").strip()
+    llm_model: str = os.environ.get("RAG_LLM_MODEL", "gpt-5.5").strip()
+    embedding_dimensions: int = 1536
+    embedding_batch_size: int = max(1, min(int(os.environ.get("RAG_EMBEDDING_BATCH_SIZE", "64")), 512))
+    embedding_timeout_seconds: float = max(1.0, float(os.environ.get("RAG_EMBEDDING_TIMEOUT_SECONDS", "60")))
+    generation_timeout_seconds: float = max(1.0, float(os.environ.get("RAG_GENERATION_TIMEOUT_SECONDS", "180")))
+
+    class Config:
+        frozen = True
+
+
 celery_config = CeleryConfiguration()
 jwt_config = JWTConfiguration()
 sentry_config = SentryConfiguration()
@@ -350,6 +367,7 @@ swagger_config = SwaggerConfiguration()
 pagination_config = PaginationConfiguration()
 session_config = SessionSettings()
 backup_config = BackupSettings()
+rag_config = RagConfiguration()
 
 PARDAKHTYAR_MERCHANT_ID = os.environ.get("PARDAKHTYAR_MERCHANT_ID", "")
 PARDAKHTYAR_REQUEST_URL = os.environ.get("PARDAKHTYAR_REQUEST_URL", "")

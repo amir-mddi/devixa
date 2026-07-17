@@ -5,7 +5,7 @@
 {% block meta_description %}{{ seo.description }}{% endblock %}
 {% block page_styles %}
     <link rel="stylesheet" href="{% project_static 'Styles/contact_us.css' %}">
-    <style>
+    <style data-ajax-managed-style>
         .channels_hero{min-height:520px;padding:120px 6% 70px;background:radial-gradient(circle at 50% 0%, rgba(79,124,255,.18), transparent 48%), var(--bg);}
         .channels_grid{width:min(960px,92%);margin:44px auto 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;}
         .channel_card{padding:30px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface);box-shadow:var(--shadow);transition:transform .2s ease,border-color .2s ease;}

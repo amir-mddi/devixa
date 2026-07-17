@@ -23,6 +23,18 @@ class TelegramBotCacheRepository:
     def delete(self, key: str) -> None:
         self.adapter.delete(key)
 
+    async def aget(self, key: str, default: Any = None) -> Any:
+        return await self.adapter.aget(key, default)
+
+    async def aset(self, key: str, value: Any, *, timeout: int | None = None) -> None:
+        await self.adapter.aset(key, value, timeout=timeout)
+
+    async def aadd(self, key: str, value: Any, *, timeout: int | None = None) -> bool:
+        return await self.adapter.aadd(key, value, timeout=timeout)
+
+    async def adelete(self, key: str) -> None:
+        await self.adapter.adelete(key)
+
     @classmethod
     def get_value(cls, key: str, default: Any = None) -> Any:
         return cls().get(key, default)

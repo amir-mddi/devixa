@@ -19,20 +19,48 @@ from backend.apps.billing.serializers import PaymentReceiptSerializer
 from backend.tests.factories import PaymentFactory, PaymentReceiptFactory, UserFactory
 
 
-class _FakeResponse:
+class _FakeAsyncResponse:
     def __init__(self, payload, *, status_code=200, headers=None, encoding="utf-8"):
         self.status_code = status_code
         self.encoding = encoding
         self.headers = headers or {}
         self.closed = False
-        self._body = payload if isinstance(payload, bytes) else json.dumps(payload).encode(encoding)
+        self._body = (
+            payload
+            if isinstance(payload, bytes)
+            else json.dumps(payload).encode(encoding)
+        )
 
-    def iter_content(self, chunk_size=64 * 1024):
+    async def aiter_bytes(self, chunk_size=64 * 1024):
         for offset in range(0, len(self._body), chunk_size):
-            yield self._body[offset:offset + chunk_size]
+            yield self._body[offset : offset + chunk_size]
 
-    def close(self):
-        self.closed = True
+
+class _FakeStreamContext:
+    def __init__(self, response: _FakeAsyncResponse):
+        self.response = response
+
+    async def __aenter__(self):
+        return self.response
+
+    async def __aexit__(self, exc_type, exc, tb):
+        self.response.closed = True
+
+
+class _FakeAsyncClient:
+    def __init__(self, response: _FakeAsyncResponse):
+        self.response = response
+        self.stream_kwargs = None
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return None
+
+    def stream(self, *args, **kwargs):
+        self.stream_kwargs = kwargs
+        return _FakeStreamContext(self.response)
 
 
 @override_settings(
@@ -56,9 +84,14 @@ class PardakhtyarGatewaySecurityTests(SimpleTestCase):
             description="Course order",
         )
 
-    @patch("backend.apps.billing.repositories.adapters.payment_gateway_adapter.requests.post")
-    def test_provider_secrets_are_redacted_from_persisted_response(self, post_mock):
-        response = _FakeResponse(
+    @patch(
+        "backend.apps.billing.repositories.adapters.payment_gateway_adapter.httpx.AsyncClient"
+    )
+    def test_provider_secrets_are_redacted_from_persisted_response(
+        self,
+        client_mock,
+    ):
+        response = _FakeAsyncResponse(
             {
                 "authority": "AUTH-123",
                 "payment_url": "https://pay.example/start/AUTH-123",
@@ -66,17 +99,17 @@ class PardakhtyarGatewaySecurityTests(SimpleTestCase):
                 "nested": {"merchant_id": "merchant-secret"},
             }
         )
-        post_mock.return_value = response
+        client_mock.return_value = _FakeAsyncClient(response)
 
-        result = PardakhtyarPaymentGatewayAdapter().start_payment(self.request_entity)
+        result = PardakhtyarPaymentGatewayAdapter().start_payment(
+            self.request_entity
+        )
 
         self.assertEqual(result.authority, "AUTH-123")
         self.assertEqual(result.raw_response["token"], "***")
         self.assertEqual(result.raw_response["nested"]["merchant_id"], "***")
         self.assertTrue(response.closed)
-        _, kwargs = post_mock.call_args
-        self.assertFalse(kwargs["allow_redirects"])
-        self.assertTrue(kwargs["stream"])
+        self.assertFalse(client_mock.call_args.kwargs["follow_redirects"])
 
     @override_settings(PARDAKHTYAR_CALLBACK_URL="http://127.0.0.1/internal")
     def test_private_or_insecure_callback_configuration_is_rejected(self):
@@ -84,10 +117,15 @@ class PardakhtyarGatewaySecurityTests(SimpleTestCase):
             PardakhtyarPaymentGatewayAdapter().start_payment(self.request_entity)
 
     @override_settings(PARDAKHTYAR_MAX_RESPONSE_BYTES=1024)
-    @patch("backend.apps.billing.repositories.adapters.payment_gateway_adapter.requests.post")
-    def test_oversized_provider_response_is_rejected_and_closed(self, post_mock):
-        response = _FakeResponse(b"{" + b"x" * 2048 + b"}")
-        post_mock.return_value = response
+    @patch(
+        "backend.apps.billing.repositories.adapters.payment_gateway_adapter.httpx.AsyncClient"
+    )
+    def test_oversized_provider_response_is_rejected_and_closed(
+        self,
+        client_mock,
+    ):
+        response = _FakeAsyncResponse(b"{" + b"x" * 2048 + b"}")
+        client_mock.return_value = _FakeAsyncClient(response)
 
         with self.assertRaises(ValidationError):
             PardakhtyarPaymentGatewayAdapter().start_payment(self.request_entity)
@@ -114,7 +152,10 @@ class PaymentCallbackSecurityTests(APITestCase):
         cache.clear()
 
     @patch("backend.apps.billing.views.BillingLogicRepository.confirm_gateway_callback")
-    def test_public_callback_returns_minimal_data_and_disables_caching(self, confirm_mock):
+    def test_public_callback_returns_minimal_data_and_disables_caching(
+        self,
+        confirm_mock,
+    ):
         payment = PaymentFactory.create(
             status=PaymentStatusEnum.SUCCEEDED.value,
             payment_number="PAY-PRIVATE",

@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from asgiref.sync import sync_to_async
+from backend.apps.common.web.async_view import AsyncWebViewMixin
+
 from urllib.parse import urlencode
 
 from django.contrib import messages
@@ -55,7 +58,7 @@ class SafeNextUrlMixin:
 
 
 @method_decorator(rate_limit(authenticated_limit=10, anonymous_limit=10, period=300), name="post")
-class LoginPageView(FormHttpErrorResponseMixin, RecaptchaProtectedFormViewMixin, SafeNextUrlMixin, FormView):
+class LoginPageView(AsyncWebViewMixin, FormHttpErrorResponseMixin, RecaptchaProtectedFormViewMixin, SafeNextUrlMixin, FormView):
     template_name = AccountWebTemplateVO.LOGIN.value
     form_class = LoginTemplateForm
     fallback_success_url = reverse_lazy(PageWebReverseNameVO.HOME.value)
@@ -79,7 +82,7 @@ class LoginPageView(FormHttpErrorResponseMixin, RecaptchaProtectedFormViewMixin,
 
 
 @method_decorator(rate_limit(authenticated_limit=5, anonymous_limit=5, period=3600), name="post")
-class RegisterPageView(FormHttpErrorResponseMixin, RecaptchaProtectedFormViewMixin, FormView):
+class RegisterPageView(AsyncWebViewMixin, FormHttpErrorResponseMixin, RecaptchaProtectedFormViewMixin, FormView):
     template_name = AccountWebTemplateVO.REGISTER.value
     form_class = RegisterTemplateForm
     success_url = reverse_lazy(AccountWebReverseNameVO.LOGIN.value)
@@ -102,7 +105,7 @@ class RegisterPageView(FormHttpErrorResponseMixin, RecaptchaProtectedFormViewMix
 
 
 @method_decorator(rate_limit(authenticated_limit=3, anonymous_limit=3, period=300), name="post")
-class ForgotPasswordPageView(FormHttpErrorResponseMixin, RecaptchaProtectedFormViewMixin, FormView):
+class ForgotPasswordPageView(AsyncWebViewMixin, FormHttpErrorResponseMixin, RecaptchaProtectedFormViewMixin, FormView):
     template_name = AccountWebTemplateVO.FORGOT_PASSWORD.value
     form_class = ForgotPasswordTemplateForm
     success_url = reverse_lazy(AccountWebReverseNameVO.RECOVER_PASSWORD.value)
@@ -141,7 +144,7 @@ class ForgotPasswordPageView(FormHttpErrorResponseMixin, RecaptchaProtectedFormV
 
 
 @method_decorator(rate_limit(authenticated_limit=10, anonymous_limit=10, period=300), name="post")
-class RecoverPasswordPageView(FormHttpErrorResponseMixin, FormView):
+class RecoverPasswordPageView(AsyncWebViewMixin, FormHttpErrorResponseMixin, FormView):
     template_name = AccountWebTemplateVO.RECOVER_PASSWORD.value
     form_class = RecoverPasswordTemplateForm
     success_url = reverse_lazy(AccountWebReverseNameVO.LOGIN.value)
@@ -179,8 +182,11 @@ class RecoverPasswordPageView(FormHttpErrorResponseMixin, FormView):
         return redirect(self.get_success_url())
 
 
-class LogoutPageView(View):
-    def post(self, request, *args, **kwargs):
+class LogoutPageView(AsyncWebViewMixin, View):
+    async def post(self, request, *args, **kwargs):
+        return await sync_to_async(self._sync_post, thread_sensitive=True)(request, *args, **kwargs)
+
+    def _sync_post(self, request, *args, **kwargs):
         django_logout(request)
         messages.success(request, AccountWebValidationMessageVO.LOGOUT_SUCCESS.value)
         return redirect(PageWebReverseNameVO.HOME.value)

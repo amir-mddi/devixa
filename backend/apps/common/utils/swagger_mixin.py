@@ -1,8 +1,9 @@
+from asgiref.sync import sync_to_async
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse
 from drf_spectacular.utils import extend_schema, extend_schema_view
-from rest_framework import viewsets
-from rest_framework.views import APIView
+from adrf import viewsets
+from adrf.views import APIView
 
 from backend.apps.common.utils.common_utils import CommonUtils
 from backend.apps.shared.serializers import ListResponseSerializer, BaseResponseSerializer
@@ -21,6 +22,15 @@ def get_query_params(cls):
 
 
 class TaggedSchemaViewSet(viewsets.ViewSet):
+    async def dispatch(self, request, *args, **kwargs):
+        return await self.async_dispatch(request, *args, **kwargs)
+
+    async def options(self, request, *args, **kwargs):
+        return await sync_to_async(
+            super().options,
+            thread_sensitive=True,
+        )(request, *args, **kwargs)
+
     serializer_class = None
     tag_name = None
     list_method_filter_parameters = []
@@ -63,6 +73,15 @@ class TaggedSchemaViewSet(viewsets.ViewSet):
 
 
 class TaggedSchemaAPIView(APIView):
+    async def dispatch(self, request, *args, **kwargs):
+        return await self.async_dispatch(request, *args, **kwargs)
+
+    async def options(self, request, *args, **kwargs):
+        return await sync_to_async(
+            super().options,
+            thread_sensitive=True,
+        )(request, *args, **kwargs)
+
     serializer_class = None
     tag_name = None
     model_class = None

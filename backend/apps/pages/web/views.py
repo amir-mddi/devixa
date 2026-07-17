@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from asgiref.sync import sync_to_async
+from backend.apps.common.web.async_view import AsyncWebViewMixin
+
 from django.contrib import messages
 from django.shortcuts import redirect
 from django.templatetags.static import static
@@ -27,7 +30,7 @@ from backend.apps.pages.vo.page_vo import (
 )
 
 
-class HomePageView(SeoContextMixin, TemplateView):
+class HomePageView(AsyncWebViewMixin, SeoContextMixin, TemplateView):
     template_name = PageWebTemplateVO.HOME.value
     course_logic_repository_class = CourseLogicRepository
 
@@ -52,11 +55,11 @@ class HomePageView(SeoContextMixin, TemplateView):
         return context
 
 
-class AboutUsPageView(SeoContextMixin, TemplateView):
+class AboutUsPageView(AsyncWebViewMixin, SeoContextMixin, TemplateView):
     template_name = PageWebTemplateVO.ABOUT_US.value
 
 
-class ChannelsPageView(SeoContextMixin, TemplateView):
+class ChannelsPageView(AsyncWebViewMixin, SeoContextMixin, TemplateView):
     template_name = PageWebTemplateVO.CHANNELS.value
     page_logic_repository_class = PageLogicRepository
 
@@ -69,7 +72,7 @@ class ChannelsPageView(SeoContextMixin, TemplateView):
 
 
 @method_decorator(rate_limit(authenticated_limit=5, anonymous_limit=5, period=3600), name="post")
-class ContactUsPageView(SeoContextMixin, FormHttpErrorResponseMixin, FormView):
+class ContactUsPageView(AsyncWebViewMixin, SeoContextMixin, FormHttpErrorResponseMixin, FormView):
     template_name = PageWebTemplateVO.CONTACT_US.value
     form_class = ContactMessageTemplateForm
     success_url = reverse_lazy(PageWebReverseNameVO.CONTACT_US.value)
@@ -87,7 +90,7 @@ class ContactUsPageView(SeoContextMixin, FormHttpErrorResponseMixin, FormView):
         return redirect(self.get_success_url())
 
 
-class AndroidAppPageView(SeoContextMixin, TemplateView):
+class AndroidAppPageView(AsyncWebViewMixin, SeoContextMixin, TemplateView):
     template_name = PageWebTemplateVO.ANDROID_APP.value
     seo_presenter_class = PageSeoPresenter
 
@@ -108,7 +111,7 @@ class AndroidAppPageView(SeoContextMixin, TemplateView):
         )
 
 
-class AndroidAppDownloadView(RedirectView):
+class AndroidAppDownloadView(AsyncWebViewMixin, RedirectView):
     """Redirect a stable public URL to the current versioned APK asset."""
 
     permanent = False
@@ -117,8 +120,11 @@ class AndroidAppDownloadView(RedirectView):
     def get_redirect_url(self, *args, **kwargs):
         return static(PageAndroidAppVO.APK_STATIC_PATH.value)
 
-    def get(self, request, *args, **kwargs):
+    async def get(self, request, *args, **kwargs):
+        return await sync_to_async(self._sync_get, thread_sensitive=True)(request, *args, **kwargs)
+
+    def _sync_get(self, request, *args, **kwargs):
         response = super().get(request, *args, **kwargs)
-        response["X-Robots-Tag"] = SeoRobotsDirectiveEnum.NOINDEX.value
+        response['X-Robots-Tag'] = SeoRobotsDirectiveEnum.NOINDEX.value
         return response
 

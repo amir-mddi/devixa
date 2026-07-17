@@ -1,0 +1,77 @@
+.ajax-form-loading {
+    position: relative;
+    pointer-events: none;
+    opacity: .78;
+}
+
+.ajax-form-loading::after {
+    content: "";
+    position: absolute;
+    inset: 50% auto auto 50%;
+    width: 1.5rem;
+    height: 1.5rem;
+    margin: -.75rem 0 0 -.75rem;
+    border: 2px solid currentColor;
+    border-inline-end-color: transparent;
+    border-radius: 50%;
+    animation: ajax-form-spin .7s linear infinite;
+    z-index: 20;
+}
+
+.ajax-page-loading {
+    cursor: progress;
+}
+
+.ajax-field-invalid {
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 3px rgb(239 68 68 / 12%) !important;
+}
+
+.ajax-field-error {
+    margin-top: .4rem;
+    color: #ef4444;
+    font-size: .78rem;
+    line-height: 1.7;
+}
+
+.ajax-toast-stack {
+    position: fixed;
+    inset: 1rem 1rem auto auto;
+    display: grid;
+    gap: .65rem;
+    width: min(24rem, calc(100vw - 2rem));
+    z-index: 10000;
+    pointer-events: none;
+}
+
+.ajax-toast {
+    padding: .85rem 1rem;
+    border: 1px solid rgb(255 255 255 / 12%);
+    border-radius: .9rem;
+    background: rgb(15 23 42 / 96%);
+    color: #f8fafc;
+    box-shadow: 0 1rem 2.5rem rgb(2 6 23 / 28%);
+    opacity: 0;
+    transform: translateY(-.5rem);
+    transition: opacity .2s ease, transform .2s ease;
+}
+
+.ajax-toast.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.ajax-toast--success { border-inline-start: 4px solid #22c55e; }
+.ajax-toast--error { border-inline-start: 4px solid #ef4444; }
+.ajax-toast--info { border-inline-start: 4px solid #38bdf8; }
+
+@keyframes ajax-form-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 640px) {
+    .ajax-toast-stack {
+        inset: .75rem .75rem auto;
+        width: auto;
+    }
+}

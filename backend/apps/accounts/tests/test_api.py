@@ -21,12 +21,29 @@ class AccountAPITests(APITestCase):
         self.rate_limit_patcher.start()
         self.addCleanup(self.rate_limit_patcher.stop)
 
+    def test_signin_uses_native_async_jwt_controller(self):
+        user = UserFactory.create()
+
+        response = self.client.post(
+            reverse("token_obtain_pair"),
+            {
+                "username": user.username,
+                "password": UserFactory.DEFAULT_PASSWORD,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("token", response.data)
+        self.assertIn("refreshToken", response.data)
+        self.assertIsInstance(response.data["expirationTime"], int)
+
     def test_email_verification_send_requires_authentication(self):
         response = self.client.post(reverse("send-email-verification-code"), {})
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    @patch("backend.apps.accounts.views.account_logic.send_verification_email_code")
+    @patch("backend.apps.accounts.views.account_logic.async_send_verification_email_code")
     def test_email_verification_send_delegates_for_authenticated_user(self, send_mock):
         user = UserFactory.create(email_verified=False)
         self.client.force_authenticate(user)
@@ -36,7 +53,7 @@ class AccountAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         send_mock.assert_called_once_with(user)
 
-    @patch("backend.apps.accounts.views.account_logic.send_forget_password_code_by_email")
+    @patch("backend.apps.accounts.views.account_logic.async_send_forget_password_code_by_email")
     def test_forgot_password_endpoint_returns_generic_success(self, send_mock):
         send_mock.return_value = PasswordRecoveryResultDTO.success()
 
@@ -49,7 +66,7 @@ class AccountAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         send_mock.assert_called_once()
 
-    @patch("backend.apps.accounts.views.account_logic.reset_forget_password_by_email")
+    @patch("backend.apps.accounts.views.account_logic.async_reset_forget_password_by_email")
     def test_password_reset_endpoint_returns_bad_request_for_invalid_code(self, reset_mock):
         reset_mock.return_value = PasswordRecoveryResultDTO.failed(
             error_code=AccountPasswordRecoveryErrorCodeVO.INVALID_OR_EXPIRED_CODE
@@ -72,7 +89,7 @@ class AccountAPITests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    @patch("backend.apps.accounts.views.account_logic.send_phone_verification_code")
+    @patch("backend.apps.accounts.views.account_logic.async_send_phone_verification_code")
     def test_phone_verification_send_delegates_to_logic(self, send_mock):
         user = UserFactory.create(
             phone_number="09121234567",
@@ -87,7 +104,7 @@ class AccountAPITests(APITestCase):
         dto = send_mock.call_args.kwargs["dto"]
         self.assertEqual(dto.user_id, str(user.id))
 
-    @patch("backend.apps.accounts.views.account_logic.send_phone_verification_code")
+    @patch("backend.apps.accounts.views.account_logic.async_send_phone_verification_code")
     def test_phone_verification_send_returns_validation_error(self, send_mock):
         user = UserFactory.create(phone_number=None, phone_number_verified=False)
         self.client.force_authenticate(user)
@@ -99,7 +116,7 @@ class AccountAPITests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    @patch("backend.apps.accounts.views.account_logic.verify_phone_number")
+    @patch("backend.apps.accounts.views.account_logic.async_verify_phone_number")
     def test_phone_verification_rejects_non_six_digit_code_before_logic(self, verify_mock):
         user = UserFactory.create(phone_number="09121234568")
         self.client.force_authenticate(user)
@@ -113,7 +130,7 @@ class AccountAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         verify_mock.assert_not_called()
 
-    @patch("backend.apps.accounts.views.account_logic.verify_phone_number")
+    @patch("backend.apps.accounts.views.account_logic.async_verify_phone_number")
     def test_phone_verification_verify_delegates_to_logic(self, verify_mock):
         user = UserFactory.create(phone_number="09121234569")
         self.client.force_authenticate(user)
@@ -130,7 +147,7 @@ class AccountAPITests(APITestCase):
         self.assertEqual(dto.user_id, str(user.id))
         self.assertEqual(dto.code, "123456")
 
-    @patch("backend.apps.accounts.views.account_logic.send_forget_password_code_by_sms")
+    @patch("backend.apps.accounts.views.account_logic.async_send_forget_password_code_by_sms")
     def test_forgot_password_sms_send_normalizes_phone_number(self, send_mock):
         send_mock.return_value = PasswordRecoveryResultDTO.success()
 
@@ -144,7 +161,7 @@ class AccountAPITests(APITestCase):
         dto = send_mock.call_args.kwargs["dto"]
         self.assertEqual(dto.phone_number, "09121234567")
 
-    @patch("backend.apps.accounts.views.account_logic.reset_forget_password_by_sms")
+    @patch("backend.apps.accounts.views.account_logic.async_reset_forget_password_by_sms")
     def test_forgot_password_sms_verify_delegates_to_logic(self, reset_mock):
         reset_mock.return_value = PasswordRecoveryResultDTO.success()
 

@@ -75,16 +75,16 @@
         const scrollToPage = (behavior = "smooth") => {
             clampPageIndex();
             const visibleCount = getVisibleCount();
-            const targetIndex = Math.min(cards.length - 1, pageIndex * visibleCount);
-            const targetCard = cards[targetIndex];
+            const cardWidth = cards[0]?.getBoundingClientRect().width || 0;
+            const pageWidth = visibleCount * (cardWidth + getGap());
+            const maximumOffset = Math.max(0, track.scrollWidth - track.clientWidth);
+            const requestedOffset = Math.min(pageIndex * pageWidth, maximumOffset);
+            const isRtl = window.getComputedStyle(track).direction === "rtl";
 
-            if (targetCard) {
-                targetCard.scrollIntoView({
-                    behavior,
-                    block: "nearest",
-                    inline: "start",
-                });
-            }
+            track.scrollTo({
+                left: isRtl ? -requestedOffset : requestedOffset,
+                behavior,
+            });
 
             prevButton.disabled = pageIndex === 0;
             nextButton.disabled = pageIndex >= getMaxPage();

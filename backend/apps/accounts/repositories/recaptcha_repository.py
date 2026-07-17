@@ -11,6 +11,12 @@ class RecaptchaVerificationRepository:
     def __init__(self, adapter: GoogleRecaptchaAdapter | None = None):
         self._adapter = adapter or self.adapter_class()
 
+    async def verify_async(
+        self,
+        dto: RecaptchaVerificationDTO,
+    ) -> RecaptchaProviderResponseEntity:
+        return await self._adapter.verify_async(dto)
+
     def verify(
         self,
         dto: RecaptchaVerificationDTO,

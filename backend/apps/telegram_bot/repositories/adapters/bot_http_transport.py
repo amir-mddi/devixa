@@ -4,7 +4,8 @@ import json
 import re
 from typing import Any
 
-import requests
+import httpx
+from asgiref.sync import async_to_sync, sync_to_async
 from django.conf import settings
 
 from backend.apps.common.utils.network_security import (
@@ -18,17 +19,18 @@ class BotProviderTransportError(RuntimeError):
 
 
 class BotProviderHttpTransport:
-    """Shared bounded HTTP transport for bot provider adapters.
+    """Bounded async HTTP transport for bot provider adapters.
 
-    Provider tokens commonly live in URL paths, so exceptions and response
-    bodies are deliberately replaced with generic errors at this boundary.
+    Synchronous wrappers remain only for legacy service edges. They execute the
+    exact same async implementation, so no blocking ``requests`` calls remain in
+    the provider transport.
     """
 
     _METHOD_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_]{0,99}$")
     DEFAULT_MAX_RESPONSE_BYTES = 1024 * 1024
 
     @classmethod
-    def post_json(
+    async def apost_json(
         cls,
         *,
         url: str,
@@ -38,7 +40,7 @@ class BotProviderHttpTransport:
         proxies: dict[str, str] | None,
         provider_name: str,
     ) -> dict[str, Any]:
-        return cls._post(
+        return await cls._post(
             url=url,
             method_name=method_name,
             timeout=timeout,
@@ -48,7 +50,7 @@ class BotProviderHttpTransport:
         )
 
     @classmethod
-    def post_multipart(
+    async def apost_multipart(
         cls,
         *,
         url: str,
@@ -59,7 +61,7 @@ class BotProviderHttpTransport:
         proxies: dict[str, str] | None,
         provider_name: str,
     ) -> dict[str, Any]:
-        return cls._post(
+        return await cls._post(
             url=url,
             method_name=method_name,
             timeout=timeout,
@@ -70,7 +72,15 @@ class BotProviderHttpTransport:
         )
 
     @classmethod
-    def _post(
+    def post_json(cls, **kwargs: Any) -> dict[str, Any]:
+        return async_to_sync(cls.apost_json)(**kwargs)
+
+    @classmethod
+    def post_multipart(cls, **kwargs: Any) -> dict[str, Any]:
+        return async_to_sync(cls.apost_multipart)(**kwargs)
+
+    @classmethod
+    async def _post(
         cls,
         *,
         url: str,
@@ -84,7 +94,10 @@ class BotProviderHttpTransport:
     ) -> dict[str, Any]:
         cls._validate_method(method_name)
         try:
-            validate_public_https_url(
+            await sync_to_async(
+                validate_public_https_url,
+                thread_sensitive=False,
+            )(
                 url,
                 resolve_dns=bool(getattr(settings, "IS_PROD", False)),
             )
@@ -93,48 +106,60 @@ class BotProviderHttpTransport:
                 f"{provider_name} API endpoint configuration is unsafe."
             ) from None
 
-        response = None
+        timeout_config = httpx.Timeout(
+            connect=float(timeout[0]),
+            read=float(timeout[1]),
+            write=float(timeout[1]),
+            pool=float(timeout[0]),
+        )
         try:
-            response = requests.post(
-                url,
-                json=json_payload,
-                data=form_data,
-                files=files,
-                timeout=timeout,
-                proxies=proxies,
-                allow_redirects=False,
-                stream=True,
-            )
-            if 300 <= response.status_code < 400:
-                raise BotProviderTransportError(
-                    f"{provider_name} API redirects are not accepted."
-                )
-            raw_body = cls._read_bounded(response, provider_name)
-            if response.status_code >= 400:
-                raise BotProviderTransportError(
-                    f"{provider_name} API returned an error."
-                )
-            try:
-                body = json.loads(raw_body.decode(response.encoding or "utf-8"))
-            except (UnicodeDecodeError, json.JSONDecodeError):
-                raise BotProviderTransportError(
-                    f"{provider_name} API returned invalid JSON."
-                ) from None
-            if not isinstance(body, dict):
-                raise BotProviderTransportError(
-                    f"{provider_name} API returned an invalid response."
-                )
-            return body
-        except requests.RequestException:
+            async with httpx.AsyncClient(
+                timeout=timeout_config,
+                proxy=cls._proxy_url(proxies),
+                follow_redirects=False,
+            ) as client:
+                async with client.stream(
+                    "POST",
+                    url,
+                    json=json_payload,
+                    data=form_data,
+                    files=files,
+                    headers={"Accept": "application/json"},
+                ) as response:
+                    if 300 <= response.status_code < 400:
+                        raise BotProviderTransportError(
+                            f"{provider_name} API redirects are not accepted."
+                        )
+                    raw_body = await cls._read_bounded(response, provider_name)
+                    if response.status_code >= 400:
+                        raise BotProviderTransportError(
+                            f"{provider_name} API returned an error."
+                        )
+                    try:
+                        encoding = response.encoding or "utf-8"
+                        body = json.loads(raw_body.decode(encoding))
+                    except (LookupError, UnicodeDecodeError, json.JSONDecodeError):
+                        raise BotProviderTransportError(
+                            f"{provider_name} API returned invalid JSON."
+                        ) from None
+                    if not isinstance(body, dict):
+                        raise BotProviderTransportError(
+                            f"{provider_name} API returned an invalid response."
+                        )
+                    return body
+        except BotProviderTransportError:
+            raise
+        except httpx.HTTPError:
             raise BotProviderTransportError(
                 f"{provider_name} API transport error."
             ) from None
-        finally:
-            if response is not None:
-                response.close()
 
     @classmethod
-    def _read_bounded(cls, response: requests.Response, provider_name: str) -> bytes:
+    async def _read_bounded(
+        cls,
+        response: httpx.Response,
+        provider_name: str,
+    ) -> bytes:
         max_bytes = max(
             1024,
             min(
@@ -159,7 +184,7 @@ class BotProviderHttpTransport:
                 pass
 
         body = bytearray()
-        for chunk in response.iter_content(chunk_size=64 * 1024):
+        async for chunk in response.aiter_bytes(chunk_size=64 * 1024):
             if not chunk:
                 continue
             body.extend(chunk)
@@ -168,6 +193,12 @@ class BotProviderHttpTransport:
                     f"{provider_name} API response is too large."
                 )
         return bytes(body)
+
+    @staticmethod
+    def _proxy_url(proxies: dict[str, str] | None) -> str | None:
+        if not proxies:
+            return None
+        return proxies.get("https") or proxies.get("http")
 
     @classmethod
     def _validate_method(cls, method_name: str) -> None:

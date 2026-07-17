@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import json
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from typing import Any
-from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
-from urllib.request import Request, urlopen
+
+from asgiref.sync import async_to_sync, sync_to_async
+import httpx
 
 from django.conf import settings
 
@@ -36,7 +36,20 @@ class BaseOAuthProviderAdapter(ABC):
 
     @abstractmethod
     def exchange_code(self, dto: OAuthCodeExchangeDTO) -> OAuthProfileEntity:
+        """Synchronous compatibility entry point for browser views and tests."""
         raise NotImplementedError
+
+    async def exchange_code_async(
+        self,
+        dto: OAuthCodeExchangeDTO,
+    ) -> OAuthProfileEntity:
+        """Async provider exchange contract.
+
+        Third-party/custom adapters that only implement the legacy synchronous
+        method remain supported without blocking the ASGI event loop. Native
+        adapters override this method and use ``httpx.AsyncClient`` directly.
+        """
+        return await sync_to_async(self.exchange_code, thread_sensitive=False)(dto)
 
     @staticmethod
     def _required_setting(name: OAuthSettingNameVO) -> str:
@@ -49,78 +62,86 @@ class BaseOAuthProviderAdapter(ABC):
             )
         return value
 
-    def _post_form(
+    async def _post_form(
         self,
         url: str,
         data: dict[str, Any],
         headers: dict[str, str] | None = None,
     ) -> Any:
-        request = Request(
-            url,
-            data=urlencode(data).encode("utf-8"),
+        return await self._request_json(
+            method="POST",
+            url=url,
+            data=data,
             headers={
-                "Accept": "application/json",
                 "Content-Type": "application/x-www-form-urlencoded",
-                "User-Agent": "Devixa-OAuth/1.0",
                 **(headers or {}),
             },
-            method="POST",
         )
-        return self._open_json(request)
 
-    def _get_json(
+    async def _get_json(
         self,
         url: str,
         headers: dict[str, str] | None = None,
     ) -> Any:
-        request = Request(
-            url,
-            headers={
-                "Accept": "application/json",
-                "User-Agent": "Devixa-OAuth/1.0",
-                **(headers or {}),
-            },
+        return await self._request_json(
             method="GET",
+            url=url,
+            headers=headers,
         )
-        return self._open_json(request)
 
-    def _open_json(self, request: Request) -> Any:
+    async def _request_json(
+        self,
+        *,
+        method: str,
+        url: str,
+        data: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> Any:
         max_bytes = max(
             1024,
             int(getattr(settings, "OAUTH_MAX_RESPONSE_BYTES", OAuthDefaultVO.MAX_RESPONSE_BYTES.value)),
         )
         timeout = max(1, int(getattr(settings, "OAUTH_HTTP_TIMEOUT_SECONDS", 10)))
+        request_headers = {
+            "Accept": "application/json",
+            "User-Agent": "Devixa-OAuth/1.0",
+            **(headers or {}),
+        }
+
         try:
-            with urlopen(request, timeout=timeout) as response:
-                content_length = response.headers.get("Content-Length")
-                try:
-                    declared_size = int(content_length) if content_length else 0
-                except (TypeError, ValueError):
-                    declared_size = 0
-                if declared_size > max_bytes:
-                    raise OAuthProviderError(
-                        OAuthMessageVO.PROVIDER_OVERSIZED_RESPONSE.value
-                    )
-                raw_body = response.read(max_bytes + 1)
-                if len(raw_body) > max_bytes:
-                    raise OAuthProviderError(OAuthMessageVO.PROVIDER_OVERSIZED_RESPONSE.value)
-        except HTTPError as exc:
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(timeout),
+                follow_redirects=False,
+            ) as client:
+                async with client.stream(
+                    method,
+                    url,
+                    data=data,
+                    headers=request_headers,
+                ) as response:
+                    response.raise_for_status()
+                    content_length = response.headers.get("Content-Length")
+                    try:
+                        declared_size = int(content_length) if content_length else 0
+                    except (TypeError, ValueError):
+                        declared_size = 0
+                    if declared_size > max_bytes:
+                        raise OAuthProviderError(OAuthMessageVO.PROVIDER_OVERSIZED_RESPONSE.value)
+
+                    body = bytearray()
+                    async for chunk in response.aiter_bytes():
+                        body.extend(chunk)
+                        if len(body) > max_bytes:
+                            raise OAuthProviderError(OAuthMessageVO.PROVIDER_OVERSIZED_RESPONSE.value)
+        except httpx.HTTPStatusError as exc:
             logger.warning(
                 OAuthLogMessageVO.PROVIDER_HTTP_ERROR.value.format(
                     provider=self.provider.value,
-                    status=exc.code,
+                    status=exc.response.status_code,
                 )
             )
             raise OAuthProviderError(OAuthMessageVO.PROVIDER_REJECTED.value) from exc
-        except URLError as exc:
-            logger.warning(
-                OAuthLogMessageVO.PROVIDER_CONNECTION_ERROR.value.format(
-                    provider=self.provider.value,
-                    error=exc.reason,
-                )
-            )
-            raise OAuthProviderError(OAuthMessageVO.PROVIDER_UNAVAILABLE.value) from exc
-        except (TimeoutError, OSError) as exc:
+        except (httpx.TimeoutException, httpx.NetworkError, httpx.ProtocolError) as exc:
             logger.warning(
                 OAuthLogMessageVO.PROVIDER_CONNECTION_ERROR.value.format(
                     provider=self.provider.value,
@@ -130,8 +151,8 @@ class BaseOAuthProviderAdapter(ABC):
             raise OAuthProviderError(OAuthMessageVO.PROVIDER_UNAVAILABLE.value) from exc
 
         try:
-            return json.loads(raw_body.decode("utf-8"))
-        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            return httpx.Response(200, content=bytes(body)).json()
+        except ValueError as exc:
             logger.warning(
                 OAuthLogMessageVO.PROVIDER_NON_JSON.value.format(provider=self.provider.value)
             )
@@ -169,7 +190,10 @@ class GoogleOAuthProviderAdapter(BaseOAuthProviderAdapter):
         return f"{OAuthEndpointVO.GOOGLE_AUTHORIZE.value}?{query}"
 
     def exchange_code(self, dto: OAuthCodeExchangeDTO) -> OAuthProfileEntity:
-        token_data = self._post_form(
+        return async_to_sync(self.exchange_code_async)(dto)
+
+    async def exchange_code_async(self, dto: OAuthCodeExchangeDTO) -> OAuthProfileEntity:
+        token_data = await self._post_form(
             OAuthEndpointVO.GOOGLE_TOKEN.value,
             {
                 "code": dto.code,
@@ -184,7 +208,7 @@ class GoogleOAuthProviderAdapter(BaseOAuthProviderAdapter):
         if not access_token:
             raise OAuthProviderError(OAuthMessageVO.MISSING_ACCESS_TOKEN.value)
 
-        userinfo = self._get_json(
+        userinfo = await self._get_json(
             OAuthEndpointVO.GOOGLE_USERINFO.value,
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -219,7 +243,10 @@ class GitHubOAuthProviderAdapter(BaseOAuthProviderAdapter):
         return f"{OAuthEndpointVO.GITHUB_AUTHORIZE.value}?{query}"
 
     def exchange_code(self, dto: OAuthCodeExchangeDTO) -> OAuthProfileEntity:
-        token_data = self._post_form(
+        return async_to_sync(self.exchange_code_async)(dto)
+
+    async def exchange_code_async(self, dto: OAuthCodeExchangeDTO) -> OAuthProfileEntity:
+        token_data = await self._post_form(
             OAuthEndpointVO.GITHUB_TOKEN.value,
             {
                 "code": dto.code,
@@ -238,8 +265,8 @@ class GitHubOAuthProviderAdapter(BaseOAuthProviderAdapter):
             "Accept": "application/vnd.github+json",
             "X-GitHub-Api-Version": "2022-11-28",
         }
-        github_user = self._get_json(OAuthEndpointVO.GITHUB_USER.value, headers=headers)
-        emails = self._get_json(OAuthEndpointVO.GITHUB_EMAILS.value, headers=headers)
+        github_user = await self._get_json(OAuthEndpointVO.GITHUB_USER.value, headers=headers)
+        emails = await self._get_json(OAuthEndpointVO.GITHUB_EMAILS.value, headers=headers)
         github_user = self._require_mapping(github_user)
         if not isinstance(emails, list):
             raise OAuthProviderError(OAuthMessageVO.PROVIDER_INVALID_RESPONSE.value)

@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+from asgiref.sync import sync_to_async
 from django.conf import settings
 
 from backend.apps.accounts.dtos.recaptcha_dto import RecaptchaVerificationDTO
-from backend.apps.accounts.entities.recaptcha_entity import RecaptchaVerificationResultEntity
+from backend.apps.accounts.entities.recaptcha_entity import (
+    RecaptchaProviderResponseEntity,
+    RecaptchaVerificationResultEntity,
+)
 from backend.apps.accounts.enums.recaptcha_enums import RecaptchaFailureReasonEnum
 from backend.apps.accounts.exceptions.recaptcha_exceptions import RecaptchaProviderError
 from backend.apps.accounts.repositories.recaptcha_repository import RecaptchaVerificationRepository
@@ -19,40 +23,86 @@ class RecaptchaVerificationLogic:
     def __init__(self, repository: RecaptchaVerificationRepository | None = None):
         self._repository = repository or self.repository_class()
 
+    async def verify_async(
+        self,
+        dto: RecaptchaVerificationDTO,
+    ) -> RecaptchaVerificationResultEntity:
+        preflight, normalized_dto = self._preflight(dto)
+        if preflight is not None:
+            return preflight
+
+        try:
+            async_verifier = getattr(self._repository, "verify_async", None)
+            if async_verifier is not None:
+                response = await async_verifier(normalized_dto)
+            else:
+                response = await sync_to_async(
+                    self._repository.verify,
+                    thread_sensitive=False,
+                )(normalized_dto)
+        except RecaptchaProviderError:
+            return self._rejected(RecaptchaFailureReasonEnum.PROVIDER_UNAVAILABLE)
+
+        return self._evaluate_response(dto=normalized_dto, response=response)
+
     def verify(
         self,
         dto: RecaptchaVerificationDTO,
     ) -> RecaptchaVerificationResultEntity:
+        """Compatibility entry point for synchronous Django form views."""
+        preflight, normalized_dto = self._preflight(dto)
+        if preflight is not None:
+            return preflight
+
+        try:
+            response = self._repository.verify(normalized_dto)
+        except RecaptchaProviderError:
+            return self._rejected(RecaptchaFailureReasonEnum.PROVIDER_UNAVAILABLE)
+
+        return self._evaluate_response(dto=normalized_dto, response=response)
+
+    @staticmethod
+    def _preflight(
+        dto: RecaptchaVerificationDTO,
+    ) -> tuple[RecaptchaVerificationResultEntity | None, RecaptchaVerificationDTO]:
         if not settings.RECAPTCHA_ENABLED:
-            return RecaptchaVerificationResultEntity(
-                is_allowed=True,
-                reason=RecaptchaFailureReasonEnum.DISABLED,
+            return (
+                RecaptchaVerificationResultEntity(
+                    is_allowed=True,
+                    reason=RecaptchaFailureReasonEnum.DISABLED,
+                ),
+                dto,
             )
 
         token = dto.token.strip()
+        normalized_dto = RecaptchaVerificationDTO(
+            token=token,
+            expected_action=dto.expected_action,
+            remote_ip=dto.remote_ip,
+        )
         if not token:
-            return self._rejected(RecaptchaFailureReasonEnum.MISSING_TOKEN)
-
-        try:
-            response = self._repository.verify(
-                RecaptchaVerificationDTO(
-                    token=token,
-                    expected_action=dto.expected_action,
-                    remote_ip=dto.remote_ip,
-                )
+            return (
+                RecaptchaVerificationLogic._rejected(
+                    RecaptchaFailureReasonEnum.MISSING_TOKEN
+                ),
+                normalized_dto,
             )
-        except RecaptchaProviderError:
-            return self._rejected(
-                RecaptchaFailureReasonEnum.PROVIDER_UNAVAILABLE
-            )
+        return None, normalized_dto
 
+    @classmethod
+    def _evaluate_response(
+        cls,
+        *,
+        dto: RecaptchaVerificationDTO,
+        response: RecaptchaProviderResponseEntity,
+    ) -> RecaptchaVerificationResultEntity:
         if not response.success:
             logger.info(
                 RecaptchaLogMessageVO.PROVIDER_REJECTED.value.format(
                     error_codes=",".join(response.error_codes) or "unknown"
                 )
             )
-            return self._rejected(
+            return cls._rejected(
                 RecaptchaFailureReasonEnum.PROVIDER_REJECTED,
                 score=response.score,
                 hostname=response.hostname,
@@ -65,7 +115,7 @@ class RecaptchaVerificationLogic:
                     actual=response.action,
                 )
             )
-            return self._rejected(
+            return cls._rejected(
                 RecaptchaFailureReasonEnum.ACTION_MISMATCH,
                 score=response.score,
                 hostname=response.hostname,
@@ -79,7 +129,7 @@ class RecaptchaVerificationLogic:
                     threshold=minimum_score,
                 )
             )
-            return self._rejected(
+            return cls._rejected(
                 RecaptchaFailureReasonEnum.SCORE_TOO_LOW,
                 score=response.score,
                 hostname=response.hostname,
@@ -96,7 +146,7 @@ class RecaptchaVerificationLogic:
                     hostname=response.hostname or "missing"
                 )
             )
-            return self._rejected(
+            return cls._rejected(
                 RecaptchaFailureReasonEnum.HOSTNAME_MISMATCH,
                 score=response.score,
                 hostname=response.hostname,

@@ -1,3 +1,4 @@
+from asgiref.sync import sync_to_async
 from decimal import Decimal
 
 from django.db import transaction
@@ -26,6 +27,119 @@ from backend.apps.common.helpers.validators.security_validators import (
 class BillingLogicRepository(metaclass=Singleton):
     def __init__(self):
         self.postgres_adapter = BillingPostgresAdapter()
+
+    async def list_user_orders_async(self, user):
+        return self.postgres_adapter.list_user_orders(user)
+
+    async def list_user_payments_async(self, user):
+        return self.postgres_adapter.list_user_payments(user)
+
+    async def get_order_for_user_async(self, order_id, user):
+        return await sync_to_async(
+            self.postgres_adapter.get_order_for_user,
+            thread_sensitive=True,
+        )(order_id, user)
+
+    async def get_payment_for_user_async(self, payment_id, user):
+        return await sync_to_async(
+            self.postgres_adapter.get_payment_for_user,
+            thread_sensitive=True,
+        )(payment_id, user)
+
+    async def create_checkout_order_async(self, user, dto: CheckoutDTO):
+        return await sync_to_async(
+            self.create_checkout_order,
+            thread_sensitive=True,
+        )(user, dto)
+
+    async def start_payment_async(self, user, dto: PaymentStartDTO):
+        order, payment, gateway, gateway_request = await sync_to_async(
+            self._prepare_payment_start,
+            thread_sensitive=True,
+        )(user, dto)
+        if payment.status == PaymentStatusEnum.PENDING_VERIFICATION.value:
+            return payment
+        gateway_result = await gateway.astart_payment(gateway_request)
+        return await sync_to_async(
+            self.postgres_adapter.update_payment_gateway_result,
+            thread_sensitive=True,
+        )(
+            payment=payment,
+            gateway_request=gateway_request,
+            gateway_result=gateway_result,
+            actor=user,
+        )
+
+    def _prepare_payment_start(self, user, dto: PaymentStartDTO):
+        with transaction.atomic():
+            order = self.postgres_adapter.get_order_for_user(
+                order_id=dto.order_id,
+                user=user,
+            )
+            provider = self.normalize_provider(dto.provider)
+            payment = self.postgres_adapter.get_or_create_pending_payment(
+                user=user,
+                order=order,
+                provider=provider,
+            )
+            gateway = PaymentGatewayFactory.build(provider)
+            gateway_request = PaymentGatewayRequestEntity(
+                payment_id=payment.id,
+                order_number=order.order_number,
+                amount=order.total_amount,
+                currency=order.currency,
+                description=f"Course order {order.order_number}",
+            )
+            return order, payment, gateway, gateway_request
+
+    async def confirm_payment_async(self, actor, dto: PaymentConfirmDTO):
+        payment = await self.get_payment_for_user_async(dto.payment_id, actor)
+        gateway = PaymentGatewayFactory.build(payment.provider)
+        verification_result = await gateway.averify_payment(
+            payment=payment,
+            actor=actor,
+            payload={
+                "transaction_id": dto.transaction_id,
+                "authority": dto.authority,
+                "status": dto.status,
+            },
+        )
+        persistence_method = (
+            self.postgres_adapter.mark_payment_succeeded
+            if verification_result.get("is_success")
+            else self.postgres_adapter.mark_payment_failed
+        )
+        return await sync_to_async(
+            persistence_method,
+            thread_sensitive=True,
+        )(
+            payment=payment,
+            verification_result=verification_result,
+            actor=actor,
+        )
+
+    async def upload_receipt_async(self, user, dto: PaymentReceiptUploadDTO):
+        return await sync_to_async(self.upload_receipt, thread_sensitive=True)(user, dto)
+
+    async def review_receipt_async(self, actor, dto: PaymentReceiptReviewDTO):
+        return await sync_to_async(self.review_receipt, thread_sensitive=True)(actor, dto)
+
+    async def confirm_gateway_callback_async(self, dto: PaymentGatewayCallbackDTO):
+        # Keep the lock + idempotency transaction together. Provider calls are
+        # already bounded and this worker boundary prevents ASGI blocking.
+        return await sync_to_async(
+            self.confirm_gateway_callback,
+            thread_sensitive=True,
+        )(dto)
+
+    async def list_orders_for_admin_async(self, status: str | None = None):
+        return self.postgres_adapter.list_orders_for_admin(status=status)
+
+    async def list_payments_for_admin_async(self, status: str | None = None):
+        return self.postgres_adapter.list_payments_for_admin(status=status)
+
+    async def list_receipts_for_admin_async(self, status: str | None = None):
+        return self.postgres_adapter.list_receipts_for_admin(status=status)
 
     def list_user_orders(self, user):
         return self.postgres_adapter.list_user_orders(user)

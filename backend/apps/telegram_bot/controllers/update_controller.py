@@ -9,17 +9,23 @@ from backend.apps.telegram_bot.repositories.bot_runtime_repository import BotRun
 
 
 class BotUpdateController:
-    """Thin controller for webhook/polling update processing."""
+    """Thin async controller for webhook and polling update processing."""
 
-    def __init__(self, *, provider: str, service_factory: Callable[[], Any], update_id_getter: Callable[[dict[str, Any]], str | int | None]):
+    def __init__(
+        self,
+        *,
+        provider: str,
+        service_factory: Callable[[], Any],
+        update_id_getter: Callable[[dict[str, Any]], str | int | None],
+    ):
         self.provider = provider
         self.update_id_getter = update_id_getter
         self.logic = BotUpdateProcessLogic(
             runtime_repository=BotRuntimeRepository(service_factory=service_factory),
         )
 
-    def handle(self, update: dict[str, Any]) -> bool:
-        return self.logic.process(
+    async def handle(self, update: dict[str, Any]) -> bool:
+        return await self.logic.process(
             BotUpdateProcessDTO(
                 provider=self.provider,
                 update=update,

@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-import json
 from collections.abc import Mapping
-from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
-from urllib.request import Request, urlopen
 
+from asgiref.sync import async_to_sync
+import httpx
 from django.conf import settings
 
 from backend.apps.accounts.dtos.recaptcha_dto import RecaptchaVerificationDTO
@@ -24,13 +22,20 @@ logger = CommonUtils.get_project_logger(__name__)
 
 
 class GoogleRecaptchaAdapter:
-    """Google reCAPTCHA v3 transport adapter.
+    """Async Google reCAPTCHA v3 transport adapter.
 
-    This class is the only account component that knows the provider endpoint and
-    wire response format. Tokens and secrets are deliberately never logged.
+    ``verify_async`` is the native contract used by ASGI workflows. ``verify``
+    exists only as a compatibility boundary for the project's synchronous HTML
+    form views and legacy tests.
     """
 
     def verify(self, dto: RecaptchaVerificationDTO) -> RecaptchaProviderResponseEntity:
+        return async_to_sync(self.verify_async)(dto)
+
+    async def verify_async(
+        self,
+        dto: RecaptchaVerificationDTO,
+    ) -> RecaptchaProviderResponseEntity:
         payload = {
             RecaptchaRequestFieldVO.SECRET.value: settings.RECAPTCHA_SECRET_KEY,
             RecaptchaRequestFieldVO.RESPONSE.value: dto.token,
@@ -38,21 +43,11 @@ class GoogleRecaptchaAdapter:
         if settings.RECAPTCHA_SEND_REMOTE_IP and dto.remote_ip:
             payload[RecaptchaRequestFieldVO.REMOTE_IP.value] = dto.remote_ip
 
-        request = Request(
-            RecaptchaEndpointVO.SITE_VERIFY.value,
-            data=urlencode(payload).encode("utf-8"),
-            headers={
-                "Accept": "application/json",
-                "Content-Type": "application/x-www-form-urlencoded",
-                "User-Agent": "Devixa-reCAPTCHA/1.0",
-            },
-            method="POST",
-        )
-        response_payload = self._open_json(request)
+        response_payload = await self._post_json(payload)
         return self._to_entity(response_payload)
 
     @staticmethod
-    def _open_json(request: Request) -> Mapping[str, object]:
+    async def _post_json(payload: Mapping[str, object]) -> Mapping[str, object]:
         timeout = max(
             1,
             int(
@@ -75,54 +70,68 @@ class GoogleRecaptchaAdapter:
         )
 
         try:
-            with urlopen(request, timeout=timeout) as response:
-                content_length = response.headers.get("Content-Length")
-                try:
-                    declared_size = int(content_length) if content_length else 0
-                except (TypeError, ValueError):
-                    declared_size = 0
-                if declared_size > max_bytes:
-                    raise RecaptchaProviderError(
-                        RecaptchaLogMessageVO.PROVIDER_INVALID_RESPONSE.value
-                    )
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(timeout),
+                follow_redirects=False,
+            ) as client:
+                async with client.stream(
+                    "POST",
+                    RecaptchaEndpointVO.SITE_VERIFY.value,
+                    data=dict(payload),
+                    headers={
+                        "Accept": "application/json",
+                        "Content-Type": "application/x-www-form-urlencoded",
+                        "User-Agent": "Devixa-reCAPTCHA/1.0",
+                    },
+                ) as response:
+                    response.raise_for_status()
+                    content_length = response.headers.get("Content-Length")
+                    try:
+                        declared_size = int(content_length) if content_length else 0
+                    except (TypeError, ValueError):
+                        declared_size = 0
+                    if declared_size > max_bytes:
+                        raise RecaptchaProviderError(
+                            RecaptchaLogMessageVO.PROVIDER_INVALID_RESPONSE.value
+                        )
 
-                raw_body = response.read(max_bytes + 1)
-                if len(raw_body) > max_bytes:
-                    raise RecaptchaProviderError(
-                        RecaptchaLogMessageVO.PROVIDER_INVALID_RESPONSE.value
-                    )
-        except HTTPError as exc:
+                    body = bytearray()
+                    async for chunk in response.aiter_bytes():
+                        body.extend(chunk)
+                        if len(body) > max_bytes:
+                            raise RecaptchaProviderError(
+                                RecaptchaLogMessageVO.PROVIDER_INVALID_RESPONSE.value
+                            )
+        except httpx.HTTPStatusError as exc:
             logger.warning(
                 RecaptchaLogMessageVO.PROVIDER_HTTP_ERROR.value.format(
-                    status=exc.code
+                    status=exc.response.status_code
                 )
             )
             raise RecaptchaProviderError(
                 RecaptchaLogMessageVO.PROVIDER_INVALID_RESPONSE.value
             ) from exc
-        except (URLError, TimeoutError, OSError) as exc:
+        except (httpx.TimeoutException, httpx.NetworkError, httpx.ProtocolError) as exc:
             logger.warning(
-                RecaptchaLogMessageVO.PROVIDER_CONNECTION_ERROR.value.format(
-                    error=exc
-                )
+                RecaptchaLogMessageVO.PROVIDER_CONNECTION_ERROR.value.format(error=exc)
             )
             raise RecaptchaProviderError(
                 RecaptchaLogMessageVO.PROVIDER_INVALID_RESPONSE.value
             ) from exc
 
         try:
-            payload = json.loads(raw_body.decode("utf-8"))
-        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            parsed = httpx.Response(200, content=bytes(body)).json()
+        except ValueError as exc:
             logger.warning(RecaptchaLogMessageVO.PROVIDER_INVALID_RESPONSE.value)
             raise RecaptchaProviderError(
                 RecaptchaLogMessageVO.PROVIDER_INVALID_RESPONSE.value
             ) from exc
 
-        if not isinstance(payload, Mapping):
+        if not isinstance(parsed, Mapping):
             raise RecaptchaProviderError(
                 RecaptchaLogMessageVO.PROVIDER_INVALID_RESPONSE.value
             )
-        return payload
+        return parsed
 
     @staticmethod
     def _to_entity(payload: Mapping[str, object]) -> RecaptchaProviderResponseEntity:
@@ -132,10 +141,7 @@ class GoogleRecaptchaAdapter:
         except (TypeError, ValueError):
             score = 0.0
 
-        raw_error_codes = payload.get(
-            RecaptchaResponseFieldVO.ERROR_CODES.value,
-            (),
-        )
+        raw_error_codes = payload.get(RecaptchaResponseFieldVO.ERROR_CODES.value, ())
         if isinstance(raw_error_codes, (list, tuple)):
             error_codes = tuple(str(item) for item in raw_error_codes)
         else:
@@ -145,9 +151,10 @@ class GoogleRecaptchaAdapter:
             success=payload.get(RecaptchaResponseFieldVO.SUCCESS.value) is True,
             score=score,
             action=str(payload.get(RecaptchaResponseFieldVO.ACTION.value) or "").strip(),
-            hostname=str(
-                payload.get(RecaptchaResponseFieldVO.HOSTNAME.value) or ""
-            ).strip().lower().rstrip("."),
+            hostname=str(payload.get(RecaptchaResponseFieldVO.HOSTNAME.value) or "")
+            .strip()
+            .lower()
+            .rstrip("."),
             challenge_timestamp=str(
                 payload.get(RecaptchaResponseFieldVO.CHALLENGE_TIMESTAMP.value) or ""
             ).strip(),

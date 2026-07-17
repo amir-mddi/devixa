@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from asgiref.sync import sync_to_async
+from backend.apps.common.web.async_view import AsyncWebViewMixin
+
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404
@@ -85,45 +88,38 @@ class BasketContextMixin:
         return context
 
 
-class BasketPageView(LoginRequiredMixin, BasketContextMixin, TemplateView):
+class BasketPageView(AsyncWebViewMixin, LoginRequiredMixin, BasketContextMixin, TemplateView):
     template_name = BasketWebTemplateVO.BASKET.value
 
     def get_context_data(self, **kwargs):
         return self.basket_context()
 
 
-class BasketAddItemView(LoginRequiredMixin, SafeBasketRedirectMixin, View):
+class BasketAddItemView(AsyncWebViewMixin, LoginRequiredMixin, SafeBasketRedirectMixin, View):
     basket_logic_class = BasketLogic
 
-    def post(self, request, *args, **kwargs):
+    async def post(self, request, *args, **kwargs):
+        return await sync_to_async(self._sync_post, thread_sensitive=True)(request, *args, **kwargs)
+
+    def _sync_post(self, request, *args, **kwargs):
         try:
-            _, created = self.basket_logic_class().add_item(
-                request.user,
-                BasketAddItemDTO(
-                    course_id=request.POST.get(BasketWebFieldVO.COURSE_ID.value)
-                ),
-            )
+            _, created = self.basket_logic_class().add_item(request.user, BasketAddItemDTO(course_id=request.POST.get(BasketWebFieldVO.COURSE_ID.value)))
         except (APIException, PydanticValidationError) as exc:
             messages.error(request, BasketWebErrorPresenter.from_exception(exc))
         else:
-            messages.success(
-                request,
-                BasketWebMessageVO.ITEM_ADDED.value
-                if created
-                else BasketWebMessageVO.ITEM_ALREADY_EXISTS.value,
-            )
+            messages.success(request, BasketWebMessageVO.ITEM_ADDED.value if created else BasketWebMessageVO.ITEM_ALREADY_EXISTS.value)
         return redirect(self.redirect_target())
 
 
-class BasketRemoveItemView(LoginRequiredMixin, View):
+class BasketRemoveItemView(AsyncWebViewMixin, LoginRequiredMixin, View):
     basket_logic_class = BasketLogic
 
-    def post(self, request, item_id, *args, **kwargs):
+    async def post(self, request, item_id, *args, **kwargs):
+        return await sync_to_async(self._sync_post, thread_sensitive=True)(request, item_id, *args, **kwargs)
+
+    def _sync_post(self, request, item_id, *args, **kwargs):
         try:
-            self.basket_logic_class().remove_item(
-                request.user,
-                BasketRemoveItemDTO(item_id=item_id),
-            )
+            self.basket_logic_class().remove_item(request.user, BasketRemoveItemDTO(item_id=item_id))
         except APIException as exc:
             messages.error(request, BasketWebErrorPresenter.from_exception(exc))
         else:
@@ -131,10 +127,13 @@ class BasketRemoveItemView(LoginRequiredMixin, View):
         return redirect(BasketWebReverseNameVO.BASKET.value)
 
 
-class BasketClearView(LoginRequiredMixin, View):
+class BasketClearView(AsyncWebViewMixin, LoginRequiredMixin, View):
     basket_logic_class = BasketLogic
 
-    def post(self, request, *args, **kwargs):
+    async def post(self, request, *args, **kwargs):
+        return await sync_to_async(self._sync_post, thread_sensitive=True)(request, *args, **kwargs)
+
+    def _sync_post(self, request, *args, **kwargs):
         try:
             self.basket_logic_class().clear(request.user)
         except APIException as exc:
@@ -144,39 +143,32 @@ class BasketClearView(LoginRequiredMixin, View):
         return redirect(BasketWebReverseNameVO.BASKET.value)
 
 
-class BasketApplyDiscountView(LoginRequiredMixin, BasketContextMixin, View):
+class BasketApplyDiscountView(AsyncWebViewMixin, LoginRequiredMixin, BasketContextMixin, View):
     template_name = BasketWebTemplateVO.BASKET.value
 
-    def post(self, request, *args, **kwargs):
+    async def post(self, request, *args, **kwargs):
+        return await sync_to_async(self._sync_post, thread_sensitive=True)(request, *args, **kwargs)
+
+    def _sync_post(self, request, *args, **kwargs):
         form = BasketDiscountForm(request.POST)
         if not form.is_valid():
-            return render(
-                request,
-                self.template_name,
-                self.basket_context(discount_form=form),
-                status=400,
-            )
+            return render(request, self.template_name, self.basket_context(discount_form=form), status=400)
         try:
-            self.basket_logic_class().apply_discount(
-                request.user,
-                BasketApplyDiscountDTO(code=form.cleaned_data[BasketWebFieldVO.CODE.value]),
-            )
+            self.basket_logic_class().apply_discount(request.user, BasketApplyDiscountDTO(code=form.cleaned_data[BasketWebFieldVO.CODE.value]))
         except APIException as exc:
             form.add_error(None, BasketWebErrorPresenter.from_exception(exc))
-            return render(
-                request,
-                self.template_name,
-                self.basket_context(discount_form=form),
-                status=400,
-            )
+            return render(request, self.template_name, self.basket_context(discount_form=form), status=400)
         messages.success(request, BasketWebMessageVO.DISCOUNT_APPLIED.value)
         return redirect(BasketWebReverseNameVO.BASKET.value)
 
 
-class BasketRemoveDiscountView(LoginRequiredMixin, View):
+class BasketRemoveDiscountView(AsyncWebViewMixin, LoginRequiredMixin, View):
     basket_logic_class = BasketLogic
 
-    def post(self, request, *args, **kwargs):
+    async def post(self, request, *args, **kwargs):
+        return await sync_to_async(self._sync_post, thread_sensitive=True)(request, *args, **kwargs)
+
+    def _sync_post(self, request, *args, **kwargs):
         try:
             self.basket_logic_class().remove_discount(request.user)
         except APIException as exc:
@@ -186,50 +178,40 @@ class BasketRemoveDiscountView(LoginRequiredMixin, View):
         return redirect(BasketWebReverseNameVO.BASKET.value)
 
 
-class CheckoutPageView(LoginRequiredMixin, TemplateView):
+class CheckoutPageView(AsyncWebViewMixin, LoginRequiredMixin, TemplateView):
     template_name = BasketWebTemplateVO.CHECKOUT.value
     basket_logic_class = BasketLogic
 
-    def get(self, request, *args, **kwargs):
+    async def get(self, request, *args, **kwargs):
+        return await sync_to_async(self._sync_get, thread_sensitive=True)(request, *args, **kwargs)
+
+    def _sync_get(self, request, *args, **kwargs):
         try:
             basket = self.basket_logic_class().get_checkout_summary(request.user)
         except APIException as exc:
             messages.error(request, BasketWebErrorPresenter.from_exception(exc))
             return redirect(BasketWebReverseNameVO.BASKET.value)
-        return render(
-            request,
-            self.template_name,
-            {
-                "basket": basket,
-                "payment_form": BasketPaymentMethodForm(),
-            },
-        )
+        return render(request, self.template_name, {'basket': basket, 'payment_form': BasketPaymentMethodForm()})
 
 
-class BasketPaymentStartView(LoginRequiredMixin, View):
+class BasketPaymentStartView(AsyncWebViewMixin, LoginRequiredMixin, View):
     basket_logic_class = BasketLogic
     billing_logic_class = BillingLogicRepository
 
-    def post(self, request, *args, **kwargs):
+    async def post(self, request, *args, **kwargs):
+        return await sync_to_async(self._sync_post, thread_sensitive=True)(request, *args, **kwargs)
+
+    def _sync_post(self, request, *args, **kwargs):
         form = BasketPaymentMethodForm(request.POST)
         if not form.is_valid():
             messages.error(request, BasketWebMessageVO.INVALID_ACTION.value)
             return redirect(BasketWebReverseNameVO.CHECKOUT.value)
         try:
-            summary, completed = self.basket_logic_class().prepare_checkout(
-                request.user,
-                BasketCheckoutDTO(order_id=request.POST.get("order_id")),
-            )
+            summary, completed = self.basket_logic_class().prepare_checkout(request.user, BasketCheckoutDTO(order_id=request.POST.get('order_id')))
             if completed:
                 messages.success(request, BasketWebMessageVO.FREE_ORDER_COMPLETED.value)
                 return redirect(f"{reverse('accounts_web:profile')}#courses")
-            payment = self.billing_logic_class().start_payment(
-                request.user,
-                PaymentStartDTO(
-                    order_id=summary.order.id,
-                    provider=PaymentProviderEnum.CARD_TO_CARD,
-                ),
-            )
+            payment = self.billing_logic_class().start_payment(request.user, PaymentStartDTO(order_id=summary.order.id, provider=PaymentProviderEnum.CARD_TO_CARD))
         except (APIException, PydanticValidationError) as exc:
             messages.error(request, BasketWebErrorPresenter.from_exception(exc))
             return redirect(BasketWebReverseNameVO.CHECKOUT.value)
@@ -237,11 +219,14 @@ class BasketPaymentStartView(LoginRequiredMixin, View):
         return redirect(BasketWebReverseNameVO.PAYMENT_DETAIL.value, payment_id=payment.id)
 
 
-class CardToCardPaymentView(LoginRequiredMixin, View):
+class CardToCardPaymentView(AsyncWebViewMixin, LoginRequiredMixin, View):
     template_name = BasketWebTemplateVO.CARD_TO_CARD.value
     billing_logic_class = BillingLogicRepository
 
-    def get(self, request, payment_id, *args, **kwargs):
+    async def get(self, request, payment_id, *args, **kwargs):
+        return await sync_to_async(self._sync_get, thread_sensitive=True)(request, payment_id, *args, **kwargs)
+
+    def _sync_get(self, request, payment_id, *args, **kwargs):
         try:
             payment = self.billing_logic_class().get_payment_for_user(payment_id, request.user)
         except APIException as exc:
@@ -282,7 +267,10 @@ class CardToCardPaymentView(LoginRequiredMixin, View):
 
 
 class CardToCardReceiptUploadView(CardToCardPaymentView):
-    def post(self, request, payment_id, *args, **kwargs):
+    async def post(self, request, payment_id, *args, **kwargs):
+        return await sync_to_async(self._sync_post, thread_sensitive=True)(request, payment_id, *args, **kwargs)
+
+    def _sync_post(self, request, payment_id, *args, **kwargs):
         try:
             payment = self.billing_logic_class().get_payment_for_user(payment_id, request.user)
         except APIException as exc:
@@ -293,10 +281,7 @@ class CardToCardReceiptUploadView(CardToCardPaymentView):
         if not form.is_valid():
             return self.render_payment(request, payment, receipt_form=form, status=400)
         try:
-            self.billing_logic_class().upload_receipt(
-                request.user,
-                form.to_dto(payment_id=payment.id),
-            )
+            self.billing_logic_class().upload_receipt(request.user, form.to_dto(payment_id=payment.id))
         except APIException as exc:
             form.add_error(None, BasketWebErrorPresenter.from_exception(exc))
             payment.refresh_from_db()

@@ -1,7 +1,9 @@
+from asgiref.sync import sync_to_async
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
-from rest_framework.views import APIView
 
 from backend.apps.common.response_utils import ResponseUtil
+from backend.apps.common.utils.async_api import AsyncAPIView as APIView
+from backend.apps.common.utils.async_drf import serializer_data, validate_serializer
 from backend.apps.common.utils.pagination_response_mixin import PaginatedResponseMixin
 from backend.apps.core_models.constants.common_vo import ResponseVO
 from backend.apps.courses.dtos import ReviewCreateDTO, ReviewModerationDTO
@@ -23,7 +25,6 @@ from backend.apps.courses.vo import CourseMessagesVO
 from backend.apps.shared.views import BaseViewSet
 
 
-
 class PublicCourseViewSet(PaginatedResponseMixin, BaseViewSet):
     permission_classes = [AllowAny]
     authentication_classes = []
@@ -35,14 +36,22 @@ class PublicCourseViewSet(PaginatedResponseMixin, BaseViewSet):
         super().__init__(**kwargs)
         self.logic = CourseLogicRepository()
 
-    def list(self, request):
-        queryset = self.logic.list_published_courses(filters=request.query_params)
-        return self.paginated_response(request, queryset, CourseListSerializer)
+    async def list(self, request):
+        queryset = await self.logic.list_published_courses_async(
+            filters=request.query_params
+        )
+        return await sync_to_async(
+            self.paginated_response,
+            thread_sensitive=True,
+        )(request, queryset, CourseListSerializer)
 
-    def retrieve(self, request, pk=None):
-        course = self.logic.get_published_course(pk)
+    async def retrieve(self, request, pk=None):
+        course = await self.logic.get_published_course_async(pk)
         serializer = CourseDetailSerializer(course, context={"request": request})
-        return ResponseUtil(data=serializer.data, status_code=ResponseVO.http_200)
+        return ResponseUtil(
+            data=await serializer_data(serializer),
+            status_code=ResponseVO.http_200,
+        )
 
 
 class AdminCourseCategoryViewSet(BaseViewSet):
@@ -76,9 +85,12 @@ class MyCourseEnrollmentsAPIView(PaginatedResponseMixin, APIView):
         super().__init__(**kwargs)
         self.logic = CourseLogicRepository()
 
-    def get(self, request):
-        queryset = self.logic.list_user_enrollments(request.user)
-        return self.paginated_response(request, queryset, CourseEnrollmentSerializer)
+    async def get(self, request):
+        queryset = await self.logic.list_user_enrollments_async(request.user)
+        return await sync_to_async(
+            self.paginated_response,
+            thread_sensitive=True,
+        )(request, queryset, CourseEnrollmentSerializer)
 
 
 class CourseReviewsAPIView(PaginatedResponseMixin, APIView):
@@ -93,23 +105,32 @@ class CourseReviewsAPIView(PaginatedResponseMixin, APIView):
         super().__init__(**kwargs)
         self.logic = CourseLogicRepository()
 
-    def get(self, request, course_id):
-        queryset = self.logic.list_approved_reviews(course_id)
-        return self.paginated_response(request, queryset, CourseReviewSerializer)
+    async def get(self, request, course_id):
+        queryset = await self.logic.list_approved_reviews_async(course_id)
+        return await sync_to_async(
+            self.paginated_response,
+            thread_sensitive=True,
+        )(request, queryset, CourseReviewSerializer)
 
-    def post(self, request, course_id=None):
-        data = {**request.data, "course_id": course_id or request.data.get("course_id")}
+    async def post(self, request, course_id=None):
+        data = {
+            **request.data,
+            "course_id": course_id or request.data.get("course_id"),
+        }
         serializer = CourseReviewCreateSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        review = self.logic.submit_review(
+        await validate_serializer(serializer)
+        review = await self.logic.submit_review_async(
             user=request.user,
             dto=ReviewCreateDTO(**serializer.validated_data),
         )
-        response_serializer = CourseReviewSerializer(review, context={"request": request})
+        response_serializer = CourseReviewSerializer(
+            review,
+            context={"request": request},
+        )
         return ResponseUtil(
             data={
                 "detail": CourseMessagesVO.REVIEW_SUBMITTED,
-                "review": response_serializer.data,
+                "review": await serializer_data(response_serializer),
             },
             status_code=ResponseVO.http_201,
         )
@@ -122,9 +143,14 @@ class AdminCourseReviewListAPIView(PaginatedResponseMixin, APIView):
         super().__init__(**kwargs)
         self.logic = CourseLogicRepository()
 
-    def get(self, request):
-        queryset = self.logic.list_reviews_for_admin(status=request.query_params.get("status"))
-        return self.paginated_response(request, queryset, CourseReviewAdminSerializer)
+    async def get(self, request):
+        queryset = await self.logic.list_reviews_for_admin_async(
+            status=request.query_params.get("status")
+        )
+        return await sync_to_async(
+            self.paginated_response,
+            thread_sensitive=True,
+        )(request, queryset, CourseReviewAdminSerializer)
 
 
 class AdminCourseReviewModerateAPIView(APIView):
@@ -134,17 +160,24 @@ class AdminCourseReviewModerateAPIView(APIView):
         super().__init__(**kwargs)
         self.logic = CourseLogicRepository()
 
-    def patch(self, request, review_id):
+    async def patch(self, request, review_id):
         serializer = CourseReviewModerationSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        review = self.logic.moderate_review(
+        await validate_serializer(serializer)
+        review = await self.logic.moderate_review_async(
             admin_user=request.user,
-            dto=ReviewModerationDTO(review_id=review_id, **serializer.validated_data),
+            dto=ReviewModerationDTO(
+                review_id=review_id,
+                **serializer.validated_data,
+            ),
+        )
+        response_serializer = CourseReviewAdminSerializer(
+            review,
+            context={"request": request},
         )
         return ResponseUtil(
             data={
                 "detail": CourseMessagesVO.REVIEW_MODERATED,
-                "review": CourseReviewAdminSerializer(review, context={"request": request}).data,
+                "review": await serializer_data(response_serializer),
             },
             status_code=ResponseVO.http_200,
         )

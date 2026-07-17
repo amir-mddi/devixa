@@ -7,7 +7,8 @@ from decimal import Decimal
 from urllib.parse import urlencode
 from uuid import uuid4
 
-import requests
+import httpx
+from asgiref.sync import async_to_sync, sync_to_async
 from django.conf import settings
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
@@ -29,6 +30,21 @@ class PaymentGatewayAdapter(ABC):
     @abstractmethod
     def verify_payment(self, payment, actor, payload: dict) -> dict:
         raise NotImplementedError
+
+    async def astart_payment(
+        self,
+        request: PaymentGatewayRequestEntity,
+    ) -> PaymentGatewayResultEntity:
+        return await sync_to_async(
+            self.start_payment,
+            thread_sensitive=True,
+        )(request)
+
+    async def averify_payment(self, payment, actor, payload: dict) -> dict:
+        return await sync_to_async(
+            self.verify_payment,
+            thread_sensitive=True,
+        )(payment, actor, payload)
 
 
 class CardToCardPaymentGatewayAdapter(PaymentGatewayAdapter):
@@ -161,12 +177,24 @@ class PardakhtyarPaymentGatewayAdapter(PaymentGatewayAdapter):
             if item.strip()
         }
 
-    def start_payment(self, request: PaymentGatewayRequestEntity) -> PaymentGatewayResultEntity:
+    async def astart_payment(
+        self,
+        request: PaymentGatewayRequestEntity,
+    ) -> PaymentGatewayResultEntity:
         self._ensure_configured(self.request_url, self.callback_url)
-        self._validate_provider_url(self.request_url, self.provider_allowed_hosts)
-        self._validate_provider_url(self.callback_url, self.callback_allowed_hosts)
+        await self._avalidate_provider_url(
+            self.request_url,
+            self.provider_allowed_hosts,
+        )
+        await self._avalidate_provider_url(
+            self.callback_url,
+            self.callback_allowed_hosts,
+        )
         if self.start_pay_base_url:
-            self._validate_provider_url(self.start_pay_base_url, self.payment_allowed_hosts)
+            await self._avalidate_provider_url(
+                self.start_pay_base_url,
+                self.payment_allowed_hosts,
+            )
 
         payload = {
             "merchant_id": self.merchant_id,
@@ -177,7 +205,7 @@ class PardakhtyarPaymentGatewayAdapter(PaymentGatewayAdapter):
             "order_id": request.order_number,
             "payment_id": str(request.payment_id),
         }
-        response_payload = self._post_json(self.request_url, payload)
+        response_payload = await self._apost_json(self.request_url, payload)
         authority = self._safe_identifier(
             self._extract_first(
                 response_payload,
@@ -203,15 +231,26 @@ class PardakhtyarPaymentGatewayAdapter(PaymentGatewayAdapter):
         if not payment_url and authority and self.start_pay_base_url:
             payment_url = f"{self.start_pay_base_url.rstrip('/')}/{authority}"
         if not authority or not payment_url:
-            raise ValidationError({"pardakhtyar": "Payment gateway returned an invalid response."})
+            raise ValidationError(
+                {"pardakhtyar": "Payment gateway returned an invalid response."}
+            )
         try:
-            payment_url = validate_public_https_url(
+            payment_url = await sync_to_async(
+                validate_public_https_url,
+                thread_sensitive=False,
+            )(
                 str(payment_url),
                 allowed_hosts=self.payment_allowed_hosts,
                 resolve_dns=bool(getattr(settings, "IS_PROD", False)),
             )
         except UnsafeOutboundUrlError as exc:
-            raise ValidationError({"pardakhtyar": "Payment gateway returned an unsafe redirect URL."}) from exc
+            raise ValidationError(
+                {
+                    "pardakhtyar": (
+                        "Payment gateway returned an unsafe redirect URL."
+                    )
+                }
+            ) from exc
 
         return PaymentGatewayResultEntity(
             authority=authority,
@@ -220,20 +259,37 @@ class PardakhtyarPaymentGatewayAdapter(PaymentGatewayAdapter):
             raw_response=sanitize_mapping(response_payload),
         )
 
-    def verify_payment(self, payment, actor, payload: dict) -> dict:
+    def start_payment(
+        self,
+        request: PaymentGatewayRequestEntity,
+    ) -> PaymentGatewayResultEntity:
+        return async_to_sync(self.astart_payment)(request)
+
+    async def averify_payment(self, payment, actor, payload: dict) -> dict:
         self._ensure_configured(self.verify_url)
-        self._validate_provider_url(self.verify_url, self.provider_allowed_hosts)
+        await self._avalidate_provider_url(
+            self.verify_url,
+            self.provider_allowed_hosts,
+        )
         authority = self._safe_identifier(
-            payload.get("authority") or payload.get("Authority") or payment.authority,
+            payload.get("authority")
+            or payload.get("Authority")
+            or payment.authority,
             field_name="authority",
         )
-        callback_status = str(payload.get("status") or payload.get("Status") or "").strip().lower()[:100]
+        callback_status = str(
+            payload.get("status") or payload.get("Status") or ""
+        ).strip().lower()[:100]
         if callback_status and callback_status not in self.success_codes:
             return {
                 "is_success": False,
                 "authority": authority,
-                "failure_message": "Payment gateway callback reported a failed payment.",
-                "raw_response": {"callback_payload": sanitize_mapping(payload)},
+                "failure_message": (
+                    "Payment gateway callback reported a failed payment."
+                ),
+                "raw_response": {
+                    "callback_payload": sanitize_mapping(payload)
+                },
             }
 
         request_payload = {
@@ -243,7 +299,10 @@ class PardakhtyarPaymentGatewayAdapter(PaymentGatewayAdapter):
             "order_id": payment.order.order_number,
             "payment_id": str(payment.id),
         }
-        response_payload = self._post_json(self.verify_url, request_payload)
+        response_payload = await self._apost_json(
+            self.verify_url,
+            request_payload,
+        )
         response_code = self._extract_first(
             response_payload,
             "code",
@@ -275,12 +334,17 @@ class PardakhtyarPaymentGatewayAdapter(PaymentGatewayAdapter):
             "is_success": is_success,
             "transaction_id": transaction_id,
             "authority": authority,
-            "failure_message": "Pardakhtyar verification failed." if not is_success else "",
+            "failure_message": (
+                "Pardakhtyar verification failed." if not is_success else ""
+            ),
             "raw_response": {
                 "verify_response": sanitize_mapping(response_payload),
                 "callback_payload": sanitize_mapping(payload),
             },
         }
+
+    def verify_payment(self, payment, actor, payload: dict) -> dict:
+        return async_to_sync(self.averify_payment)(payment, actor, payload)
 
     def _callback_url(self, request: PaymentGatewayRequestEntity) -> str:
         query = urlencode(
@@ -298,66 +362,128 @@ class PardakhtyarPaymentGatewayAdapter(PaymentGatewayAdapter):
         if any(not url for url in required_urls):
             raise ValidationError("Pardakhtyar endpoint settings are incomplete.")
 
-    def _validate_provider_url(self, url: str, allowed_hosts: tuple[str, ...]) -> None:
+    async def _avalidate_provider_url(
+        self,
+        url: str,
+        allowed_hosts: tuple[str, ...],
+    ) -> None:
         try:
-            validate_public_https_url(
+            await sync_to_async(
+                validate_public_https_url,
+                thread_sensitive=False,
+            )(
                 url,
                 allowed_hosts=allowed_hosts,
                 resolve_dns=bool(getattr(settings, "IS_PROD", False)),
             )
         except UnsafeOutboundUrlError as exc:
-            raise ValidationError("Pardakhtyar endpoint configuration is unsafe.") from exc
+            raise ValidationError(
+                "Pardakhtyar endpoint configuration is unsafe."
+            ) from exc
+
+    def _validate_provider_url(
+        self,
+        url: str,
+        allowed_hosts: tuple[str, ...],
+    ) -> None:
+        async_to_sync(self._avalidate_provider_url)(url, allowed_hosts)
+
+    async def _apost_json(self, url: str, payload: dict) -> dict:
+        try:
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(self.timeout),
+                follow_redirects=False,
+            ) as client:
+                async with client.stream(
+                    "POST",
+                    url,
+                    json=payload,
+                    headers={
+                        "Accept": "application/json",
+                        "Content-Type": "application/json",
+                    },
+                ) as response:
+                    if 300 <= response.status_code < 400:
+                        raise ValidationError(
+                            {
+                                "pardakhtyar": (
+                                    "Payment gateway redirects are not accepted."
+                                )
+                            }
+                        )
+                    if response.status_code >= 400:
+                        raise ValidationError(
+                            {
+                                "pardakhtyar": (
+                                    "Payment gateway returned an error."
+                                ),
+                                "status_code": response.status_code,
+                            }
+                        )
+                    raw_body = await self._aread_bounded_response(response)
+                    try:
+                        body = json.loads(
+                            raw_body.decode(response.encoding or "utf-8")
+                        )
+                    except (
+                        LookupError,
+                        UnicodeDecodeError,
+                        json.JSONDecodeError,
+                    ) as exc:
+                        raise ValidationError(
+                            {
+                                "pardakhtyar": (
+                                    "Payment gateway returned invalid JSON."
+                                )
+                            }
+                        ) from exc
+                    if not isinstance(body, dict):
+                        raise ValidationError(
+                            {
+                                "pardakhtyar": (
+                                    "Payment gateway returned an invalid response."
+                                )
+                            }
+                        )
+                    return body
+        except ValidationError:
+            raise
+        except httpx.HTTPError:
+            raise ValidationError(
+                {"pardakhtyar": "Payment gateway connection failed."}
+            ) from None
 
     def _post_json(self, url: str, payload: dict) -> dict:
-        response = None
-        try:
-            response = requests.post(
-                url,
-                json=payload,
-                headers={"Accept": "application/json", "Content-Type": "application/json"},
-                timeout=self.timeout,
-                allow_redirects=False,
-                stream=True,
-            )
-            if 300 <= response.status_code < 400:
-                raise ValidationError({"pardakhtyar": "Payment gateway redirects are not accepted."})
-            if response.status_code >= 400:
-                raise ValidationError(
-                    {
-                        "pardakhtyar": "Payment gateway returned an error.",
-                        "status_code": response.status_code,
-                    }
-                )
-            raw_body = self._read_bounded_response(response)
-            try:
-                body = json.loads(raw_body.decode(response.encoding or "utf-8"))
-            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-                raise ValidationError({"pardakhtyar": "Payment gateway returned invalid JSON."}) from exc
-            if not isinstance(body, dict):
-                raise ValidationError({"pardakhtyar": "Payment gateway returned an invalid response."})
-            return body
-        except requests.RequestException:
-            raise ValidationError({"pardakhtyar": "Payment gateway connection failed."}) from None
-        finally:
-            if response is not None:
-                response.close()
+        return async_to_sync(self._apost_json)(url, payload)
 
-    def _read_bounded_response(self, response: requests.Response) -> bytes:
+    async def _aread_bounded_response(self, response: httpx.Response) -> bytes:
         raw_length = response.headers.get("Content-Length")
         if raw_length:
             try:
                 if int(raw_length) > self.max_response_bytes:
-                    raise ValidationError({"pardakhtyar": "Payment gateway response is too large."})
+                    raise ValidationError(
+                        {
+                            "pardakhtyar": (
+                                "Payment gateway response is too large."
+                            )
+                        }
+                    )
             except ValueError:
                 pass
 
         body = bytearray()
-        for chunk in response.iter_content(chunk_size=64 * 1024):
+        async for chunk in response.aiter_bytes(chunk_size=64 * 1024):
             if not chunk:
                 continue
             body.extend(chunk)
             if len(body) > self.max_response_bytes:
-                raise ValidationError({"pardakhtyar": "Payment gateway response is too large."})
+                raise ValidationError(
+                    {
+                        "pardakhtyar": (
+                            "Payment gateway response is too large."
+                        )
+                    }
+                )
         return bytes(body)
 
     @staticmethod

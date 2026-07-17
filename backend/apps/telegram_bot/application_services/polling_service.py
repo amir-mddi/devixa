@@ -1,20 +1,18 @@
 from __future__ import annotations
 
-from backend.apps.common.utils.common_utils import CommonUtils
-import time
-from typing import Any, Callable
+import asyncio
+from collections.abc import Callable
+from typing import Any
 
+from backend.apps.common.async_utils import call_maybe_async
+from backend.apps.common.utils.common_utils import CommonUtils
 from backend.apps.telegram_bot.controllers.update_controller import BotUpdateController
 
 logger = CommonUtils.get_project_logger(__name__)
 
 
 class BotPollingService:
-    """Polling application service.
-
-    It fetches raw updates from a messenger API adapter and delegates processing
-    to a controller. It does not know business rules or database details.
-    """
+    """Non-blocking polling service with async controller delegation."""
 
     def __init__(
         self,
@@ -32,7 +30,7 @@ class BotPollingService:
             update_id_getter=update_id_getter,
         )
 
-    def run_forever(
+    async def run_forever(
         self,
         *,
         timeout: int = 30,
@@ -41,24 +39,44 @@ class BotPollingService:
         allowed_updates: list[str] | None = None,
         limit: int | None = None,
     ) -> None:
-        if hasattr(self.client, "delete_webhook"):
-            self.client.delete_webhook(drop_pending_updates=drop_pending)
+        delete_webhook = getattr(
+            self.client,
+            "adelete_webhook",
+            getattr(self.client, "delete_webhook", None),
+        )
+        if delete_webhook:
+            await call_maybe_async(
+                delete_webhook,
+                drop_pending_updates=drop_pending,
+            )
 
         offset = None
         while True:
             try:
-                kwargs = {"offset": offset, "timeout": timeout, "allowed_updates": allowed_updates}
+                kwargs: dict[str, Any] = {
+                    "offset": offset,
+                    "timeout": timeout,
+                    "allowed_updates": allowed_updates,
+                }
                 if limit is not None:
                     kwargs["limit"] = limit
-                updates = self.client.get_updates(**kwargs)
+
+                get_updates = getattr(
+                    self.client,
+                    "aget_updates",
+                    self.client.get_updates,
+                )
+                updates = await call_maybe_async(get_updates, **kwargs)
                 for update in updates:
                     update_id = update.get("update_id")
                     if update_id is not None:
                         offset = update_id + 1
-                    self.controller.handle(update)
+                    await self.controller.handle(update)
 
+            except asyncio.CancelledError:
+                raise
             except KeyboardInterrupt:
                 raise
             except Exception:
                 logger.exception("%s polling error", self.provider)
-                time.sleep(sleep_seconds)
+                await asyncio.sleep(sleep_seconds)

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from backend.apps.common.web.async_view import AsyncWebViewMixin
+
 from django.http import Http404
 from django.views.generic import TemplateView
 from rest_framework.exceptions import NotFound
@@ -29,7 +31,7 @@ class ArticlePageMixin(SeoContextMixin):
         return query_params.urlencode()
 
 
-class ArticleListPageView(ArticlePageMixin, TemplateView):
+class ArticleListPageView(AsyncWebViewMixin, ArticlePageMixin, TemplateView):
     template_name = ArticleWebTemplateVO.LIST.value
 
     def get_context_data(self, **kwargs):
@@ -57,7 +59,7 @@ class NewsListPageView(ArticleListPageView):
     forced_type = ArticleTypeEnum.NEWS.value
 
 
-class ArticleDetailPageView(ArticlePageMixin, TemplateView):
+class ArticleDetailPageView(AsyncWebViewMixin, ArticlePageMixin, TemplateView):
     template_name = ArticleWebTemplateVO.DETAIL.value
 
     def get_context_data(self, **kwargs):

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from backend.apps.common.web.async_view import AsyncWebViewMixin
+
 from django.http import Http404
 from django.views.generic import TemplateView
 from rest_framework.exceptions import NotFound
@@ -25,7 +27,7 @@ class CourseWebRepositoryMixin(SeoContextMixin):
     seo_presenter_class = CourseSeoPresenter
 
 
-class CourseListPageView(CourseWebRepositoryMixin, TemplateView):
+class CourseListPageView(AsyncWebViewMixin, CourseWebRepositoryMixin, TemplateView):
     template_name = CourseWebTemplateVO.COURSE_LIST.value
 
     def get_context_data(self, **kwargs):
@@ -43,7 +45,7 @@ class CourseListPageView(CourseWebRepositoryMixin, TemplateView):
         return context
 
 
-class CourseDetailPageView(CourseWebRepositoryMixin, TemplateView):
+class CourseDetailPageView(AsyncWebViewMixin, CourseWebRepositoryMixin, TemplateView):
     template_name = CourseWebTemplateVO.COURSE_DETAIL.value
 
     def get_context_data(self, **kwargs):
@@ -110,7 +112,7 @@ class RoadmapPageContextMixin(CourseWebRepositoryMixin):
         )
 
 
-class RoadmapListPageView(RoadmapPageContextMixin, TemplateView):
+class RoadmapListPageView(AsyncWebViewMixin, RoadmapPageContextMixin, TemplateView):
     template_name = CourseWebTemplateVO.ROADMAP_LIST.value
 
     def get_context_data(self, **kwargs):
@@ -128,7 +130,7 @@ class RoadmapListPageView(RoadmapPageContextMixin, TemplateView):
         return context
 
 
-class RoadmapDetailPageView(RoadmapPageContextMixin, TemplateView):
+class RoadmapDetailPageView(AsyncWebViewMixin, RoadmapPageContextMixin, TemplateView):
     template_name = CourseWebTemplateVO.ROADMAP_DETAIL.value
 
     def get_context_data(self, **kwargs):

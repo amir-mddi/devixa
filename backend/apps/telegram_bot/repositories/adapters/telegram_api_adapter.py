@@ -4,7 +4,8 @@ import json
 import os
 from typing import Any
 
-import requests
+import httpx
+from asgiref.sync import async_to_sync, sync_to_async
 from django.conf import settings
 
 from backend.apps.telegram_bot.dtos.commerce_bot_dtos import BotDownloadedFileDTO
@@ -51,16 +52,60 @@ class TelegramApiAdapter(BotClientInterface):
             return None
         return {"http": proxy_url, "https": proxy_url}
 
-    def request(self, method_name: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
-        if not self.is_configured:
+    async def _runtime_values(self) -> tuple[str, str]:
+        return await sync_to_async(
+            lambda: (self.token, self.proxy_url),
+            thread_sensitive=True,
+        )()
+
+    async def arequest(
+        self,
+        method_name: str,
+        payload: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        token, proxy_url = await self._runtime_values()
+        if not token:
             raise RuntimeError("TELEGRAM_BOT_TOKEN is required.")
 
-        body = BotProviderHttpTransport.post_json(
-            url=f"{self.base_url}/{method_name}",
+        proxies = {"http": proxy_url, "https": proxy_url} if proxy_url else None
+        body = await BotProviderHttpTransport.apost_json(
+            url=f"https://api.telegram.org/bot{token}/{method_name}",
             method_name=method_name,
             payload=payload or {},
             timeout=(3.0, 15.0),
-            proxies=self.proxies,
+            proxies=proxies,
+            provider_name="Telegram",
+        )
+        if body.get("ok") is not True:
+            raise RuntimeError(f"Telegram API request failed in {method_name}.")
+        return body
+
+    def request(
+        self,
+        method_name: str,
+        payload: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return async_to_sync(self.arequest)(method_name, payload)
+
+    async def arequest_multipart(
+        self,
+        method_name: str,
+        *,
+        data: dict[str, Any] | None = None,
+        files: dict[str, tuple[str, bytes, str]] | None = None,
+    ) -> dict[str, Any]:
+        token, proxy_url = await self._runtime_values()
+        if not token:
+            raise RuntimeError("TELEGRAM_BOT_TOKEN is required.")
+
+        proxies = {"http": proxy_url, "https": proxy_url} if proxy_url else None
+        body = await BotProviderHttpTransport.apost_multipart(
+            url=f"https://api.telegram.org/bot{token}/{method_name}",
+            method_name=method_name,
+            data=data or {},
+            files=files or {},
+            timeout=(5.0, 60.0),
+            proxies=proxies,
             provider_name="Telegram",
         )
         if body.get("ok") is not True:
@@ -74,21 +119,11 @@ class TelegramApiAdapter(BotClientInterface):
         data: dict[str, Any] | None = None,
         files: dict[str, tuple[str, bytes, str]] | None = None,
     ) -> dict[str, Any]:
-        if not self.is_configured:
-            raise RuntimeError("TELEGRAM_BOT_TOKEN is required.")
-
-        body = BotProviderHttpTransport.post_multipart(
-            url=f"{self.base_url}/{method_name}",
-            method_name=method_name,
-            data=data or {},
-            files=files or {},
-            timeout=(5.0, 60.0),
-            proxies=self.proxies,
-            provider_name="Telegram",
+        return async_to_sync(self.arequest_multipart)(
+            method_name,
+            data=data,
+            files=files,
         )
-        if body.get("ok") is not True:
-            raise RuntimeError(f"Telegram API request failed in {method_name}.")
-        return body
 
 
     def _request(self, method_name: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -106,9 +141,18 @@ class TelegramApiAdapter(BotClientInterface):
             return ""
         return f"https://api.telegram.org/file/bot{self.token}/{file_path}"
 
-    def download_file(self, file_id: str, *, filename: str = "") -> BotDownloadedFileDTO:
-        """Download a Telegram file without exposing its tokenized provider URL."""
-        body = self.get_file(file_id)
+    async def adownload_file(
+        self,
+        file_id: str,
+        *,
+        filename: str = "",
+    ) -> BotDownloadedFileDTO:
+        """Download a Telegram file without blocking the ASGI event loop."""
+        token, proxy_url = await self._runtime_values()
+        if not token:
+            raise RuntimeError("TELEGRAM_BOT_TOKEN is required.")
+
+        body = await self.arequest("getFile", {"file_id": file_id})
         result = body.get("result") or {}
         file_path = str(result.get("file_path") or "").strip()
         path_parts = [part for part in file_path.split("/") if part]
@@ -121,50 +165,66 @@ class TelegramApiAdapter(BotClientInterface):
         ):
             raise RuntimeError("Telegram file metadata is unavailable.")
 
-        max_bytes = int(getattr(settings, "PAYMENT_RECEIPT_MAX_BYTES", 5 * 1024 * 1024))
-        provider_url = f"https://api.telegram.org/file/bot{self.token}/{file_path}"
-        response = None
+        max_bytes = int(
+            getattr(settings, "PAYMENT_RECEIPT_MAX_BYTES", 5 * 1024 * 1024)
+        )
+        provider_url = f"https://api.telegram.org/file/bot{token}/{file_path}"
         try:
-            response = requests.get(
-                provider_url,
-                timeout=(5.0, 30.0),
-                stream=True,
-                proxies=self.proxies,
-                allow_redirects=False,
-            )
-            if response.status_code != 200:
-                raise RuntimeError("Telegram file download failed.")
-            content_length = response.headers.get("Content-Length")
-            if content_length:
-                try:
-                    if int(content_length) > max_bytes:
-                        raise RuntimeError("Telegram receipt file is too large.")
-                except ValueError:
-                    pass
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(connect=5.0, read=30.0, write=30.0, pool=5.0),
+                proxy=proxy_url or None,
+                follow_redirects=False,
+            ) as client:
+                async with client.stream("GET", provider_url) as response:
+                    if response.status_code != 200:
+                        raise RuntimeError("Telegram file download failed.")
+                    content_length = response.headers.get("Content-Length")
+                    if content_length:
+                        try:
+                            if int(content_length) > max_bytes:
+                                raise RuntimeError(
+                                    "Telegram receipt file is too large."
+                                )
+                        except ValueError:
+                            pass
 
-            chunks: list[bytes] = []
-            total = 0
-            for chunk in response.iter_content(chunk_size=64 * 1024):
-                if not chunk:
-                    continue
-                total += len(chunk)
-                if total > max_bytes:
-                    raise RuntimeError("Telegram receipt file is too large.")
-                chunks.append(chunk)
+                    chunks: list[bytes] = []
+                    total = 0
+                    async for chunk in response.aiter_bytes(chunk_size=64 * 1024):
+                        if not chunk:
+                            continue
+                        total += len(chunk)
+                        if total > max_bytes:
+                            raise RuntimeError(
+                                "Telegram receipt file is too large."
+                            )
+                        chunks.append(chunk)
 
-            safe_filename = os.path.basename(filename or file_path).replace("\x00", "")[:180]
-            if not safe_filename:
-                safe_filename = "telegram-receipt.bin"
-            return BotDownloadedFileDTO(
-                content=b"".join(chunks),
-                filename=safe_filename,
-                content_type=(response.headers.get("Content-Type", "") or "application/octet-stream").split(";", 1)[0],
-            )
-        except requests.RequestException:
+                    safe_filename = os.path.basename(
+                        filename or file_path
+                    ).replace("\x00", "")[:180]
+                    if not safe_filename:
+                        safe_filename = "telegram-receipt.bin"
+                    return BotDownloadedFileDTO(
+                        content=b"".join(chunks),
+                        filename=safe_filename,
+                        content_type=(
+                            response.headers.get("Content-Type", "")
+                            or "application/octet-stream"
+                        ).split(";", 1)[0],
+                    )
+        except RuntimeError:
+            raise
+        except httpx.HTTPError:
             raise RuntimeError("Telegram file download failed.") from None
-        finally:
-            if response is not None:
-                response.close()
+
+    def download_file(
+        self,
+        file_id: str,
+        *,
+        filename: str = "",
+    ) -> BotDownloadedFileDTO:
+        return async_to_sync(self.adownload_file)(file_id, filename=filename)
 
     def send_photo(self, chat_id: str | int, photo: str, *, caption: str = "") -> dict[str, Any]:
         payload: dict[str, Any] = {"chat_id": chat_id, "photo": photo}
@@ -248,7 +308,14 @@ class TelegramApiAdapter(BotClientInterface):
             return normalized
         return "document"
 
-    def send_message(self, chat_id: str | int, text: str, *, reply_markup: dict[str, Any] | None = None, disable_web_page_preview: bool = True) -> dict[str, Any]:
+    async def asend_message(
+        self,
+        chat_id: str | int,
+        text: str,
+        *,
+        reply_markup: dict[str, Any] | None = None,
+        disable_web_page_preview: bool = True,
+    ) -> dict[str, Any]:
         payload: dict[str, Any] = {
             "chat_id": chat_id,
             "text": text,
@@ -257,9 +324,32 @@ class TelegramApiAdapter(BotClientInterface):
         }
         if reply_markup:
             payload["reply_markup"] = reply_markup
-        return self.request("sendMessage", payload)
+        return await self.arequest("sendMessage", payload)
 
-    def edit_message_text(self, chat_id: str | int, message_id: int, text: str, *, reply_markup: dict[str, Any] | None = None, disable_web_page_preview: bool = True) -> dict[str, Any]:
+    def send_message(
+        self,
+        chat_id: str | int,
+        text: str,
+        *,
+        reply_markup: dict[str, Any] | None = None,
+        disable_web_page_preview: bool = True,
+    ) -> dict[str, Any]:
+        return async_to_sync(self.asend_message)(
+            chat_id,
+            text,
+            reply_markup=reply_markup,
+            disable_web_page_preview=disable_web_page_preview,
+        )
+
+    async def aedit_message_text(
+        self,
+        chat_id: str | int,
+        message_id: int,
+        text: str,
+        *,
+        reply_markup: dict[str, Any] | None = None,
+        disable_web_page_preview: bool = True,
+    ) -> dict[str, Any]:
         payload: dict[str, Any] = {
             "chat_id": chat_id,
             "message_id": message_id,
@@ -269,16 +359,69 @@ class TelegramApiAdapter(BotClientInterface):
         }
         if reply_markup:
             payload["reply_markup"] = reply_markup
-        return self.request("editMessageText", payload)
+        return await self.arequest("editMessageText", payload)
 
-    def delete_message(self, chat_id: str | int, message_id: int) -> dict[str, Any]:
-        return self.request("deleteMessage", {"chat_id": chat_id, "message_id": message_id})
+    def edit_message_text(
+        self,
+        chat_id: str | int,
+        message_id: int,
+        text: str,
+        *,
+        reply_markup: dict[str, Any] | None = None,
+        disable_web_page_preview: bool = True,
+    ) -> dict[str, Any]:
+        return async_to_sync(self.aedit_message_text)(
+            chat_id,
+            message_id,
+            text,
+            reply_markup=reply_markup,
+            disable_web_page_preview=disable_web_page_preview,
+        )
 
-    def answer_callback_query(self, callback_query_id: str, *, text: str | None = None, show_alert: bool = False) -> dict[str, Any]:
-        payload: dict[str, Any] = {"callback_query_id": callback_query_id, "show_alert": show_alert}
+    async def adelete_message(
+        self,
+        chat_id: str | int,
+        message_id: int,
+    ) -> dict[str, Any]:
+        return await self.arequest(
+            "deleteMessage",
+            {"chat_id": chat_id, "message_id": message_id},
+        )
+
+    def delete_message(
+        self,
+        chat_id: str | int,
+        message_id: int,
+    ) -> dict[str, Any]:
+        return async_to_sync(self.adelete_message)(chat_id, message_id)
+
+    async def aanswer_callback_query(
+        self,
+        callback_query_id: str,
+        *,
+        text: str | None = None,
+        show_alert: bool = False,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "callback_query_id": callback_query_id,
+            "show_alert": show_alert,
+        }
         if text:
             payload["text"] = text
-        return self.request("answerCallbackQuery", payload)
+        return await self.arequest("answerCallbackQuery", payload)
+
+    def answer_callback_query(
+        self,
+        callback_query_id: str,
+        *,
+        text: str | None = None,
+        show_alert: bool = False,
+    ) -> dict[str, Any]:
+        return async_to_sync(self.aanswer_callback_query)(
+            callback_query_id,
+            text=text,
+            show_alert=show_alert,
+        )
 
     def set_my_description(self, description: str, *, language_code: str | None = None) -> dict[str, Any]:
         payload: dict[str, Any] = {"description": description}
@@ -308,8 +451,20 @@ class TelegramApiAdapter(BotClientInterface):
             payload["secret_token"] = secret_token
         return self.request("setWebhook", payload)
 
+    async def adelete_webhook(
+        self,
+        *,
+        drop_pending_updates: bool = False,
+    ) -> dict[str, Any]:
+        return await self.arequest(
+            "deleteWebhook",
+            {"drop_pending_updates": drop_pending_updates},
+        )
+
     def delete_webhook(self, *, drop_pending_updates: bool = False) -> dict[str, Any]:
-        return self.request("deleteWebhook", {"drop_pending_updates": drop_pending_updates})
+        return async_to_sync(self.adelete_webhook)(
+            drop_pending_updates=drop_pending_updates
+        )
 
     def get_webhook_info(self) -> dict[str, Any]:
         return self.request("getWebhookInfo")
@@ -317,15 +472,46 @@ class TelegramApiAdapter(BotClientInterface):
     def get_chat_member(self, *, chat_id: str | int, user_id: str | int) -> dict[str, Any]:
         return self.request("getChatMember", {"chat_id": chat_id, "user_id": user_id})
 
-    def get_updates(self, *, offset: int | None = None, timeout: int = 30, allowed_updates: list[str] | None = None) -> list[dict[str, Any]]:
+    async def aget_updates(
+        self,
+        *,
+        offset: int | None = None,
+        timeout: int = 30,
+        allowed_updates: list[str] | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
         payload: dict[str, Any] = {
             "timeout": timeout,
-            "allowed_updates": allowed_updates or ["message", "edited_message", "channel_post", "edited_channel_post", "callback_query"],
+            "allowed_updates": allowed_updates
+            or [
+                "message",
+                "edited_message",
+                "channel_post",
+                "edited_channel_post",
+                "callback_query",
+            ],
         }
         if offset is not None:
             payload["offset"] = offset
-        response = self.request("getUpdates", payload)
+        if limit is not None:
+            payload["limit"] = limit
+        response = await self.arequest("getUpdates", payload)
         return response.get("result", [])
+
+    def get_updates(
+        self,
+        *,
+        offset: int | None = None,
+        timeout: int = 30,
+        allowed_updates: list[str] | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        return async_to_sync(self.aget_updates)(
+            offset=offset,
+            timeout=timeout,
+            allowed_updates=allowed_updates,
+            limit=limit,
+        )
 
 
 # Backwards-compatible name used by older code/imports.

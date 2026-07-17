@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import asyncio
+
 from django.core.management.base import BaseCommand, CommandError
 
 from backend.apps.telegram_bot.application_services.rubika_polling_service import RubikaPollingService
+from backend.apps.telegram_bot.application_services.async_bot_service import AsyncBotService
 from backend.apps.telegram_bot.enums.bot_setting_enums import BotSettingProviderEnum
 from backend.apps.telegram_bot.repositories.logic.bot_setting_logic import BotRuntimeConfigProvider
 from backend.apps.telegram_bot.rubika_services import RubikaBotClient, RubikaBotService, RubikaUpdateNormalizer
@@ -31,16 +34,16 @@ class Command(BaseCommand):
         polling_service = RubikaPollingService(
             provider=RubikaBotService.MESSENGER_PROVIDER,
             client=client,
-            service_factory=lambda: RubikaBotService(client=client),
+            service_factory=lambda: AsyncBotService(RubikaBotService(client=client)),
             update_id_getter=RubikaUpdateNormalizer.update_log_id,
         )
 
         if options["drop_pending"]:
-            polling_service.drop_pending(limit=limit)
+            asyncio.run(polling_service.drop_pending(limit=limit))
             self.stdout.write(self.style.WARNING("Dropped pending Rubika updates."))
 
         self.stdout.write(self.style.SUCCESS("Rubika polling started. Press Ctrl+C to stop."))
         try:
-            polling_service.run_forever(limit=limit, sleep_seconds=sleep_seconds)
+            asyncio.run(polling_service.run_forever(limit=limit, sleep_seconds=sleep_seconds))
         except KeyboardInterrupt:
             self.stdout.write(self.style.WARNING("Rubika polling stopped."))

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
+from asgiref.sync import sync_to_async
+
 from django.conf import settings
 from django.db import transaction
 
@@ -41,11 +43,26 @@ class OAuthLoginLogic:
         self.validate_redirect_uri(dto.redirect_uri)
         return self._provider(dto.provider).build_authorization_url(dto)
 
-    def authenticate(self, dto: OAuthCodeExchangeDTO) -> OAuthAuthenticationResultDTO:
+    async def authenticate(self, dto: OAuthCodeExchangeDTO) -> OAuthAuthenticationResultDTO:
+        """Exchange the provider code without blocking ASGI, then link atomically."""
+        self.validate_redirect_uri(dto.redirect_uri)
+        profile = await self._provider(dto.provider).exchange_code_async(dto)
+        self._validate_profile(profile)
+        return await sync_to_async(
+            self._link_profile,
+            thread_sensitive=True,
+        )(profile)
+
+    def sync_authenticate(self, dto: OAuthCodeExchangeDTO) -> OAuthAuthenticationResultDTO:
+        """Compatibility boundary for synchronous browser views."""
         self.validate_redirect_uri(dto.redirect_uri)
         profile = self._provider(dto.provider).exchange_code(dto)
         self._validate_profile(profile)
+        return self._link_profile(profile)
 
+    def _link_profile(self, profile) -> OAuthAuthenticationResultDTO:
+        # Django 5.2 has async ORM operations but no native async transaction
+        # context manager. Keep only this database transaction thread-sensitive.
         with transaction.atomic():
             user = self.account_repository.get_user_by_email(profile.email)
             if not user:

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import time
 
@@ -5,6 +7,7 @@ from django.conf import settings
 from prometheus_client import Counter, Histogram
 
 from backend.apps.common.response_utils import CommonJsonResponse
+from backend.apps.common.utils.async_middleware import AsyncCompatibleMiddleware
 from backend.apps.common.utils.common_utils import CommonUtils
 from backend.apps.core_models.vo.common_vo import ResponseVO
 
@@ -31,32 +34,54 @@ def _endpoint_label(request) -> str:
     return "unresolved"
 
 
-class ResponseMetricsMiddleware:
-    def __init__(self, get_response):
-        self.get_response = get_response
+class ResponseMetricsMiddleware(AsyncCompatibleMiddleware):
+    def _record_latency(self, *, request, method: str, started_at: float) -> None:
+        REQUEST_LATENCY.labels(
+            endpoint=_endpoint_label(request),
+            method=method,
+            process_id=os.getpid(),
+        ).observe(time.monotonic() - started_at)
 
-    def __call__(self, request):
-        start_time = time.monotonic()
+    @staticmethod
+    def _handle_exception(*, request, method: str):
+        EXCEPTION_COUNT.labels(
+            endpoint=_endpoint_label(request),
+            method=method,
+        ).inc()
+        logger.exception("Unhandled request exception.")
+        if not settings.DEBUG:
+            return CommonJsonResponse(
+                status_code=500,
+                status=ResponseVO.failed,
+                message=ResponseVO.invalid_internal_error_msg,
+                code=ResponseVO.invalid_internal_error_code,
+            )
+        raise
+
+    def process_sync(self, request):
+        started_at = time.monotonic()
         method = request.method
         try:
-            response = self.get_response(request)
-            return response
+            return self.get_response(request)
         except Exception:
-            endpoint = _endpoint_label(request)
-            EXCEPTION_COUNT.labels(endpoint=endpoint, method=method).inc()
-            logger.exception("Unhandled request exception.")
-            if not settings.DEBUG:
-                return CommonJsonResponse(
-                    status_code=500,
-                    status=ResponseVO.failed,
-                    message=ResponseVO.invalid_internal_error_msg,
-                    code=ResponseVO.invalid_internal_error_code,
-                )
-            raise
+            return self._handle_exception(request=request, method=method)
         finally:
-            endpoint = _endpoint_label(request)
-            REQUEST_LATENCY.labels(
-                endpoint=endpoint,
+            self._record_latency(
+                request=request,
                 method=method,
-                process_id=os.getpid(),
-            ).observe(time.monotonic() - start_time)
+                started_at=started_at,
+            )
+
+    async def process_async(self, request):
+        started_at = time.monotonic()
+        method = request.method
+        try:
+            return await self.get_response(request)
+        except Exception:
+            return self._handle_exception(request=request, method=method)
+        finally:
+            self._record_latency(
+                request=request,
+                method=method,
+                started_at=started_at,
+            )

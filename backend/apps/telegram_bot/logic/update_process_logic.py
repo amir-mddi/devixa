@@ -6,10 +6,10 @@ from backend.apps.telegram_bot.repositories.update_log_repository import Telegra
 
 
 class BotUpdateProcessLogic:
-    """Application logic for idempotent update processing.
+    """Async idempotent update-processing use case.
 
     Flow:
-        service/controller -> logic -> repositories -> adapters
+        controller -> logic -> repositories -> adapters
     """
 
     def __init__(
@@ -21,11 +21,11 @@ class BotUpdateProcessLogic:
         self.runtime_repository = runtime_repository
         self.update_log_repository = update_log_repository or TelegramUpdateLogRepository()
 
-    def process(self, dto: BotUpdateProcessDTO) -> bool:
+    async def process(self, dto: BotUpdateProcessDTO) -> bool:
         update_log = None
 
         if dto.update_id is not None:
-            update_log, created = self.update_log_repository.get_or_create(
+            update_log, created = await self.update_log_repository.get_or_create(
                 provider=dto.provider,
                 update_id=dto.update_id,
                 payload=dto.update,
@@ -34,13 +34,16 @@ class BotUpdateProcessLogic:
                 return False
 
         try:
-            self.runtime_repository.process_update(dto.update)
+            await self.runtime_repository.process_update(dto.update)
         except Exception as exc:
             if update_log:
-                self.update_log_repository.mark_error(update_log, exc.__class__.__name__)
+                await self.update_log_repository.mark_error(
+                    update_log,
+                    exc.__class__.__name__,
+                )
             raise
 
         if update_log:
-            self.update_log_repository.mark_processed(update_log)
+            await self.update_log_repository.mark_processed(update_log)
 
         return True

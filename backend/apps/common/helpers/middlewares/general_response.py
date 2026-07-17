@@ -1,16 +1,16 @@
+from __future__ import annotations
+
 from backend.apps.common.response_utils import JsonResponseUtil
+from backend.apps.common.utils.async_middleware import AsyncCompatibleMiddleware
 from backend.apps.common.utils.common_utils import CommonUtils
 from backend.apps.core_models.constants.common_vo import ExcludeViewResponseVO, ResponseVO
 
 
-class GeneralResponseMiddleware:
+class GeneralResponseMiddleware(AsyncCompatibleMiddleware):
     """Apply the project response envelope without rewriting request paths."""
 
-    def __init__(self, get_response):
-        self.get_response = get_response
-
-    def __call__(self, request):
-        response = self.get_response(request)
+    @staticmethod
+    def _normalize(request, response):
         if not request.path.startswith(ExcludeViewResponseVO.api_urls_include):
             return response
 
@@ -35,3 +35,9 @@ class GeneralResponseMiddleware:
                 return response
 
         return JsonResponseUtil(data=context, status_code=status_code)
+
+    def process_sync(self, request):
+        return self._normalize(request, self.get_response(request))
+
+    async def process_async(self, request):
+        return self._normalize(request, await self.get_response(request))

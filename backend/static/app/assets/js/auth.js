@@ -86,7 +86,12 @@
                     const token = await executeRecaptcha(action);
                     if (!token) throw new Error("empty_recaptcha_token");
                     tokenInput.value = token;
-                    HTMLFormElement.prototype.submit.call(form);
+                    setRecaptchaFormBusy(form, false);
+                    if (window.DevixaAjaxForms?.submit) {
+                        window.DevixaAjaxForms.submit(form);
+                    } else {
+                        HTMLFormElement.prototype.submit.call(form);
+                    }
                 } catch (error) {
                     tokenInput.value = "";
                     showRecaptchaClientError(form);

@@ -85,4 +85,4 @@
 </main>
 {% endblock %}
 
-{% block page_scripts %}<script src="{% project_static 'js/basket.js' %}"></script>{% endblock %}
+{% block page_scripts %}<script type="application/x-devixa-ajax-module" data-ajax-module="basket" src="{% project_static 'js/basket.js' %}?v=ajax-1"></script>{% endblock %}

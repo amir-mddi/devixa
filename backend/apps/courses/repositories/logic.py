@@ -1,3 +1,4 @@
+from asgiref.sync import sync_to_async
 from backend.apps.common.helpers.metaclasses.singleton import Singleton
 from backend.apps.courses.dtos.web_course_dtos import (
     CourseCatalogDTO,
@@ -34,6 +35,36 @@ class CourseLogicRepository(metaclass=Singleton):
         self.postgres_adapter = CoursePostgresAdapter()
 
 
+
+    async def list_published_courses_async(self, filters: dict):
+        return self.list_published_courses(filters)
+
+    async def get_published_course_async(self, course_id_or_slug):
+        return await sync_to_async(
+            self.get_published_course,
+            thread_sensitive=True,
+        )(course_id_or_slug)
+
+    async def list_user_enrollments_async(self, user):
+        return self.list_user_enrollments(user)
+
+    async def list_approved_reviews_async(self, course_id_or_slug):
+        return self.list_approved_reviews(course_id_or_slug)
+
+    async def submit_review_async(self, user, dto: ReviewCreateDTO):
+        return await sync_to_async(
+            self.submit_review,
+            thread_sensitive=True,
+        )(user=user, dto=dto)
+
+    async def list_reviews_for_admin_async(self, status: str | None = None):
+        return self.list_reviews_for_admin(status=status)
+
+    async def moderate_review_async(self, admin_user, dto: ReviewModerationDTO):
+        return await sync_to_async(
+            self.moderate_review,
+            thread_sensitive=True,
+        )(admin_user=admin_user, dto=dto)
 
     def list_learning_roadmaps(self, filters: dict | None = None) -> CourseRoadmapCatalogDTO:
         normalized_filters = filters or {}

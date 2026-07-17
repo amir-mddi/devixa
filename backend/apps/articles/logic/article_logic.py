@@ -138,6 +138,16 @@ class ArticleLogic:
         article.view_count += 1
         return ArticleDetailDTO(article=article, related_articles=related)
 
+    async def get_detail_async(self, article_id_or_slug: object) -> ArticleDetailDTO:
+        article = await self.repository.get_public_article_async(article_id_or_slug)
+        related = await self.repository.list_related_articles_async(
+            article,
+            limit=ArticleLimitVO.RELATED.value,
+        )
+        await self.repository.increment_view_count_async(article.id)
+        article.view_count += 1
+        return ArticleDetailDTO(article=article, related_articles=related)
+
     def list_public_articles(self, filters: dict | None = None):
         return self.repository.list_public_queryset(filters=filters)
 

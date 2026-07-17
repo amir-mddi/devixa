@@ -62,7 +62,7 @@
 .home-testimonials-v4{overflow:hidden}
 .home-testimonials-v4__viewport{overflow:hidden;margin-top:28px}
 .home-testimonials-v4__track{
-    display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,calc((100% - 48px) / 3));gap:24px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:4px 2px 10px;
+    display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - 48px) / 3);gap:24px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:4px 2px 10px;
 }
 .home-testimonials-v4__track::-webkit-scrollbar{display:none}
 .home-testimonial-card-v4{
@@ -96,7 +96,7 @@
     .home-paths-v4__grid{grid-template-columns:repeat(2,minmax(0,1fr))}
     .home-empty-state-v4{grid-template-columns:1fr;justify-items:start}
     .home-empty-state-v4__actions{justify-content:flex-start}
-    .home-testimonials-v4__track{grid-auto-columns:minmax(0,calc((100% - 24px) / 2))}
+    .home-testimonials-v4__track{grid-auto-columns:calc((100% - 24px) / 2)}
 }
 @media (max-width: 767px){
     .home-paths-v4,

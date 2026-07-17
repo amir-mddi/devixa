@@ -86,6 +86,7 @@ atlassian-ide-plugin.xml
 *mock_ex*
 counter_*
 # Python #
+backend/apps/rag
 *.py[cod]
 *$py.class
 deployment/env/local.env

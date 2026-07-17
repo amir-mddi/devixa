@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import asyncio
+
 from django.core.management.base import BaseCommand, CommandError
 
 from backend.apps.telegram_bot.application_services.polling_service import BotPollingService
+from backend.apps.telegram_bot.application_services.async_bot_service import AsyncBotService
 from backend.apps.telegram_bot.bale_services import BaleBotClient, BaleBotService
 from backend.apps.telegram_bot.enums.bot_setting_enums import BotSettingProviderEnum
 from backend.apps.telegram_bot.repositories.logic.bot_setting_logic import BotRuntimeConfigProvider
@@ -34,17 +37,17 @@ class Command(BaseCommand):
         polling_service = BotPollingService(
             provider=BaleBotService.MESSENGER_PROVIDER,
             client=client,
-            service_factory=lambda: BaleBotService(client=client),
+            service_factory=lambda: AsyncBotService(BaleBotService(client=client)),
             update_id_getter=lambda update: update.get("update_id"),
         )
 
         try:
-            polling_service.run_forever(
+            asyncio.run(polling_service.run_forever(
                 timeout=timeout,
                 sleep_seconds=options["sleep"],
                 drop_pending=options["drop_pending"],
                 allowed_updates=["message", "edited_message", "channel_post", "edited_channel_post", "callback_query"],
                 limit=limit,
-            )
+            ))
         except KeyboardInterrupt:
             self.stdout.write(self.style.WARNING("Bale polling stopped."))

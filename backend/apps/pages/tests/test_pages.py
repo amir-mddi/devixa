@@ -97,7 +97,7 @@ class ChannelLinkTests(SimpleTestCase):
         self.assertTrue(rubika.is_available)
 
 
-class AndroidAppDownloadTests(SimpleTestCase):
+class AndroidAppDownloadTests(TestCase):
     def test_stable_download_route_redirects_to_versioned_apk(self):
         response = self.client.get(reverse("pages_web:download_android_app"))
 
@@ -107,9 +107,9 @@ class AndroidAppDownloadTests(SimpleTestCase):
             f"/static/{PageAndroidAppVO.APK_STATIC_PATH.value}",
         )
 
-    def test_footer_uses_stable_download_route(self):
+    def test_footer_links_to_android_app_page(self):
         response = self.client.get(reverse("pages_web:home"))
 
-        self.assertContains(response, reverse("pages_web:download_android_app"))
+        self.assertContains(response, reverse("pages_web:android_app"))
         self.assertContains(response, "دانلود اپلیکیشن اندروید")
 

@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css">
     <link rel="stylesheet" href="{% project_static 'Styles/home.css' %}">
     <link rel="stylesheet" href="{% project_static 'Styles/courses.css' %}">
-    <style>
+    <style data-ajax-managed-style>
         .home_empty_state{width:min(720px,92%);margin:30px auto;padding:26px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface);color:var(--text-muted);text-align:center;}
         .learning_path .paths a{text-decoration:none;color:inherit;}
         .learning_path .paths .path_icon i{font-size:72px;color:var(--primary);display:block;margin:auto;}
@@ -479,5 +479,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-    <script src="{% project_static 'js/home.js' %}?v=home-v4-1" defer></script>
+    <script type="application/x-devixa-ajax-module" data-ajax-module="home" src="{% project_static 'js/home.js' %}?v=home-v4-3" defer></script>
 {% endblock %}

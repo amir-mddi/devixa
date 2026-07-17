@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 
+from asgiref.sync import async_to_sync, sync_to_async
 from confluent_kafka import Producer
 from django.core.exceptions import ImproperlyConfigured
 
@@ -53,14 +54,31 @@ class KafkaProducerAdapter(metaclass=Singleton):
 
         self.producer = Producer(**config)
 
-    def commit(self, message, topic: str):
+    async def acommit(self, message, topic: str) -> None:
+        await sync_to_async(
+            self._commit_blocking,
+            thread_sensitive=False,
+        )(message, topic)
+
+    def commit(self, message, topic: str) -> None:
+        """Synchronous compatibility boundary for Celery and legacy callers."""
+
+        async_to_sync(self.acommit)(message, topic)
+
+    def _commit_blocking(self, message, topic: str) -> None:
         topic = str(topic or "").strip()
         if not topic or len(topic) > 249:
             raise ValueError("Invalid Kafka topic name.")
         try:
             self.producer.produce(topic, value=message)
             remaining = self.producer.flush(
-                timeout=max(1.0, min(float(os.environ.get("KAFKA_FLUSH_TIMEOUT", "10")), 60.0))
+                timeout=max(
+                    1.0,
+                    min(
+                        float(os.environ.get("KAFKA_FLUSH_TIMEOUT", "10")),
+                        60.0,
+                    ),
+                )
             )
             if remaining:
                 raise RuntimeError("Kafka delivery timed out.")

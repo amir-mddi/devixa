@@ -25,7 +25,7 @@ class FakeOAuthLogic:
 class FakeOAuthService:
     user = None
 
-    def authenticate(self, *, provider: str, code: str, redirect_uri: str):
+    def sync_authenticate(self, *, provider: str, code: str, redirect_uri: str):
         return SimpleNamespace(user=self.user)
 
 
@@ -60,6 +60,26 @@ class AccountAuthWebTests(TestCase):
         self.rate_limit_patcher.start()
         self.addCleanup(self.rate_limit_patcher.stop)
 
+
+    def test_ajax_login_returns_redirect_contract_without_losing_session(self):
+        user = UserFactory.create(username="ajax-user")
+
+        response = self.client.post(
+            reverse("accounts_web:login"),
+            {
+                "identifier": user.username,
+                "password": UserFactory.DEFAULT_PASSWORD,
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+            HTTP_X_AJAX_FORM="true",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(
+            response.content,
+            {"success": True, "redirect_url": reverse("pages_web:home")},
+        )
+        self.assertEqual(self.client.session.get("_auth_user_id"), str(user.pk))
 
     def test_login_rate_limit_is_rendered_inside_login_page(self):
         with patch(
@@ -96,7 +116,7 @@ class AccountAuthWebTests(TestCase):
 
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response["Content-Type"].split(";")[0], "text/html")
-        self.assertContains(response, "توکن امنیتی فرم ارسال نشده است", status_code=403)
+        self.assertContains(response, "کوکی امنیتی فرم پیدا نشد", status_code=403)
         self.assertContains(response, 'name="identifier"', status_code=403)
         self.assertNotContains(response, "CSRF verification failed", status_code=403)
 

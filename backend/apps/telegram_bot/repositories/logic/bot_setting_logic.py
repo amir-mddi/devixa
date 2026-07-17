@@ -4,6 +4,8 @@ import os
 from urllib.parse import urlparse
 from typing import Any
 
+from asgiref.sync import sync_to_async
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 
@@ -32,6 +34,35 @@ class BotSettingLogicRepository:
     ) -> None:
         self.repository = repository or BotSettingRepository()
         self.env_file_adapter = env_file_adapter
+
+    async def list_all_async(self) -> list[dict[str, Any]]:
+        return await sync_to_async(self.list_all, thread_sensitive=True)()
+
+    async def provider_settings_async(self, provider: str) -> dict[str, Any]:
+        return await sync_to_async(
+            self.provider_settings,
+            thread_sensitive=True,
+        )(provider)
+
+    async def update_provider_settings_async(
+        self,
+        *,
+        provider: str,
+        raw_settings: dict[str, Any],
+        user=None,
+        write_to_database: bool = True,
+        write_to_env: bool = False,
+    ) -> dict[str, Any]:
+        return await sync_to_async(
+            self.update_provider_settings,
+            thread_sensitive=True,
+        )(
+            provider=provider,
+            raw_settings=raw_settings,
+            user=user,
+            write_to_database=write_to_database,
+            write_to_env=write_to_env,
+        )
 
     def list_all(self) -> list[dict[str, Any]]:
         return [self.provider_settings(provider) for provider in BotSettingRegistryVO.providers()]

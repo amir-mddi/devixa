@@ -79,18 +79,114 @@ class TelegramBotPostgresAdapter:
     def get_or_create_update_log(
         *, provider: str, update_id: str | int, payload: dict[str, Any]
     ) -> tuple[TelegramUpdateLog, bool]:
-        try:
-            normalized_update_id = int(update_id)
-        except (TypeError, ValueError):
-            raise ValueError("Bot update id must be an integer.") from None
-        if normalized_update_id < 0 or normalized_update_id > 9_223_372_036_854_775_807:
-            raise ValueError("Bot update id is out of range.")
+        normalized_update_id = TelegramBotPostgresAdapter._normalize_update_id(update_id)
 
         return TelegramUpdateLog.objects.get_or_create(
             messenger_provider=str(provider or "")[:30],
             update_id=normalized_update_id,
             defaults={"payload": TelegramBotPostgresAdapter._summarize_update(payload)},
         )
+
+    @staticmethod
+    async def aupsert_profile(
+        *, provider: str, chat_id: str | int, user_data: dict[str, Any]
+    ) -> TelegramProfile:
+        defaults = {
+            "messenger_provider": provider,
+            "telegram_user_id": str(user_data.get("id") or ""),
+            "username": user_data.get("username") or "",
+            "first_name": user_data.get("first_name") or "",
+            "last_name": user_data.get("last_name") or "",
+            "language_code": user_data.get("language_code") or "",
+            "is_active": True,
+        }
+        profile, created = await TelegramProfile.objects.aget_or_create(
+            messenger_provider=provider,
+            chat_id=str(chat_id),
+            defaults=defaults,
+        )
+        if created:
+            return profile
+
+        changed_fields: list[str] = []
+        for field, value in defaults.items():
+            if getattr(profile, field) != value:
+                setattr(profile, field, value)
+                changed_fields.append(field)
+
+        if changed_fields:
+            changed_fields.append("updated_at")
+            await profile.asave(update_fields=changed_fields)
+        return profile
+
+    @staticmethod
+    async def aget_profile_language(*, provider: str, chat_id: str | int) -> str | None:
+        profile = await (
+            TelegramProfile.objects.filter(
+                messenger_provider=provider, chat_id=str(chat_id)
+            )
+            .only("bot_language")
+            .afirst()
+        )
+        return profile.bot_language if profile else None
+
+    @staticmethod
+    async def alist_profiles_for_user(user) -> list[TelegramProfile]:
+        queryset = TelegramProfile.objects.filter(user=user, is_active=True).order_by(
+            "messenger_provider", "-updated_at"
+        )
+        return [profile async for profile in queryset]
+
+    @staticmethod
+    async def adisconnect_profile_for_user(*, profile_id: int, user_id) -> bool:
+        updated_count = await TelegramProfile.objects.filter(
+            id=profile_id,
+            user_id=user_id,
+            is_active=True,
+        ).aupdate(
+            user=None,
+            is_verified=False,
+            updated_at=now(),
+        )
+        return updated_count == 1
+
+    @staticmethod
+    async def aget_or_create_update_log(
+        *, provider: str, update_id: str | int, payload: dict[str, Any]
+    ) -> tuple[TelegramUpdateLog, bool]:
+        normalized_update_id = TelegramBotPostgresAdapter._normalize_update_id(update_id)
+        return await TelegramUpdateLog.objects.aget_or_create(
+            messenger_provider=str(provider or "")[:30],
+            update_id=normalized_update_id,
+            defaults={"payload": TelegramBotPostgresAdapter._summarize_update(payload)},
+        )
+
+    @staticmethod
+    async def amark_update_processed(update_log: TelegramUpdateLog) -> None:
+        update_log.processed = True
+        await update_log.asave(update_fields=["processed"])
+
+    @staticmethod
+    async def amark_update_error(update_log: TelegramUpdateLog, error_text: str) -> None:
+        update_log.error_text = str(error_text or "ProcessingError")[:120]
+        await update_log.asave(update_fields=["error_text"])
+
+    @staticmethod
+    async def adelete_update_logs_before(cutoff: datetime) -> int:
+        deleted_count, _ = await TelegramUpdateLog.objects.filter(
+            created_at__lt=cutoff
+        ).adelete()
+        return deleted_count
+
+    @staticmethod
+    def _normalize_update_id(update_id: str | int) -> int:
+        try:
+            normalized_update_id = int(update_id)
+        except (TypeError, ValueError):
+            raise ValueError("Bot update id must be an integer.") from None
+        if normalized_update_id < 0 or normalized_update_id > 9_223_372_036_854_775_807:
+            raise ValueError("Bot update id is out of range.")
+        return normalized_update_id
 
     @staticmethod
     def _summarize_update(payload: dict[str, Any]) -> dict[str, Any]:

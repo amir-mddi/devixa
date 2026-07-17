@@ -75,7 +75,7 @@ class OAuthLoginLogicTests(TestCase):
     def test_existing_user_is_authenticated_and_provider_link_is_created(self):
         user = UserFactory.create(email="existing@gmail.com")
 
-        result = self._logic(self._profile()).authenticate(self._dto())
+        result = self._logic(self._profile()).sync_authenticate(self._dto())
 
         self.assertEqual(result.user, user)
         social_account = SocialAccount.objects.get(user=user)
@@ -94,7 +94,7 @@ class OAuthLoginLogicTests(TestCase):
             OAuthProviderError,
             OAuthMessageVO.ACCOUNT_NOT_REGISTERED.value,
         ):
-            self._logic(self._profile(email="missing@gmail.com")).authenticate(self._dto())
+            self._logic(self._profile(email="missing@gmail.com")).sync_authenticate(self._dto())
 
         self.assertFalse(SocialAccount.objects.exists())
 
@@ -105,7 +105,7 @@ class OAuthLoginLogicTests(TestCase):
             OAuthProviderError,
             OAuthMessageVO.UNVERIFIED_EMAIL.value,
         ):
-            self._logic(self._profile(email_verified=False)).authenticate(self._dto())
+            self._logic(self._profile(email_verified=False)).sync_authenticate(self._dto())
 
         self.assertFalse(SocialAccount.objects.exists())
 
@@ -116,7 +116,7 @@ class OAuthLoginLogicTests(TestCase):
             OAuthProviderError,
             OAuthMessageVO.ACCOUNT_INACTIVE.value,
         ):
-            self._logic(self._profile()).authenticate(self._dto())
+            self._logic(self._profile()).sync_authenticate(self._dto())
 
     def test_provider_identity_cannot_be_linked_to_another_local_user(self):
         first_user = UserFactory.create(email="first@gmail.com")
@@ -131,7 +131,7 @@ class OAuthLoginLogicTests(TestCase):
             OAuthProviderError,
             OAuthMessageVO.ACCOUNT_LINK_CONFLICT.value,
         ):
-            self._logic(self._profile()).authenticate(self._dto())
+            self._logic(self._profile()).sync_authenticate(self._dto())
 
     @override_settings(OAUTH_ALLOWED_REDIRECT_URIS=[])
     def test_redirect_allowlist_is_required_even_in_debug(self):
@@ -139,7 +139,7 @@ class OAuthLoginLogicTests(TestCase):
             OAuthProviderError,
             OAuthMessageVO.REDIRECT_ALLOWLIST_MISSING.value,
         ):
-            self._logic(self._profile()).authenticate(self._dto())
+            self._logic(self._profile()).sync_authenticate(self._dto())
 
     def test_redirect_uri_must_match_allowlist_exactly(self):
         dto = OAuthCodeExchangeDTO(
@@ -152,4 +152,4 @@ class OAuthLoginLogicTests(TestCase):
             OAuthProviderError,
             OAuthMessageVO.REDIRECT_NOT_ALLOWED.value,
         ):
-            self._logic(self._profile()).authenticate(dto)
+            self._logic(self._profile()).sync_authenticate(dto)

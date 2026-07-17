@@ -11,6 +11,7 @@ class DjangoSeoContentRepository:
     def list_public_courses(self):
         return (
             CoursePostgresAdapter.published_courses_queryset()
+            .select_related(None)
             .only("slug", "updated_at", "published_at")
             .order_by("-updated_at")
         )
@@ -19,6 +20,7 @@ class DjangoSeoContentRepository:
         return (
             ArticlePostgresAdapter()
             .list_public_queryset()
+            .select_related(None)
             .only("slug", "updated_at", "published_at")
             .order_by("-updated_at")
         )

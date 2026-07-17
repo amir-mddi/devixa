@@ -6,11 +6,7 @@ from django.core.cache import cache
 
 
 class TelegramBotRedisCacheAdapter:
-    """Redis/cache infrastructure adapter.
-
-    Bot logic and services should depend on repositories, not on Django's cache
-    object directly. This keeps Redis replaceable and testable.
-    """
+    """Sync and async cache adapter for bot state persistence."""
 
     @staticmethod
     def get(key: str, default: Any = None) -> Any:
@@ -28,3 +24,20 @@ class TelegramBotRedisCacheAdapter:
     @staticmethod
     def delete(key: str) -> None:
         cache.delete(key)
+
+    @staticmethod
+    async def aget(key: str, default: Any = None) -> Any:
+        value = await cache.aget(key)
+        return default if value is None else value
+
+    @staticmethod
+    async def aset(key: str, value: Any, *, timeout: int | None = None) -> None:
+        await cache.aset(key, value, timeout=timeout)
+
+    @staticmethod
+    async def aadd(key: str, value: Any, *, timeout: int | None = None) -> bool:
+        return await cache.aadd(key, value, timeout=timeout)
+
+    @staticmethod
+    async def adelete(key: str) -> None:
+        await cache.adelete(key)

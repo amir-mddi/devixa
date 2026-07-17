@@ -9,6 +9,17 @@
     {% include "web/seo/_meta.html" %}
     {% block meta_tags %}{% endblock %}
     <title>{% block title %}{{ seo.title }}{% endblock %}</title>
+    <script>
+        (() => {
+            const root = document.documentElement;
+            root.classList.add("reveal-pending");
+            window.setTimeout(() => {
+                if (!root.classList.contains("reveal-ready")) {
+                    root.classList.remove("reveal-pending");
+                }
+            }, 1800);
+        })();
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     {# Global foundation: loaded for every public, basket, profile and admin page. #}
     <link rel="stylesheet" href="{% project_static 'Styles/variables.css' %}">
@@ -25,17 +36,21 @@
     <link rel="stylesheet" href="{% project_static 'Styles/course-detail-polish.css' %}">
     {% block page_styles_after %}{% endblock %}
     <link rel="stylesheet" href="{% project_static 'Styles/app-ui.css' %}?v=ui-3">
+    <link rel="stylesheet" href="{% project_static 'Styles/ajax-forms.css' %}?v=ajax-2">
     {% include "web/shared/_message_styles.html" %}
+    <meta data-ajax-style-boundary>
+    <script src="{% project_static 'vendor/jquery/jquery-3.7.1.min.js' %}" defer></script>
+    <script src="{% project_static 'js/ajax_forms.js' %}?v=ajax-2" defer></script>
 </head>
 <body data-project-name="{{ project.display_name }}" data-project-initial="{{ project.logo_initial }}">
     {% include "web/pages/_navbar.html" %}
     {% include "web/shared/_flash_messages.html" with placement="page" %}
     {% block content %}{% endblock %}
     {% include "web/pages/_footer.html" %}
-    <script src="{% project_static 'js/main.js' %}?v=mobile-nav-3"></script>
-    <script src="{% project_static 'js/theme.js' %}"></script>
-    <script src="{% project_static 'js/effects.js' %}"></script>
-    <script src="{% project_static 'js/premium.js' %}"></script>
+    <script type="application/x-devixa-ajax-module" data-ajax-module="main" src="{% project_static 'js/main.js' %}?v=mobile-nav-4"></script>
+    <script type="application/x-devixa-ajax-module" data-ajax-module="theme" src="{% project_static 'js/theme.js' %}"></script>
+    <script type="application/x-devixa-ajax-module" data-ajax-module="effects" src="{% project_static 'js/effects.js' %}?v=reveal-2"></script>
+    <script type="application/x-devixa-ajax-module" data-ajax-module="premium" src="{% project_static 'js/premium.js' %}?v=reveal-2"></script>
     {% block page_scripts %}{% endblock %}
 </body>
 </html>

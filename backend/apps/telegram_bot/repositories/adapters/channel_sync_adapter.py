@@ -6,7 +6,8 @@ from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlparse
 
-import requests
+import httpx
+from asgiref.sync import async_to_sync, sync_to_async
 from django.conf import settings
 
 from backend.apps.common.utils.network_security import (
@@ -35,6 +36,49 @@ class ChannelSyncMessengerAdapter:
     edit, replace, and delete.
     """
 
+
+
+    async def asend_post(
+        self,
+        *,
+        provider: str,
+        chat_id: str,
+        post: ChannelPostDTO,
+    ) -> dict[str, Any]:
+        return await sync_to_async(
+            self.send_post,
+            thread_sensitive=True,
+        )(provider=provider, chat_id=chat_id, post=post)
+
+    async def aedit_post(
+        self,
+        *,
+        provider: str,
+        chat_id: str,
+        message_id: str,
+        post: ChannelPostDTO,
+    ) -> dict[str, Any]:
+        return await sync_to_async(
+            self.edit_post,
+            thread_sensitive=True,
+        )(
+            provider=provider,
+            chat_id=chat_id,
+            message_id=message_id,
+            post=post,
+        )
+
+    async def adelete_text(
+        self,
+        *,
+        provider: str,
+        chat_id: str,
+        message_id: str,
+    ) -> dict[str, Any]:
+        return await sync_to_async(
+            self.delete_text,
+            thread_sensitive=True,
+        )(provider=provider, chat_id=chat_id, message_id=message_id)
 
     def send_post(self, *, provider: str, chat_id: str, post: ChannelPostDTO) -> dict[str, Any]:
         if post.has_media and post.media:
@@ -174,64 +218,111 @@ class ChannelSyncMessengerAdapter:
             20 * 1024 * 1024,
         )
 
-    def _download_media(self, media: ChannelMediaDTO) -> DownloadedChannelMedia | None:
+    async def _adownload_media(
+        self,
+        media: ChannelMediaDTO,
+    ) -> DownloadedChannelMedia | None:
         url = media.file_url
         if not url:
             return None
 
         try:
-            safe_url = validate_public_https_url(
+            safe_url = await sync_to_async(
+                validate_public_https_url,
+                thread_sensitive=False,
+            )(
                 url,
-                allowed_hosts=self._allowed_media_hosts(),
+                allowed_hosts=await sync_to_async(
+                    self._allowed_media_hosts,
+                    thread_sensitive=True,
+                )(),
                 resolve_dns=True,
             )
         except UnsafeOutboundUrlError as exc:
-            raise RuntimeError("Channel sync media URL is not allowed.") from exc
+            raise RuntimeError(
+                "Channel sync media URL is not allowed."
+            ) from exc
 
-        max_download_bytes = self.max_download_bytes()
-        session = requests.Session()
-        # Do not inherit arbitrary host-level proxy environment variables for
-        # server-side downloads. Provider clients have explicit proxy settings.
-        session.trust_env = False
-        response = session.get(
-            safe_url,
-            timeout=(5.0, 60.0),
-            stream=True,
-            allow_redirects=False,
-        )
-        if 300 <= response.status_code < 400:
-            raise RuntimeError("Channel sync media redirects are not allowed.")
-        response.raise_for_status()
+        max_download_bytes = await sync_to_async(
+            self.max_download_bytes,
+            thread_sensitive=True,
+        )()
+        try:
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(
+                    connect=5.0,
+                    read=60.0,
+                    write=60.0,
+                    pool=5.0,
+                ),
+                follow_redirects=False,
+                trust_env=False,
+            ) as client:
+                async with client.stream("GET", safe_url) as response:
+                    if 300 <= response.status_code < 400:
+                        raise RuntimeError(
+                            "Channel sync media redirects are not allowed."
+                        )
+                    response.raise_for_status()
 
-        content_length = response.headers.get("Content-Length")
-        if content_length:
-            try:
-                if int(content_length) > max_download_bytes:
-                    raise RuntimeError(
-                        f"Channel sync media is larger than {max_download_bytes} bytes."
+                    content_length = response.headers.get("Content-Length")
+                    if content_length:
+                        try:
+                            if int(content_length) > max_download_bytes:
+                                raise RuntimeError(
+                                    "Channel sync media is larger than "
+                                    f"{max_download_bytes} bytes."
+                                )
+                        except ValueError:
+                            pass
+
+                    chunks: list[bytes] = []
+                    total = 0
+                    async for chunk in response.aiter_bytes(
+                        chunk_size=1024 * 64
+                    ):
+                        if not chunk:
+                            continue
+                        total += len(chunk)
+                        if total > max_download_bytes:
+                            raise RuntimeError(
+                                "Channel sync media is larger than "
+                                f"{max_download_bytes} bytes."
+                            )
+                        chunks.append(chunk)
+
+                    content = b"".join(chunks)
+                    content_type = (
+                        response.headers.get("Content-Type", "")
+                        .split(";", 1)[0]
+                        .strip()
                     )
-            except ValueError:
-                pass
+        except RuntimeError:
+            raise
+        except httpx.HTTPError as exc:
+            raise RuntimeError("Channel sync media download failed.") from exc
 
-        chunks: list[bytes] = []
-        total = 0
-        for chunk in response.iter_content(chunk_size=1024 * 64):
-            if not chunk:
-                continue
-            total += len(chunk)
-            if total > max_download_bytes:
-                raise RuntimeError(f"Channel sync media is larger than {max_download_bytes} bytes.")
-            chunks.append(chunk)
-
-        content = b"".join(chunks)
-        content_type = response.headers.get("Content-Type", "").split(";", 1)[0].strip()
-        mime_type = media.mime_type or content_type or self._mime_type_for(media.media_type)
+        mime_type = (
+            media.mime_type
+            or content_type
+            or self._mime_type_for(media.media_type)
+        )
         filename = self._safe_filename(
             media.file_name
             or self._filename_from_url(safe_url)
             or self._filename_for(media.media_type, mime_type)
         )
-        return DownloadedChannelMedia(content=content, filename=filename, mime_type=mime_type)
+        return DownloadedChannelMedia(
+            content=content,
+            filename=filename,
+            mime_type=mime_type,
+        )
+
+    def _download_media(
+        self,
+        media: ChannelMediaDTO,
+    ) -> DownloadedChannelMedia | None:
+        return async_to_sync(self._adownload_media)(media)
 
     @staticmethod
     def _allowed_media_hosts() -> tuple[str, ...]:

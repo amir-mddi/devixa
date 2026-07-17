@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from django.core.management.base import BaseCommand, CommandError
 
 from backend.apps.telegram_bot.repositories.adapters.telegram_api_adapter import TelegramBotClient
@@ -26,16 +28,16 @@ class Command(BaseCommand):
         polling_service = BotPollingService(
             provider=TelegramBotService.MESSENGER_PROVIDER,
             client=client,
-            service_factory=lambda: TelegramBotServiceFactory.create(client=client),
+            service_factory=lambda: TelegramBotServiceFactory.create_async(client=client),
             update_id_getter=lambda update: update.get("update_id"),
         )
 
         try:
-            polling_service.run_forever(
+            asyncio.run(polling_service.run_forever(
                 timeout=options["timeout"],
                 sleep_seconds=options["sleep"],
                 drop_pending=options["drop_pending"],
                 allowed_updates=["message", "edited_message", "channel_post", "edited_channel_post", "callback_query"],
-            )
+            ))
         except KeyboardInterrupt:
             self.stdout.write(self.style.WARNING("Telegram polling stopped."))

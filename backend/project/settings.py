@@ -33,7 +33,7 @@ BOT_RUNTIME_ENV_WRITE_ALLOW_ANY_PATH = os.environ.get("BOT_RUNTIME_ENV_WRITE_ALL
 from backend.apps.core_models.dtos.setup_config import env_bool, env_list
 from backend.apps.core_models.dtos.setup_config import general_config, redis_config, celery_config, \
     pagination_config, \
-    database_config, sentry_config, jwt_config, logging_config, swagger_config, session_config
+    database_config, sentry_config, jwt_config, logging_config, swagger_config, session_config, rag_config
 
 ENV = general_config.env
 REDIS_AUTH_PART = f":{quote(redis_config.password, safe='')}@" if redis_config.password else ""
@@ -45,6 +45,7 @@ SITE_ID = 1
 APPEND_SLASH = general_config.append_slash
 ENCRYPTION_KEY = general_config.encryption_key
 IS_PROD = general_config.env == EnvVO.production
+RAG_CONFIG = rag_config
 
 if IS_PROD and (not SECRET_KEY or SECRET_KEY.startswith('unsafe-local-')):
     raise ImproperlyConfigured('APP_SECRET_KEY must be configured with a strong value in production.')
@@ -67,6 +68,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
+    'django.contrib.postgres',
     # packages
     'corsheaders',
     'channels',
@@ -89,6 +91,7 @@ INSTALLED_APPS = [
     'backend.apps.billing',
     'backend.apps.telegram_bot',
     'backend.apps.admin_panel',
+    'backend.apps.rag',
     'django_prometheus',
 ]
 if DEBUG:
@@ -108,6 +111,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "backend.apps.common.web.ajax.middleware.AjaxFormRedirectMiddleware",
     # "backend.apps.common.helpers.middlewares.block_token.BlockedTokenMiddleware",
     "django_prometheus.middleware.PrometheusAfterMiddleware",
 ]

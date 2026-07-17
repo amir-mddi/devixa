@@ -8,6 +8,7 @@ from backend.apps.telegram_bot.repositories.logic.bot_notification_logic import 
 from backend.apps.telegram_bot.repositories.logic.bot_support_logic import BotSupportLogicRepository
 from backend.apps.telegram_bot.repositories.logic.commerce_bot_logic import TelegramCommerceBotLogicRepository
 from backend.apps.telegram_bot.services import TelegramBotService
+from backend.apps.telegram_bot.application_services.async_bot_service import AsyncBotService
 
 
 class TelegramBotServiceFactory:
@@ -37,3 +38,10 @@ class TelegramBotServiceFactory:
             account_logic=account_logic or AccountLogicRepository(),
             account_link_logic=account_link_logic or BotAccountLinkLogicRepository(),
         )
+    @classmethod
+    def create_async(
+        cls,
+        **kwargs,
+    ) -> AsyncBotService:
+        return AsyncBotService(cls.create(**kwargs))
+
