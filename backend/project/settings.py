@@ -126,7 +126,7 @@ INSTALLED_APPS = [
     'backend.apps.billing.apps.BillingConfig',
     'backend.apps.telegram_bot.apps.TelegramBotConfig',
     'backend.apps.admin_panel.apps.AdminPanelConfig',
-    'backend.apps.rag.apps.RagConfig',
+    # 'backend.apps.rag.apps.RagConfig',
 ]
 if DEBUG:
     INSTALLED_APPS.append("debug_toolbar")
