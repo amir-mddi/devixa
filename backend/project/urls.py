@@ -47,7 +47,7 @@ urlpatterns = [
     path(PREFIX_URL + "courses/", include("backend.apps.courses.urls")),
     path(PREFIX_URL + "articles/", include("backend.apps.articles.urls")),
     path(PREFIX_URL + "billing/", include("backend.apps.billing.urls")),
-    path(PREFIX_URL + "rag/", include("backend.apps.rag.urls")),
+    # path(PREFIX_URL + "rag/", include("backend.apps.rag.urls")),
     path("api/shared/", include("backend.apps.shared.urls")),
     path("api/telegram/", include("backend.apps.telegram_bot.urls")),
     path("api/bale/webhook/", BaleWebhookAPIView.as_view(), name="bale-webhook"),
