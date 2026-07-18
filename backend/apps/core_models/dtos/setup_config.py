@@ -1,16 +1,32 @@
+import ipaddress
 import os
 from datetime import timedelta
 from distutils.util import strtobool
+from pathlib import Path
 from typing import Any, ClassVar, Dict, List, Optional
 from urllib.parse import quote
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from requests_aws4auth import AWS4Auth
 
 from backend.apps.core_models.dtos.base_dto import BaseDTO
 
 
 _LOCAL_ENVS = {"local", "development", "dev", "testing", "test"}
+_PROJECT_ROOT = Path(__file__).resolve().parents[4]
+
+
+def env_text(name: str, default: str = "") -> str:
+    """Return a stripped environment value and treat blank values as missing.
+
+    Empty assignments such as ``SQLITE_ENGINE=`` are common in shared env
+    templates. They must not erase safe framework defaults.
+    """
+
+    raw_value = os.environ.get(name)
+    if raw_value is None or not raw_value.strip():
+        return default
+    return raw_value.strip()
 
 
 def env_bool(name: str, default: bool) -> bool:
@@ -20,11 +36,32 @@ def env_bool(name: str, default: bool) -> bool:
     return bool(strtobool(raw_value))
 
 
-def env_list(name: str, default: str = "") -> list[str]:
-    raw_value = os.environ.get(name, default).strip()
+def env_list(
+    name: str,
+    default: str = "",
+    *,
+    use_default_if_blank: bool = False,
+) -> list[str]:
+    raw_value = os.environ.get(name)
+    if raw_value is None or (use_default_if_blank and not raw_value.strip()):
+        raw_value = default
+    raw_value = raw_value.strip()
     if not raw_value or raw_value in {"[]", "()"}:
         return []
     return [item.strip() for item in raw_value.split(",") if item.strip()]
+
+
+def env_float_tuple(name: str, default: str) -> tuple[float, ...]:
+    values = env_list(name, default)
+    try:
+        parsed = tuple(float(value) for value in values)
+    except ValueError as exc:
+        raise ValueError(f"{name} must contain comma-separated numbers.") from exc
+    if not parsed or any(value <= 0 for value in parsed):
+        raise ValueError(f"{name} must contain positive numbers.")
+    if tuple(sorted(set(parsed))) != parsed:
+        raise ValueError(f"{name} values must be unique and sorted ascending.")
+    return parsed
 
 
 class RedisConfiguration(BaseDTO):
@@ -83,76 +120,496 @@ class JWTConfiguration(BaseDTO):
 
 
 class SentryConfiguration(BaseDTO):
-    use_sentry: bool = env_bool("USE_SENTRY", False)
-    dsn: str = os.environ.get("SENTRY_DSN", "")
-    traces_sample_rate: float = float(
-        os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0.1")
+    """Environment-backed Sentry SDK configuration.
+
+    Error monitoring is fully opt-in through USE_SENTRY. Performance tracing,
+    profiling, structured logs, PII, and trace propagation are independently
+    switchable to keep production data collection explicit.
+    """
+
+    use_sentry: bool = Field(
+        default_factory=lambda: env_bool("USE_SENTRY", False)
     )
-    send_default_pii: bool = env_bool("SENTRY_SEND_DEFAULT_PII", False)
+    dsn: str = Field(
+        default_factory=lambda: os.environ.get("SENTRY_DSN", "").strip()
+    )
+    environment: str = Field(
+        default_factory=lambda: os.environ.get(
+            "SENTRY_ENVIRONMENT",
+            os.environ.get("ENV", "local"),
+        ).strip()
+    )
+    release: str = Field(
+        default_factory=lambda: (
+            os.environ.get("SENTRY_RELEASE")
+            or os.environ.get("GIT_COMMIT_SHA")
+            or os.environ.get("SOURCE_VERSION")
+            or ""
+        ).strip()
+    )
+    server_name: str = Field(
+        default_factory=lambda: os.environ.get("SENTRY_SERVER_NAME", "").strip()
+    )
+
+    error_sample_rate: float = Field(
+        default_factory=lambda: float(
+            os.environ.get("SENTRY_ERROR_SAMPLE_RATE", "1.0")
+        )
+    )
+    enable_tracing: bool = Field(
+        default_factory=lambda: env_bool("SENTRY_ENABLE_TRACING", False)
+    )
+    traces_sample_rate: float = Field(
+        default_factory=lambda: float(
+            os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0.05")
+        )
+    )
+    profiles_sample_rate: float = Field(
+        default_factory=lambda: float(
+            os.environ.get("SENTRY_PROFILES_SAMPLE_RATE", "0.0")
+        )
+    )
+
+    send_default_pii: bool = Field(
+        default_factory=lambda: env_bool("SENTRY_SEND_DEFAULT_PII", False)
+    )
+    enable_logs: bool = Field(
+        default_factory=lambda: env_bool("SENTRY_ENABLE_LOGS", False)
+    )
+    debug: bool = Field(
+        default_factory=lambda: env_bool("SENTRY_DEBUG", False)
+    )
+    attach_stacktrace: bool = Field(
+        default_factory=lambda: env_bool("SENTRY_ATTACH_STACKTRACE", True)
+    )
+    include_local_variables: bool = Field(
+        default_factory=lambda: env_bool(
+            "SENTRY_INCLUDE_LOCAL_VARIABLES",
+            False,
+        )
+    )
+    max_request_body_size: str = Field(
+        default_factory=lambda: os.environ.get(
+            "SENTRY_MAX_REQUEST_BODY_SIZE",
+            "never",
+        ).strip().lower()
+    )
+    max_breadcrumbs: int = Field(
+        default_factory=lambda: int(
+            os.environ.get("SENTRY_MAX_BREADCRUMBS", "100")
+        )
+    )
+    shutdown_timeout_seconds: float = Field(
+        default_factory=lambda: float(
+            os.environ.get("SENTRY_SHUTDOWN_TIMEOUT_SECONDS", "2")
+        )
+    )
+    flush_timeout_seconds: float = Field(
+        default_factory=lambda: float(
+            os.environ.get("SENTRY_FLUSH_TIMEOUT_SECONDS", "5")
+        )
+    )
+
+    trace_propagation_targets: list[str] = Field(
+        default_factory=lambda: env_list("SENTRY_TRACE_PROPAGATION_TARGETS")
+    )
+    ignored_path_prefixes: list[str] = Field(
+        default_factory=lambda: env_list(
+            "SENTRY_IGNORED_PATH_PREFIXES",
+            "/health,/healthz,/ready,/readiness,/metrics,/static/,/media/,/favicon.ico",
+        )
+    )
+    strict_trace_continuation: bool = Field(
+        default_factory=lambda: env_bool(
+            "SENTRY_STRICT_TRACE_CONTINUATION",
+            True,
+        )
+    )
+
+    transaction_style: str = Field(
+        default_factory=lambda: os.environ.get(
+            "SENTRY_TRANSACTION_STYLE",
+            "url",
+        ).strip().lower()
+    )
+    middleware_spans: bool = Field(
+        default_factory=lambda: env_bool("SENTRY_MIDDLEWARE_SPANS", True)
+    )
+    signals_spans: bool = Field(
+        default_factory=lambda: env_bool("SENTRY_SIGNALS_SPANS", True)
+    )
+    cache_spans: bool = Field(
+        default_factory=lambda: env_bool("SENTRY_CACHE_SPANS", True)
+    )
+    db_transaction_spans: bool = Field(
+        default_factory=lambda: env_bool(
+            "SENTRY_DB_TRANSACTION_SPANS",
+            True,
+        )
+    )
+    celery_propagate_traces: bool = Field(
+        default_factory=lambda: env_bool(
+            "SENTRY_CELERY_PROPAGATE_TRACES",
+            True,
+        )
+    )
+    monitor_celery_beat_tasks: bool = Field(
+        default_factory=lambda: env_bool(
+            "SENTRY_MONITOR_CELERY_BEAT_TASKS",
+            True,
+        )
+    )
+    redis_max_data_size: int = Field(
+        default_factory=lambda: max(
+            0,
+            int(os.environ.get("SENTRY_REDIS_MAX_DATA_SIZE", "1024")),
+        )
+    )
+
+    @field_validator(
+        "error_sample_rate",
+        "traces_sample_rate",
+        "profiles_sample_rate",
+    )
+    @classmethod
+    def validate_sample_rate(cls, value: float) -> float:
+        if not 0.0 <= value <= 1.0:
+            raise ValueError("Sentry sample rates must be between 0.0 and 1.0.")
+        return value
+
+    @field_validator("max_request_body_size")
+    @classmethod
+    def validate_request_body_size(cls, value: str) -> str:
+        allowed_values = {"never", "small", "medium", "always"}
+        if value not in allowed_values:
+            raise ValueError(
+                "SENTRY_MAX_REQUEST_BODY_SIZE must be one of: "
+                "never, small, medium, always."
+            )
+        return value
+
+    @field_validator("transaction_style")
+    @classmethod
+    def validate_transaction_style(cls, value: str) -> str:
+        if value not in {"url", "function_name"}:
+            raise ValueError(
+                "SENTRY_TRANSACTION_STYLE must be 'url' or 'function_name'."
+            )
+        return value
+
+    @field_validator(
+        "max_breadcrumbs",
+        "shutdown_timeout_seconds",
+        "flush_timeout_seconds",
+    )
+    @classmethod
+    def validate_positive_number(cls, value):
+        if value < 0:
+            raise ValueError("Sentry limits and timeouts cannot be negative.")
+        return value
+
+    class Config:
+        frozen = True
+
+
+class PrometheusConfiguration(BaseDTO):
+    """Environment-backed metrics configuration with a single master switch."""
+
+    use_prometheus: bool = Field(
+        default_factory=lambda: env_bool("USE_PROMETHEUS", False)
+    )
+    namespace: str = Field(
+        default_factory=lambda: os.environ.get(
+            "PROMETHEUS_NAMESPACE",
+            "devixa",
+        ).strip().lower()
+    )
+    require_auth: bool = Field(
+        default_factory=lambda: env_bool(
+            "PROMETHEUS_REQUIRE_AUTH",
+            os.environ.get("ENV", "local").strip().lower() not in _LOCAL_ENVS,
+        )
+    )
+    metrics_token: str = Field(
+        default_factory=lambda: os.environ.get(
+            "PROMETHEUS_METRICS_TOKEN",
+            "",
+        ).strip()
+    )
+    metrics_allowed_ips: list[str] = Field(
+        default_factory=lambda: env_list("PROMETHEUS_METRICS_ALLOWED_IPS")
+    )
+    excluded_path_prefixes: list[str] = Field(
+        default_factory=lambda: env_list(
+            "PROMETHEUS_EXCLUDED_PATH_PREFIXES",
+            "/metrics,/health,/static/,/media/,/favicon.ico",
+        )
+    )
+    enable_celery_metrics: bool = Field(
+        default_factory=lambda: env_bool("PROMETHEUS_ENABLE_CELERY_METRICS", True)
+    )
+    request_duration_buckets: tuple[float, ...] = Field(
+        default_factory=lambda: env_float_tuple(
+            "PROMETHEUS_REQUEST_DURATION_BUCKETS",
+            "0.01,0.025,0.05,0.1,0.25,0.5,1,2.5,5,10",
+        )
+    )
+    response_size_buckets: tuple[float, ...] = Field(
+        default_factory=lambda: env_float_tuple(
+            "PROMETHEUS_RESPONSE_SIZE_BUCKETS",
+            "256,1024,4096,16384,65536,262144,1048576,4194304",
+        )
+    )
+    health_duration_buckets: tuple[float, ...] = Field(
+        default_factory=lambda: env_float_tuple(
+            "PROMETHEUS_HEALTH_DURATION_BUCKETS",
+            "0.005,0.01,0.025,0.05,0.1,0.25,0.5,1,2.5,5",
+        )
+    )
+    celery_duration_buckets: tuple[float, ...] = Field(
+        default_factory=lambda: env_float_tuple(
+            "PROMETHEUS_CELERY_DURATION_BUCKETS",
+            "0.05,0.1,0.25,0.5,1,2.5,5,10,30,60,300",
+        )
+    )
+
+    @field_validator("namespace")
+    @classmethod
+    def validate_namespace(cls, value: str) -> str:
+        normalized = value.replace("-", "_")
+        if not normalized or not normalized[0].isalpha():
+            raise ValueError("PROMETHEUS_NAMESPACE must start with a letter.")
+        if not all(character.isalnum() or character == "_" for character in normalized):
+            raise ValueError(
+                "PROMETHEUS_NAMESPACE may contain only letters, numbers, and underscores."
+            )
+        return normalized
+
+    @field_validator("metrics_allowed_ips")
+    @classmethod
+    def validate_allowed_ips(cls, values: list[str]) -> list[str]:
+        for value in values:
+            try:
+                ipaddress.ip_network(value, strict=False)
+            except ValueError as exc:
+                raise ValueError(
+                    "PROMETHEUS_METRICS_ALLOWED_IPS must contain valid IP or CIDR values."
+                ) from exc
+        return values
+
+    @field_validator("excluded_path_prefixes")
+    @classmethod
+    def normalize_excluded_paths(cls, values: list[str]) -> list[str]:
+        return [
+            value if value.startswith("/") else f"/{value}"
+            for value in values
+        ]
+
+    class Config:
+        frozen = True
+
+
+class HealthCheckConfiguration(BaseDTO):
+    """Independent health endpoints for load balancers and orchestrators."""
+
+    enabled: bool = Field(
+        default_factory=lambda: env_bool("USE_HEALTH_CHECKS", True)
+    )
+    timeout_seconds: float = Field(
+        default_factory=lambda: float(
+            os.environ.get("HEALTH_CHECK_TIMEOUT_SECONDS", "2")
+        )
+    )
+    check_database: bool = Field(
+        default_factory=lambda: env_bool("HEALTH_CHECK_DATABASE", True)
+    )
+    database_alias: str = Field(
+        default_factory=lambda: os.environ.get(
+            "HEALTH_CHECK_DATABASE_ALIAS",
+            "default",
+        ).strip()
+    )
+    check_cache: bool = Field(
+        default_factory=lambda: env_bool("HEALTH_CHECK_CACHE", True)
+    )
+    cache_alias: str = Field(
+        default_factory=lambda: os.environ.get(
+            "HEALTH_CHECK_CACHE_ALIAS",
+            "default",
+        ).strip()
+    )
+    check_celery_broker: bool = Field(
+        default_factory=lambda: env_bool("HEALTH_CHECK_CELERY_BROKER", False)
+    )
+
+    @field_validator("timeout_seconds")
+    @classmethod
+    def validate_timeout(cls, value: float) -> float:
+        if value <= 0:
+            raise ValueError("HEALTH_CHECK_TIMEOUT_SECONDS must be positive.")
+        return value
 
     class Config:
         frozen = True
 
 
 class DatabaseConfiguration(BaseDTO):
-    use_sql_database: bool = env_bool("USE_SQL_DATABASE", True)
-    use_database_replica: bool = env_bool("USE_DATABASE_REPLICA", False)
-    database_engine: str = os.environ.get("DATABASE_ENGINE", "sqlite").strip().lower()
+    """Database settings with safe local defaults and explicit validation."""
 
-    sqlite_database_config: dict = {
-        "ENGINE": os.environ.get("SQLITE_ENGINE", "django.db.backends.sqlite3"),
-        "NAME": str(os.environ.get("SQLITE_NAME", "db/db.sqlite3")),
-        "CONN_MAX_AGE": int(os.environ.get("SQLITE_CONN_MAX_AGE", "0")),
-        "OPTIONS": {"timeout": int(os.environ.get("SQLITE_TIMEOUT", "20"))},
-    }
+    use_sql_database: bool = Field(
+        default_factory=lambda: env_bool("USE_SQL_DATABASE", True)
+    )
+    use_database_replica: bool = Field(
+        default_factory=lambda: env_bool("USE_DATABASE_REPLICA", False)
+    )
+    database_engine: str = Field(
+        default_factory=lambda: env_text("DATABASE_ENGINE", "sqlite").lower()
+    )
 
-    primary_database_config: dict = {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("POSTGRES_NAME", ""),
-        "USER": os.environ.get("POSTGRES_USER", ""),
-        "PASSWORD": os.environ.get("POSTGRES_PASSWORD", ""),
-        "HOST": os.environ.get("POSTGRES_HOST", ""),
-        "PORT": os.environ.get("POSTGRES_PORT", ""),
-        "CONN_MAX_AGE": int(os.environ.get("POSTGRES_CONN_MAX_AGE", "60")),
-        "OPTIONS": {"sslmode": os.environ.get("POSTGRES_SSLMODE", "prefer")},
-    }
+    sqlite_engine: str = Field(
+        default_factory=lambda: env_text(
+            "SQLITE_ENGINE",
+            "django.db.backends.sqlite3",
+        )
+    )
+    sqlite_name: str = Field(
+        default_factory=lambda: env_text(
+            "SQLITE_NAME",
+            str(_PROJECT_ROOT / "db" / "db.sqlite3"),
+        )
+    )
+    sqlite_conn_max_age: int = Field(
+        default_factory=lambda: int(env_text("SQLITE_CONN_MAX_AGE", "0"))
+    )
+    sqlite_timeout: int = Field(
+        default_factory=lambda: int(env_text("SQLITE_TIMEOUT", "20"))
+    )
 
-    replica_database_config: dict = {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get(
-            "POSTGRES_REPLICA_NAME", os.environ.get("POSTGRES_NAME", "")
-        ),
-        "USER": os.environ.get(
-            "POSTGRES_REPLICA_USER", os.environ.get("POSTGRES_USER", "")
-        ),
-        "PASSWORD": os.environ.get(
-            "POSTGRES_REPLICA_PASSWORD", os.environ.get("POSTGRES_PASSWORD", "")
-        ),
-        "HOST": os.environ.get("POSTGRES_REPLICA_HOST", ""),
-        "PORT": os.environ.get(
-            "POSTGRES_REPLICA_PORT", os.environ.get("POSTGRES_PORT", "")
-        ),
-        "CONN_MAX_AGE": int(
-            os.environ.get("POSTGRES_REPLICA_CONN_MAX_AGE", "60")
-        ),
-        "OPTIONS": {"sslmode": os.environ.get("POSTGRES_REPLICA_SSLMODE", "prefer")},
-    }
+    postgres_name: str = Field(
+        default_factory=lambda: env_text("POSTGRES_NAME")
+    )
+    postgres_user: str = Field(
+        default_factory=lambda: env_text("POSTGRES_USER")
+    )
+    postgres_password: str = Field(
+        default_factory=lambda: os.environ.get("POSTGRES_PASSWORD", "")
+    )
+    postgres_host: str = Field(
+        default_factory=lambda: env_text("POSTGRES_HOST", "localhost")
+    )
+    postgres_port: str = Field(
+        default_factory=lambda: env_text("POSTGRES_PORT", "5432")
+    )
+    postgres_conn_max_age: int = Field(
+        default_factory=lambda: int(env_text("POSTGRES_CONN_MAX_AGE", "60"))
+    )
+    postgres_sslmode: str = Field(
+        default_factory=lambda: env_text("POSTGRES_SSLMODE", "prefer")
+    )
 
-    dummy_database_config: dict = {
-        "ENGINE": "django.db.backends.dummy",
-        "NAME": "dummy",
-    }
+    postgres_replica_name: str = Field(
+        default_factory=lambda: env_text(
+            "POSTGRES_REPLICA_NAME",
+            env_text("POSTGRES_NAME"),
+        )
+    )
+    postgres_replica_user: str = Field(
+        default_factory=lambda: env_text(
+            "POSTGRES_REPLICA_USER",
+            env_text("POSTGRES_USER"),
+        )
+    )
+    postgres_replica_password: str = Field(
+        default_factory=lambda: os.environ.get(
+            "POSTGRES_REPLICA_PASSWORD",
+            os.environ.get("POSTGRES_PASSWORD", ""),
+        )
+    )
+    postgres_replica_host: str = Field(
+        default_factory=lambda: env_text("POSTGRES_REPLICA_HOST")
+    )
+    postgres_replica_port: str = Field(
+        default_factory=lambda: env_text(
+            "POSTGRES_REPLICA_PORT",
+            env_text("POSTGRES_PORT", "5432"),
+        )
+    )
+    postgres_replica_conn_max_age: int = Field(
+        default_factory=lambda: int(
+            env_text("POSTGRES_REPLICA_CONN_MAX_AGE", "60")
+        )
+    )
+    postgres_replica_sslmode: str = Field(
+        default_factory=lambda: env_text(
+            "POSTGRES_REPLICA_SSLMODE",
+            "prefer",
+        )
+    )
+
+    @field_validator("database_engine")
+    @classmethod
+    def validate_database_engine(cls, value: str) -> str:
+        aliases = {
+            "postgres": "postgresql",
+            "postgresql": "postgresql",
+            "sqlite": "sqlite",
+            "sqlite3": "sqlite",
+        }
+        try:
+            return aliases[value]
+        except KeyError as exc:
+            raise ValueError(
+                "DATABASE_ENGINE must be sqlite, sqlite3, postgres, or postgresql."
+            ) from exc
 
     @property
-    def databases(self):
+    def sqlite_database_config(self) -> dict[str, Any]:
+        return {
+            "ENGINE": self.sqlite_engine,
+            "NAME": self.sqlite_name,
+            "CONN_MAX_AGE": self.sqlite_conn_max_age,
+            "OPTIONS": {"timeout": self.sqlite_timeout},
+        }
+
+    @property
+    def primary_database_config(self) -> dict[str, Any]:
+        return {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": self.postgres_name,
+            "USER": self.postgres_user,
+            "PASSWORD": self.postgres_password,
+            "HOST": self.postgres_host,
+            "PORT": self.postgres_port,
+            "CONN_MAX_AGE": self.postgres_conn_max_age,
+            "OPTIONS": {"sslmode": self.postgres_sslmode},
+        }
+
+    @property
+    def replica_database_config(self) -> dict[str, Any]:
+        return {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": self.postgres_replica_name,
+            "USER": self.postgres_replica_user,
+            "PASSWORD": self.postgres_replica_password,
+            "HOST": self.postgres_replica_host,
+            "PORT": self.postgres_replica_port,
+            "CONN_MAX_AGE": self.postgres_replica_conn_max_age,
+            "OPTIONS": {"sslmode": self.postgres_replica_sslmode},
+        }
+
+    @property
+    def dummy_database_config(self) -> dict[str, str]:
+        return {
+            "ENGINE": "django.db.backends.dummy",
+            "NAME": "dummy",
+        }
+
+    @property
+    def databases(self) -> dict[str, dict[str, Any]]:
         if not self.use_sql_database:
             return {"default": self.dummy_database_config}
         if self.database_engine == "sqlite":
             return {"default": self.sqlite_database_config}
-        if self.database_engine not in {"postgres", "postgresql"}:
-            raise ValueError(
-                "Unsupported DATABASE_ENGINE. Use 'sqlite', 'postgres', or 'postgresql'."
-            )
 
         databases = {"default": self.primary_database_config}
         if self.use_database_replica:
@@ -160,7 +617,7 @@ class DatabaseConfiguration(BaseDTO):
         return databases
 
     @property
-    def database(self):
+    def database(self) -> dict[str, Any]:
         return self.databases["default"]
 
     class Config:
@@ -178,6 +635,7 @@ class GeneralConfiguration(BaseDTO):
     allowed_hosts: list = env_list(
         "ALLOWED_HOSTS",
         "localhost,127.0.0.1,testserver" if is_local_environment else "",
+        use_default_if_blank=is_local_environment,
     )
     secret_key: str = os.environ.get(
         "APP_SECRET_KEY",
@@ -361,6 +819,8 @@ class RagConfiguration(BaseDTO):
 celery_config = CeleryConfiguration()
 jwt_config = JWTConfiguration()
 sentry_config = SentryConfiguration()
+prometheus_config = PrometheusConfiguration()
+health_check_config = HealthCheckConfiguration()
 database_config = DatabaseConfiguration()
 logging_config = LoggingConfiguration()
 swagger_config = SwaggerConfiguration()

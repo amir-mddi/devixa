@@ -1,7 +1,7 @@
 from backend.apps.common.utils.common_utils import CommonUtils
 from functools import wraps
 
-import sentry_sdk
+from backend.apps.common.observability.sentry import SentryMonitoringAdapter
 
 logger = CommonUtils.get_project_logger(__name__)
 
@@ -22,7 +22,7 @@ def logic_logging(*, raise_error=True, default_return=None, send_to_sentry=True)
                 )
 
                 if send_to_sentry:
-                    sentry_sdk.capture_exception(exc)
+                    SentryMonitoringAdapter.capture_exception(exc)
 
                 if raise_error:
                     raise

@@ -2,26 +2,21 @@ import os
 from pathlib import Path
 from typing import ContextManager
 
+from dotenv import load_dotenv
 from django.core.exceptions import ImproperlyConfigured
 from corsheaders.defaults import default_headers, default_methods
 from urllib.parse import quote
-
-import sentry_sdk
-from sentry_sdk.integrations.django import DjangoIntegration
 
 from backend.apps.core_models.vo.common_vo import EnvVO
 from backend.apps.permissions.access_control import AccessLimitPermission
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # if os.environ.get("ENV", EnvVO.production) == EnvVO.production:
-from dotenv import load_dotenv
-
 env_name = os.environ.get("ENV", "local")
 env_path = os.path.join(BASE_DIR, f"deployment/env/{env_name}.env")
 root_env_path = os.path.join(BASE_DIR, ".env")
 
-# Docker, systemd and shell environment values have the highest priority.
-# Project dotenv files only fill variables that are not already defined.
+
 for dotenv_path in (env_path, root_env_path):
     if os.path.isfile(dotenv_path):
         load_dotenv(dotenv_path=dotenv_path, override=True)
@@ -30,10 +25,23 @@ BOT_RUNTIME_ENV_FILE_PATH = os.environ.get("BOT_RUNTIME_ENV_FILE_PATH", env_path
 BOT_RUNTIME_ENV_WRITE_ENABLED = os.environ.get("BOT_RUNTIME_ENV_WRITE_ENABLED", "false")
 BOT_RUNTIME_ENV_WRITE_ALLOW_ANY_PATH = os.environ.get("BOT_RUNTIME_ENV_WRITE_ALLOW_ANY_PATH", "false")
 
-from backend.apps.core_models.dtos.setup_config import env_bool, env_list
-from backend.apps.core_models.dtos.setup_config import general_config, redis_config, celery_config, \
-    pagination_config, \
-    database_config, sentry_config, jwt_config, logging_config, swagger_config, session_config, rag_config
+from backend.apps.core_models.dtos.setup_config import (  # noqa: E402
+    celery_config,
+    database_config,
+    env_bool,
+    env_list,
+    general_config,
+    health_check_config,
+    jwt_config,
+    logging_config,
+    pagination_config,
+    prometheus_config,
+    rag_config,
+    redis_config,
+    sentry_config,
+    session_config,
+    swagger_config,
+)
 
 ENV = general_config.env
 REDIS_AUTH_PART = f":{quote(redis_config.password, safe='')}@" if redis_config.password else ""
@@ -51,6 +59,33 @@ if IS_PROD and (not SECRET_KEY or SECRET_KEY.startswith('unsafe-local-')):
     raise ImproperlyConfigured('APP_SECRET_KEY must be configured with a strong value in production.')
 if IS_PROD and not ALLOWED_HOSTS:
     raise ImproperlyConfigured('ALLOWED_HOSTS must be configured in production.')
+
+PROMETHEUS_CONFIG = prometheus_config
+PROMETHEUS_ENABLED = prometheus_config.use_prometheus
+PROMETHEUS_MULTIPROC_DIR = os.environ.get("PROMETHEUS_MULTIPROC_DIR", "").strip()
+HEALTH_CHECK_CONFIG = health_check_config
+HEALTH_CHECKS_ENABLED = health_check_config.enabled
+
+if (
+    IS_PROD
+    and PROMETHEUS_ENABLED
+    and prometheus_config.require_auth
+    and not prometheus_config.metrics_token
+    and not prometheus_config.metrics_allowed_ips
+):
+    raise ImproperlyConfigured(
+        "Configure PROMETHEUS_METRICS_TOKEN or "
+        "PROMETHEUS_METRICS_ALLOWED_IPS when USE_PROMETHEUS=true in production."
+    )
+if (
+    IS_PROD
+    and PROMETHEUS_ENABLED
+    and prometheus_config.metrics_token
+    and len(prometheus_config.metrics_token) < 32
+):
+    raise ImproperlyConfigured(
+        "PROMETHEUS_METRICS_TOKEN must be at least 32 characters in production."
+    )
 
 # Public project/brand info is stored in the database after the initial bootstrap.
 # The PROJECT_* env variables are read by shared.initial_data only when ProjectConfigModel does not exist.
@@ -82,17 +117,16 @@ INSTALLED_APPS = [
     'django_celery_beat',
     'django_celery_results',
     # apps
-    'backend.apps.accounts',
-    'backend.apps.common',
-    'backend.apps.pages',
-    'backend.apps.shared',
-    'backend.apps.courses',
-    'backend.apps.articles',
-    'backend.apps.billing',
-    'backend.apps.telegram_bot',
-    'backend.apps.admin_panel',
-    'backend.apps.rag',
-    'django_prometheus',
+    'backend.apps.accounts.apps.AccountConfig',
+    'backend.apps.common.apps.CommonConfig',
+    'backend.apps.pages.apps.PagesConfig',
+    'backend.apps.shared.apps.SharedConfig',
+    'backend.apps.courses.apps.CoursesConfig',
+    'backend.apps.articles.apps.ArticlesConfig',
+    'backend.apps.billing.apps.BillingConfig',
+    'backend.apps.telegram_bot.apps.TelegramBotConfig',
+    'backend.apps.admin_panel.apps.AdminPanelConfig',
+    'backend.apps.rag.apps.RagConfig',
 ]
 if DEBUG:
     INSTALLED_APPS.append("debug_toolbar")
@@ -103,9 +137,7 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
-    "django_prometheus.middleware.PrometheusBeforeMiddleware",
     # "backend.project.middleware.PrimaryAfterWriteMiddleware",
-    "backend.apps.common.helpers.middlewares.response_metrics.ResponseMetricsMiddleware",
     "backend.apps.common.helpers.middlewares.general_response.GeneralResponseMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -113,8 +145,19 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "backend.apps.common.web.ajax.middleware.AjaxFormRedirectMiddleware",
     # "backend.apps.common.helpers.middlewares.block_token.BlockedTokenMiddleware",
-    "django_prometheus.middleware.PrometheusAfterMiddleware",
 ]
+if PROMETHEUS_ENABLED:
+    # Place request instrumentation after URL-normalizing CommonMiddleware and
+    # before application response middleware. It remains fully ASGI-capable.
+    common_middleware_index = MIDDLEWARE.index(
+        "django.middleware.common.CommonMiddleware"
+    )
+    MIDDLEWARE.insert(
+        common_middleware_index + 1,
+        "backend.apps.common.observability.prometheus.middleware."
+        "PrometheusRequestMetricsMiddleware",
+    )
+
 if DEBUG:
     MIDDLEWARE.insert(4, "debug_toolbar.middleware.DebugToolbarMiddleware")
 
@@ -260,14 +303,17 @@ CELERY_ACCEPT_CONTENT = celery_config.accept_content
 CELERY_TASK_SERIALIZER = celery_config.task_serializer
 CELERY_RESULT_SERIALIZER = celery_config.result_serializer
 
-# Sentry configuration
-if sentry_config.use_sentry:
-    sentry_sdk.init(
-        dsn=sentry_config.dsn,
-        integrations=[DjangoIntegration()],
-        traces_sample_rate=sentry_config.traces_sample_rate,
-        send_default_pii=sentry_config.send_default_pii,
-    )
+# Sentry configuration. The SDK is initialized in one infrastructure boundary
+# so ASGI, WSGI, Celery workers, management commands, and Django integrations
+# share the same switchable production configuration.
+from backend.apps.common.observability.sentry import initialize_sentry  # noqa: E402
+
+SENTRY_CONFIG = sentry_config
+SENTRY_ENABLED = initialize_sentry(
+    sentry_config,
+    project_root=BASE_DIR,
+)
+SENTRY_FLUSH_TIMEOUT_SECONDS = sentry_config.flush_timeout_seconds
 ACCESS_TOKEN_LIFE_TIME_HOUR = jwt_config.access_token_lifetime_minutes
 # JWT Configuration
 SIMPLE_JWT = {
@@ -329,7 +375,7 @@ if os.environ.get("TRUST_PROXY_SSL_HEADER", "false").lower() in {"1", "true", "y
 
 TRUST_X_FORWARDED_FOR = os.environ.get("TRUST_X_FORWARDED_FOR", "false").lower() in {"1", "true", "yes", "on"}
 TRUSTED_PROXY_IPS = [item.strip() for item in os.environ.get("TRUSTED_PROXY_IPS", "").split(",") if item.strip()]
-PROMETHEUS_METRICS_TOKEN = os.environ.get("PROMETHEUS_METRICS_TOKEN", "")
+PROMETHEUS_METRICS_TOKEN = prometheus_config.metrics_token
 DATA_UPLOAD_MAX_MEMORY_SIZE = max(1024, min(
     int(os.environ.get("DATA_UPLOAD_MAX_MEMORY_SIZE", str(10 * 1024 * 1024))),
     20 * 1024 * 1024,

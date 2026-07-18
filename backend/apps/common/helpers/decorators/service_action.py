@@ -7,9 +7,9 @@ import json
 import time
 from functools import wraps
 
-import sentry_sdk
 from django.core.cache import cache
 
+from backend.apps.common.observability.sentry import SentryMonitoringAdapter
 from backend.apps.common.utils.common_utils import CommonUtils
 
 logger = CommonUtils.get_project_logger(__name__)
@@ -239,7 +239,7 @@ def _handle_failure(
         kwargs,
     )
     if send_to_sentry:
-        sentry_sdk.capture_exception(exc)
+        SentryMonitoringAdapter.capture_exception(exc)
 
 
 def _log_duration(func, started_at: float, *, enabled: bool) -> None:

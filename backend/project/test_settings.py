@@ -2,8 +2,17 @@
 
 Production settings remain untouched. External infrastructure is replaced by
 in-memory/local test doubles so tests never require Redis, PostgreSQL, email,
-Celery workers, or channel servers.
+Celery workers, channel servers, or external observability services.
 """
+import os
+
+# Disable Sentry before importing the production settings module. This prevents
+# developer/CI shell variables or production dotenv files from sending test
+# failures to the real Sentry project.
+os.environ["USE_SENTRY"] = "false"
+os.environ["USE_PROMETHEUS"] = "false"
+os.environ["USE_HEALTH_CHECKS"] = "true"
+
 from .settings import *  # noqa: F401,F403
 
 DATABASES = {
@@ -42,9 +51,10 @@ MIDDLEWARE = [
     if middleware
     not in {
         "debug_toolbar.middleware.DebugToolbarMiddleware",
-        "django_prometheus.middleware.PrometheusBeforeMiddleware",
-        "django_prometheus.middleware.PrometheusAfterMiddleware",
-        "backend.apps.common.helpers.middlewares.response_metrics.ResponseMetricsMiddleware",
+        (
+            "backend.apps.common.observability.prometheus.middleware."
+            "PrometheusRequestMetricsMiddleware"
+        ),
         "backend.apps.common.helpers.middlewares.general_response.GeneralResponseMiddleware",
     }
 ]

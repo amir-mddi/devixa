@@ -1,38 +1,18 @@
 from __future__ import annotations
 
-import hmac
-
-from asgiref.sync import sync_to_async
-from django.conf import settings
-from django.http import Http404, HttpResponse
-from prometheus_client import (
-    CONTENT_TYPE_LATEST,
-    CollectorRegistry,
-    Counter,
-    generate_latest,
-    multiprocess,
-)
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
-from backend.apps.common.response_utils import ResponseUtil
 from backend.apps.common.utils.base_mixin_view_utils import BaseLogicControllerUtils
 from backend.apps.common.utils.async_drf import validate_serializer
 from backend.apps.common.utils.swagger_mixin import (
     TaggedSchemaAPIView,
     TaggedSchemaViewSet,
 )
-from backend.apps.core_models.constants.common_vo import ResponseVO
 from backend.apps.core_models.dtos.base_api_config_dto import BaseAPIConfig
 from backend.apps.shared.models import ApiKeyManagerModel
 from backend.apps.shared.repositories.logic import SharedApplicationLogic
 from backend.apps.shared.serializers import ApiKeyMngSerializer, ProjectConfigSerializer
-
-EXCEPTION_COUNT = Counter(
-    "django_celery_task_total",
-    "Total Run Celery Tasks",
-    ["method"],
-)
 
 
 class BaseViewSet(TaggedSchemaViewSet):
@@ -81,57 +61,12 @@ class BaseViewSet(TaggedSchemaViewSet):
         )
 
 
-class ManageMetricsViewSet(BaseViewSet):
-    permission_classes = [IsAdminUser]
-    model_clz = None
-    tag_name = "Shared"
-    http_method_names = ["get"]
-    serializer_class = None
-
-    async def list(self, request):
-        EXCEPTION_COUNT.labels(method="celery_counter").inc()
-        return ResponseUtil(status_code=ResponseVO.http_200)
-
-
 class ApiKeyManagementViewSet(BaseViewSet):
     permission_classes = [IsAdminUser]
     http_method_names = ["get", "post"]
     model_clz = ApiKeyManagerModel
     tag_name = "ApiKeyManagement"
     serializer_class = ApiKeyMngSerializer
-
-
-def _metrics_response(request):
-    if request.method != "GET":
-        raise Http404
-
-    expected_token = str(
-        getattr(settings, "PROMETHEUS_METRICS_TOKEN", "") or ""
-    )
-    provided_token = request.headers.get("X-Metrics-Token", "")
-    authorization = request.headers.get("Authorization", "")
-    if authorization.startswith("Bearer "):
-        provided_token = authorization.removeprefix("Bearer ").strip()
-
-    if expected_token:
-        if not hmac.compare_digest(provided_token, expected_token):
-            raise Http404
-    elif not settings.DEBUG:
-        raise Http404
-
-    registry = CollectorRegistry()
-    multiprocess.MultiProcessCollector(registry)
-    data = generate_latest(registry)
-    response = HttpResponse(data, content_type=CONTENT_TYPE_LATEST)
-    response["Cache-Control"] = "no-store"
-    return response
-
-
-async def prometheus_metrics(request):
-    return await sync_to_async(
-        _metrics_response,
-        thread_sensitive=True,
-    )(request)
 
 
 class ProjectConfigAPIView(TaggedSchemaAPIView):

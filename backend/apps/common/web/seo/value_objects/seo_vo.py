@@ -128,6 +128,7 @@ class SeoNoIndexPathVO(StrEnum):
     RECOVER_PASSWORD = "/recover-password/"
     OAUTH = "/oauth/"
     METRICS = "/metrics/"
+    HEALTH = "/health/"
     SCHEMA = "/schema/"
 
 
@@ -136,6 +137,7 @@ class SeoRobotsDisallowPathVO(StrEnum):
     MANAGEMENT = "/management/"
     API = "/api/"
     METRICS = "/metrics/"
+    HEALTH = "/health/"
     SCHEMA = "/schema/"
 
 

@@ -14,7 +14,6 @@ from rest_framework.authentication import BasicAuthentication, SessionAuthentica
 from rest_framework.permissions import IsAdminUser
 
 from backend.apps.common.utils.common_utils import CommonUtils
-from backend.apps.shared.views import prometheus_metrics
 from backend.apps.telegram_bot.views import BaleWebhookAPIView, RubikaWebhookAPIView
 
 
@@ -53,9 +52,19 @@ urlpatterns = [
     path("api/telegram/", include("backend.apps.telegram_bot.urls")),
     path("api/bale/webhook/", BaleWebhookAPIView.as_view(), name="bale-webhook"),
     path("api/rubika/webhook/", RubikaWebhookAPIView.as_view(), name="rubika-webhook"),
-    path("metrics/", prometheus_metrics, name="prometheus-metrics"),
     path(os.environ.get("ADMIN_PANEL_URL", "admin/"), admin.site.urls),
 ]
+
+
+if settings.HEALTH_CHECKS_ENABLED:
+    urlpatterns += [
+        path("", include("backend.apps.common.observability.health.urls")),
+    ]
+
+if settings.PROMETHEUS_ENABLED:
+    urlpatterns += [
+        path("", include("backend.apps.common.observability.prometheus.urls")),
+    ]
 
 if settings.DEBUG:
     from debug_toolbar.toolbar import debug_toolbar_urls
