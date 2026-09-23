@@ -9,6 +9,7 @@ import httpx
 from asgiref.sync import async_to_sync
 
 from backend.apps.common.utils.common_utils import CommonUtils
+from backend.apps.common.utils.proxy_utils import normalize_proxy_url
 from backend.apps.core_models.constants.proxy_urls import ProxyUrls
 from backend.apps.core_models.enum.general_enum import RequestMethod
 
@@ -276,8 +277,9 @@ class RequestUtils:
         timeout_config = RequestUtils._timeout(timeout)
         async with httpx.AsyncClient(
             timeout=timeout_config,
-            proxy=proxy,
+            proxy=normalize_proxy_url(proxy),
             follow_redirects=False,
+            trust_env=False,
         ) as client:
             return await client.request(method=method, url=url, **request_kwargs)
 
@@ -301,7 +303,7 @@ class RequestUtils:
     def _proxy_url(proxies: Optional[dict[str, str]]) -> str | None:
         if not proxies:
             return None
-        return proxies.get("https") or proxies.get("http")
+        return normalize_proxy_url(proxies.get("https") or proxies.get("http"))
 
     @staticmethod
     def _retry_delay(

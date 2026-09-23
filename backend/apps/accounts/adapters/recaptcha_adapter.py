@@ -73,6 +73,7 @@ class GoogleRecaptchaAdapter:
             async with httpx.AsyncClient(
                 timeout=httpx.Timeout(timeout),
                 follow_redirects=False,
+                trust_env=False,
             ) as client:
                 async with client.stream(
                     "POST",

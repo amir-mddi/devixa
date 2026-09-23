@@ -393,6 +393,7 @@ class PardakhtyarPaymentGatewayAdapter(PaymentGatewayAdapter):
             async with httpx.AsyncClient(
                 timeout=httpx.Timeout(self.timeout),
                 follow_redirects=False,
+                trust_env=False,
             ) as client:
                 async with client.stream(
                     "POST",

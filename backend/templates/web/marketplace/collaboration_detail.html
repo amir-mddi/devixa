@@ -1,0 +1,4 @@
+{% extends "web/marketplace/base.html" %}
+{% block mp_title %}{{ project.title }}{% endblock %}
+{% block mp_intro %}{{ project.specialty }} · {{ project.get_mode_display }}{% endblock %}
+{% block mp_body %}<article class="mp__panel"><h2>{{ project.title }}</h2><p class="mp__preline">{{ project.description }}</p><div class="mp__meta">ثبت‌کننده: {{ project.owner.get_full_name|default:project.owner.username }} · {{ project.city|default:'آنلاین' }} · حداکثر {{ project.max_members }} عضو</div>{% if request.user.pk != project.owner_id %}<a class="mp__button" href="{% url 'marketplace:collaboration_apply' project.pk %}">درخواست پیوستن</a>{% else %}<a class="mp__button mp__button--ghost" href="{% url 'marketplace:dashboard' %}">میزکار من</a>{% endif %}</article>{% endblock %}

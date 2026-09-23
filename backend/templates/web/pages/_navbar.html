@@ -11,12 +11,14 @@
         <a class="nav-link" href="{% url 'pages_web:home' %}"><span>خانه</span></a>
         <a class="nav-link" href="{% url 'courses_web:course_list' %}"><span>دوره‌ها</span></a>
         <a class="nav-link" href="{% url 'courses_web:roadmap_list' %}"><span>نقشه راه دوره‌ها</span></a>
+        <a class="nav-link" href="{% url 'marketplace:mentors' %}"><span>منتورها و مدارس</span></a>
+        <a class="nav-link" href="{% url 'marketplace:collaborations' %}"><span>همکاری</span></a>
         <a class="nav-link" href="{% url 'articles_web:article_list' %}"><span>مجله</span></a>
         <a class="nav-link" href="{% url 'pages_web:channels' %}"><span>کانال‌ها</span></a>
         <a class="nav-link" href="{% url 'pages_web:contact_us' %}"><span>تماس</span></a>
         <a class="nav-link" href="{% url 'pages_web:about_us' %}"><span>درباره‌ما</span></a>
     </nav>
-    <button type="button" onclick="respo();" class="bars" aria-label="باز کردن منو" aria-controls="navmenu" aria-expanded="false">
+    <button type="button" class="site-menu-toggle" aria-label="نمایش همه منوها" aria-controls="site-mobile-menu" aria-expanded="false">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-menu-icon lucide-menu"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/></svg>
     </button>
     <section class="nav_cta flex">
@@ -51,6 +53,7 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
                     </a>
                     {% endif %}
+                    <a href="{% url 'marketplace:dashboard' %}" class="auth-menu__profile-link"><span>میزکار آموزشی من</span><i class="fa-solid fa-people-group" aria-hidden="true"></i></a>
                     <a href="{% url 'accounts_web:profile' %}" class="auth-menu__profile-link">
                         <span>پنل کاربری</span>
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/></svg>
@@ -81,6 +84,25 @@
     </section>
 </nav>
 
+<div class="site-mobile-menu-backdrop" data-site-mobile-backdrop hidden></div>
+<nav id="site-mobile-menu" class="site-mobile-menu" aria-label="همه بخش‌های سایت" hidden>
+    <div class="site-mobile-menu__grid">
+        <a href="{% url 'pages_web:home' %}"><i class="fa-solid fa-house" aria-hidden="true"></i> خانه</a>
+        <a href="{% url 'courses_web:course_list' %}"><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i> دوره‌ها</a>
+        <a href="{% url 'courses_web:roadmap_list' %}"><i class="fa-solid fa-route" aria-hidden="true"></i> نقشه راه</a>
+        <a href="{% url 'marketplace:mentors' %}"><i class="fa-solid fa-people-group" aria-hidden="true"></i> منتورها</a>
+        <a href="{% url 'marketplace:academies' %}"><i class="fa-solid fa-school" aria-hidden="true"></i> مدارس</a>
+        <a href="{% url 'marketplace:opportunities' %}"><i class="fa-solid fa-briefcase" aria-hidden="true"></i> فرصت‌ها</a>
+        <a href="{% url 'marketplace:collaborations' %}"><i class="fa-solid fa-handshake" aria-hidden="true"></i> همکاری</a>
+        <a href="{% url 'marketplace:dashboard' %}"><i class="fa-solid fa-table-columns" aria-hidden="true"></i> میزکار</a>
+        <a href="{% url 'articles_web:article_list' %}"><i class="fa-solid fa-newspaper" aria-hidden="true"></i> مجله</a>
+        <a href="{% url 'pages_web:channels' %}"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i> کانال‌ها</a>
+        <a href="{% url 'pages_web:contact_us' %}"><i class="fa-solid fa-envelope" aria-hidden="true"></i> تماس</a>
+        <a href="{% url 'pages_web:about_us' %}"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> درباره ما</a>
+        {% if request.user.is_authenticated %}<a href="{% url 'accounts_web:profile' %}"><i class="fa-solid fa-user" aria-hidden="true"></i> حساب کاربری</a>{% else %}<a href="{% url 'accounts_web:login' %}"><i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i> ورود</a>{% endif %}
+    </div>
+</nav>
+
 <nav class="mobile-bottom-nav" aria-label="منوی اصلی موبایل">
     <a class="mobile-bottom-nav__item" data-mobile-nav-link="home" href="{% url 'pages_web:home' %}">
         <i class="fa-solid fa-house" aria-hidden="true"></i>
@@ -94,16 +116,16 @@
         <i class="fa-solid fa-route" aria-hidden="true"></i>
         <span>نقشه‌راه</span>
     </a>
-    <a class="mobile-bottom-nav__item" data-mobile-nav-link="channels" href="{% url 'pages_web:channels' %}">
-        <i class="fa-regular fa-paper-plane" aria-hidden="true"></i>
-        <span>کانال‌ها</span>
+    <a class="mobile-bottom-nav__item" data-mobile-nav-link="mentors" href="{% url 'marketplace:mentors' %}">
+        <i class="fa-solid fa-people-group" aria-hidden="true"></i>
+        <span>منتورها</span>
     </a>
-    <a class="mobile-bottom-nav__item" data-mobile-nav-link="contact" href="{% url 'pages_web:contact_us' %}">
-        <i class="fa-solid fa-headset" aria-hidden="true"></i>
-        <span>تماس</span>
+    <a class="mobile-bottom-nav__item" data-mobile-nav-link="academies" href="{% url 'marketplace:academies' %}">
+        <i class="fa-solid fa-school" aria-hidden="true"></i>
+        <span>مدارس</span>
     </a>
-    <a class="mobile-bottom-nav__item" data-mobile-nav-link="articles" href="{% url 'articles_web:article_list' %}">
-        <i class="fa-solid fa-newspaper" aria-hidden="true"></i>
-        <span>مجله</span>
+    <a class="mobile-bottom-nav__item" data-mobile-nav-link="opportunities" href="{% url 'marketplace:opportunities' %}">
+        <i class="fa-solid fa-briefcase" aria-hidden="true"></i>
+        <span>فرصت‌ها</span>
     </a>
 </nav>

@@ -1,0 +1,8 @@
+{% extends "web/marketplace/base.html" %}
+{% block mp_title %}همکاری‌های آموزشی{% endblock %}
+{% block mp_intro %}برای راه‌اندازی دوره، تولید محتوا یا طرح آموزشی هم‌تیمی پیدا کنید.{% endblock %}
+{% block mp_body %}
+<div class="mp__section-head"><h2>طرح‌های همکاری</h2><a href="{% url 'marketplace:collaboration_new' %}">+ ثبت طرح همکاری</a></div>
+<form class="mp__filters" method="get" role="search"><label>عنوان یا مهارت <input name="q" value="{{ request.GET.q|default:'' }}" maxlength="100" placeholder="عنوان یا مهارت موردنیاز"></label><button class="mp__button" type="submit">جستجو</button></form>
+<div class="mp__grid">{% for item in projects %}<article class="mp__card"><span class="mp__badge">{{ item.get_mode_display }}</span><h3><a href="{% url 'marketplace:collaboration_detail' item.pk %}">{{ item.title }}</a></h3><p>{{ item.description|truncatechars:170 }}</p><div class="mp__meta">{{ item.specialty }} · {{ item.city|default:'آنلاین' }} · حداکثر {{ item.max_members }} عضو</div><a class="mp__button" href="{% url 'marketplace:collaboration_detail' item.pk %}">اطلاعات و درخواست همکاری</a></article>{% empty %}<p class="mp__empty">طرح منتشرشده‌ای پیدا نشد.</p>{% endfor %}</div>
+{% endblock %}

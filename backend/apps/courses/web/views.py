@@ -9,6 +9,7 @@ from rest_framework.exceptions import NotFound
 from backend.apps.common.project_config import get_request_project_context
 from backend.apps.common.web.seo.mixins import SeoContextMixin
 from backend.apps.courses.repositories.logic import CourseLogicRepository
+from backend.apps.marketplace.repositories.marketplace import MarketplaceRepository
 from backend.apps.courses.web.seo_presenters import CourseSeoPresenter
 from backend.apps.courses.vo.roadmap_vo import (
     CourseRoadmapCategoryLabelVO,
@@ -61,6 +62,7 @@ class CourseDetailPageView(AsyncWebViewMixin, CourseWebRepositoryMixin, Template
             {
                 CourseWebContextKeyVO.COURSE_DETAIL.value: detail,
                 CourseWebContextKeyVO.COURSE.value: detail.course,
+                "public_mentor": MarketplaceRepository().public_mentor_for_user(detail.course.instructor_id),
                 CourseWebContextKeyVO.REVIEWS.value: detail.reviews,
                 CourseWebContextKeyVO.RELATED_COURSES.value: detail.related_courses,
                 CourseWebContextKeyVO.RELATED_COURSES_EMPTY_MESSAGE.value: (

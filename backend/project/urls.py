@@ -42,6 +42,7 @@ urlpatterns = [
     path("", include("backend.apps.courses.web.urls")),
     path("", include("backend.apps.articles.web.urls")),
     path("", include("backend.apps.billing.web.urls")),
+    path("", include("backend.apps.marketplace.urls")),
     path("management/", include("backend.apps.admin_panel.web.urls")),
     path(PREFIX_URL + "account/", include("backend.apps.accounts.urls")),
     path(PREFIX_URL + "courses/", include("backend.apps.courses.urls")),

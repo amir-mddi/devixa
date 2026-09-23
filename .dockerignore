@@ -58,11 +58,15 @@ deployment/env/local.env
 # Distribution / packaging
 .Python
 build/
+poetry.lock
+pyproject.toml
+updates
 prometheus.yml
 requirements-test.txt
 local_machine.env
 develop-eggs/
 backend/apps/rag
+experiece
 eggs/
 .eggs/
 lib/

@@ -1,0 +1,17 @@
+{% extends "web/marketplace/base.html" %}
+{% block mp_title %}منتورها و مدرس‌های تخصصی{% endblock %}
+{% block mp_intro %}برای جلسه خصوصی، مشاوره یا یادگیری یک مهارت، مدرس مناسب خودت را پیدا کن.{% endblock %}
+{% block mp_body %}
+<form class="mp__filters" method="get" role="search">
+ <label>نام یا مهارت <input name="q" value="{{ request.GET.q|default:'' }}" placeholder="نام مدرس، Python و ..."></label>
+ <label>موضوع جلسه <input name="subject" value="{{ request.GET.subject|default:'' }}" placeholder="مثلاً شبکه"></label>
+ <label>شهر <input name="city" value="{{ request.GET.city|default:'' }}" placeholder="نام شهر"></label>
+ <label>حداکثر قیمت ساعتی (تومان) <input name="price" value="{{ request.GET.price|default:'' }}" type="number" min="0"></label>
+ <label>شیوه برگزاری <select name="mode"><option value="">همه</option><option value="online">آنلاین</option><option value="onsite">حضوری</option></select></label>
+ <button class="mp__button" type="submit">جستجو</button>
+</form>
+<div class="mp__section-head"><h2>آگهی‌های منتورینگ</h2><a href="{% url 'marketplace:offer_new' %}">+ ثبت آگهی</a></div>
+<div class="mp__grid">{% for offer in offers %}<article class="mp__card"><span class="mp__badge">{{ offer.get_mode_display }}</span><h3><a href="{% url 'marketplace:offer_detail' offer.pk %}">{{ offer.title }}</a></h3><p>{{ offer.description|truncatechars:130 }}</p><div class="mp__meta"><span>{{ offer.mentor.display_name }} · {{ offer.subject }}</span><span>{{ offer.city|default:offer.mentor.city }}</span></div><div class="mp__card-bottom"><strong>{{ offer.hourly_price }} تومان / ساعت</strong><a class="mp__button" href="{% url 'marketplace:offer_detail' offer.pk %}">جزئیات و زمان‌ها</a></div></article>{% empty %}<p class="mp__empty">هنوز آگهی منتشرشده‌ای با این فیلترها وجود ندارد.</p>{% endfor %}</div>
+<div class="mp__section-head"><h2>پروفایل مدرس‌ها</h2><a href="{% url 'marketplace:mentor_edit' %}">+ ساخت پروفایل مدرس</a></div>
+<div class="mp__grid">{% for mentor in mentors %}<article class="mp__card"><span class="mp__badge">مدرس</span><h3><a href="{% url 'marketplace:mentor_detail' mentor.pk %}">{{ mentor.display_name }}</a></h3><p>{{ mentor.headline }}</p><div class="mp__meta">{{ mentor.subjects }} · {{ mentor.city }}</div><a class="mp__button mp__button--ghost" href="{% url 'marketplace:mentor_detail' mentor.pk %}">مشاهده رزومه عمومی</a></article>{% empty %}<p class="mp__empty">هنوز پروفایل تأییدشده‌ای ثبت نشده است.</p>{% endfor %}</div>
+{% endblock %}

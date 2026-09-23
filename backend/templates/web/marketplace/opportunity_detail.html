@@ -1,0 +1,5 @@
+{% extends "web/marketplace/base.html" %}
+{% block mp_title %}{{ opportunity.title }}{% endblock %}
+{% block mp_intro %}{{ opportunity.academy.name }} · {{ opportunity.get_kind_display }}{% endblock %}
+{% block mp_body %}<section class="mp__panel"><div class="mp__meta">{{ opportunity.subject }} · {{ opportunity.city }} · {{ opportunity.get_mode_display }}</div><h2>شرح همکاری</h2><p class="mp__preline">{{ opportunity.description }}</p><p>{% if opportunity.budget %}بودجه پیشنهادی: {{ opportunity.budget }} تومان{% else %}بودجه: توافقی{% endif %}</p><a href="{% url 'marketplace:academy_detail' opportunity.academy.pk %}">معرفی مجموعه</a></section>
+<section class="mp__panel"><h2>ارسال درخواست همکاری</h2>{% if request.user.is_authenticated %}<form class="mp__form" method="post" action="{% url 'marketplace:opportunity_apply' opportunity.pk %}">{% csrf_token %}{{ form.as_div }}<button class="mp__button" type="submit">ثبت درخواست</button></form>{% else %}<a class="mp__button" href="{% url 'accounts_web:login' %}">برای درخواست وارد حساب شوید</a>{% endif %}</section>{% endblock %}

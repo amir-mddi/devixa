@@ -8,6 +8,7 @@ x-backend-service: &backend-service
     PORT: ${PORT:-8077}
   volumes:
     - /mnt/data/backend_web/media:/app/backend/apps/media
+    - /mnt/data/backend_web/private_uploads:/app/deployment/private_uploads
     - /mnt/data/backend_web/static:/app/deployment/staticfiles
     - /mnt/data/backend_web/db:/app/db
     - /mnt/data/backend_web/postgresql_backup:/app/postgresql_backup

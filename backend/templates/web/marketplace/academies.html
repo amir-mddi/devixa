@@ -1,0 +1,6 @@
+{% extends "web/marketplace/base.html" %}
+{% block mp_title %}مدارس و آموزشگاه‌ها{% endblock %}
+{% block mp_intro %}رشته‌ها، امکانات، نشانی و فرصت‌های همکاری مراکز آموزشی را ببین.{% endblock %}
+{% block mp_body %}<form class="mp__filters" method="get"><label>نام یا رشته <input name="q" value="{{ request.GET.q|default:'' }}" placeholder="نام مدرسه یا رشته"></label><label>شهر <input name="city" value="{{ request.GET.city|default:'' }}"></label><button type="submit" class="mp__button">جستجو</button></form>
+<div class="mp__section-head"><h2>مراکز آموزشی</h2><a href="{% url 'marketplace:academy_new' %}">+ معرفی مجموعه</a></div>
+<div class="mp__grid">{% for academy in academies %}<article class="mp__card"><span class="mp__badge">{{ academy.category }}</span><h3><a href="{% url 'marketplace:academy_detail' academy.pk %}">{{ academy.name }}</a></h3><p>{{ academy.description|truncatechars:150 }}</p><div class="mp__meta">{{ academy.city }} · {{ academy.programs|truncatechars:75 }}</div><a class="mp__button mp__button--ghost" href="{% url 'marketplace:academy_detail' academy.pk %}">معرفی کامل</a></article>{% empty %}<p class="mp__empty">مجموعه‌ای با این مشخصات پیدا نشد.</p>{% endfor %}</div>{% endblock %}

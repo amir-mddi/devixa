@@ -3,104 +3,111 @@
 
 {% block title %}{{ seo.title }}{% endblock %}
 {% block meta_description %}{{ seo.description }}{% endblock %}
-{% block page_styles %}
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css">
-    <link rel="stylesheet" href="{% project_static 'Styles/courses.css' %}">
-    <link rel="stylesheet" href="{% project_static 'Styles/courses-v2.css' %}?v=courses-v2-1">
+{% block page_styles_after %}
+<link rel="stylesheet" href="{% project_static 'Styles/course-discovery.css' %}?v=course-discovery-1">
 {% endblock %}
 
 {% block content %}
-<section class="courses_section" dir="rtl">
-    <section class="courses_hero">
-        <h4 class="badge flex-center">
-            <span><svg class="lucide lucide-sparkles" fill="var(--primary)" height="32" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="32" xmlns="http://www.w3.org/2000/svg"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg></span>
-            کاتالوگ دوره‌های <span class="brand-text">{{ project.display_name }}</span>
-        </h4>
-        <h4 class="title text-center mt-4 reveal">دوره‌های پروژه محور</h4>
-        <p class="subtitle text-center mt-3 reveal_right" style="width:100%">دوره مناسب خودت را با دسته‌بندی، سطح و جستجو پیدا کن.</p>
-
-        <section class="category_chips chip-list mt-3 flex-around">
-            {% for category in catalog.categories %}
-                <div class="chip flex-center">
-                    <a class="category-chip flex-center {% if category.value == catalog.selected_category %}active is-active{% endif %}"
-                       href="?category={{ category.value }}&level={{ catalog.selected_level }}{% if catalog.search %}&search={{ catalog.search|urlencode }}{% endif %}">
-                        <p>{{ category.label }}</p>
-                    </a>
+<main class="course-discovery" dir="rtl" id="courses-main">
+    <section class="course-discovery__hero" aria-labelledby="courses-heading">
+        <div class="course-discovery__container course-discovery__hero-grid">
+            <div class="course-discovery__hero-copy">
+                <span class="course-discovery__eyebrow"><span class="course-discovery__eyebrow-dot" aria-hidden="true"></span> آکادمی <bdi>{{ project.display_name }}</bdi> <span aria-hidden="true">/</span> یادگیری مهارت‌محور</span>
+                <h1 id="courses-heading">مهارت تازه، <span>مسیر تازه.</span></h1>
+                <p class="course-discovery__hero-description">از اولین قدم تا ساخت یک پروژه، دوره‌ای را پیدا کن که با علاقه و سطح فعلی تو هماهنگ است.</p>
+                <div class="course-discovery__hero-actions">
+                    <a href="#course-list" class="course-discovery__button course-discovery__button--primary">کاوش دوره‌ها <svg aria-hidden="true" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></a>
+                    <a href="{% url 'courses_web:roadmap_list' %}" class="course-discovery__button course-discovery__button--ghost">نقشه‌های راه <svg aria-hidden="true" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17 9 5l6 14 6-10"/><circle cx="3" cy="17" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg></a>
                 </div>
-            {% endfor %}
-        </section>
-
-        <section class="courses_filter_group filter-list">
-            {% for level in level_filters %}
-                <div class="chip flex-center">
-                    <a class="filter-chip flex-center {% if level.value == catalog.selected_level %}active is-active{% endif %}"
-                       href="?category={{ catalog.selected_category }}&level={{ level.value }}{% if catalog.search %}&search={{ catalog.search|urlencode }}{% endif %}">
-                        <p>{{ level.label }}</p>
-                    </a>
-                </div>
-            {% endfor %}
-        </section>
-
-        <form method="get" action="{% url 'courses_web:course_list' %}" class="search flex-center">
-            <input type="hidden" name="category" value="{{ catalog.selected_category }}">
-            <input type="hidden" name="level" value="{{ catalog.selected_level }}">
-            <input class="search_box" type="search" name="search" value="{{ catalog.search }}" placeholder="جستجو در دوره‌ها..." autocomplete="off">
-            <button class="course_filter_submit" type="submit">جستجو</button>
-        </form>
-        <p class="courses_summary">{{ catalog.total_count }} دوره آماده نمایش است.</p>
+                <div class="course-discovery__hero-footnote"><span aria-hidden="true">✦</span> یادگیری با انتخاب آگاهانه از میان دوره‌ها و مسیرهای آموزشی</div>
+            </div>
+            <div class="course-discovery__hero-art" aria-hidden="true">
+                <div class="course-discovery__art-orbit course-discovery__art-orbit--outer"></div>
+                <div class="course-discovery__art-orbit course-discovery__art-orbit--inner"></div>
+                <div class="course-discovery__art-core"><svg viewBox="0 0 112 112" width="112" height="112" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="19" y="26" width="74" height="60" rx="15" stroke="currentColor" stroke-width="2.5"/><path d="M36 50 49 62 36 74M56 74h19" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M45 18V9m22 9V9M45 104v-9m22 9v-9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+                <div class="course-discovery__art-note course-discovery__art-note--top"><span class="course-discovery__art-icon">✦</span><span>مسیر خودت را بساز</span></div>
+                <div class="course-discovery__art-note course-discovery__art-note--bottom"><span class="course-discovery__art-step">01 — 02 — 03</span><span>یادگیری · تمرین · ساختن</span></div>
+                <span class="course-discovery__art-star course-discovery__art-star--one">✦</span>
+                <span class="course-discovery__art-star course-discovery__art-star--two">✳</span>
+            </div>
+        </div>
     </section>
 
-    <section class="courses_catalog" data-catalog="courses" data-catalog-type="دوره">
+    <section class="course-discovery__catalog course-discovery__container" id="course-list" aria-labelledby="course-list-title">
+        <div class="course-discovery__section-heading">
+            <div>
+                <span class="course-discovery__section-kicker">DISCOVER YOUR NEXT SKILL</span>
+                <h2 id="course-list-title">دوره‌های آموزشی</h2>
+                <p>بر اساس موضوع، سطح و نام دوره جستجو کن.</p>
+            </div>
+            <div class="course-discovery__count" role="status"><span class="course-discovery__count-number">{{ catalog.total_count }}</span><span>دوره برای نمایش</span></div>
+        </div>
+
+        <div class="course-discovery__filters" aria-label="جستجو و فیلتر دوره‌ها">
+            <form method="get" action="{% url 'courses_web:course_list' %}" class="course-discovery__search" role="search">
+                <input type="hidden" name="category" value="{{ catalog.selected_category }}">
+                <input type="hidden" name="level" value="{{ catalog.selected_level }}">
+                <label for="course-search" class="course-discovery__search-label">جستجوی دوره</label>
+                <div class="course-discovery__search-field"><svg aria-hidden="true" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7.5"/><path d="m16.5 16.5 5 5"/></svg><input id="course-search" type="search" name="search" value="{{ catalog.search }}" placeholder="نام دوره یا مهارت را جستجو کن..." autocomplete="off"></div>
+                <button type="submit" class="course-discovery__search-submit">جستجو <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 7 5 5-5 5M19 12H5"/></svg></button>
+            </form>
+            <div class="course-discovery__filter-row">
+                <div class="course-discovery__filter-group">
+                    <h3>موضوع دوره</h3>
+                    <nav class="course-discovery__chip-list" aria-label="فیلتر بر اساس موضوع">
+                        {% for category in catalog.categories %}
+                        <a class="course-discovery__chip{% if category.value == catalog.selected_category %} is-active{% endif %}" href="?category={{ category.value|urlencode }}&amp;level={{ catalog.selected_level|urlencode }}{% if catalog.search %}&amp;search={{ catalog.search|urlencode }}{% endif %}" {% if category.value == catalog.selected_category %}aria-current="page"{% endif %}>{{ category.label }}</a>
+                        {% endfor %}
+                    </nav>
+                </div>
+                <div class="course-discovery__filter-group course-discovery__filter-group--level">
+                    <h3>سطح یادگیری</h3>
+                    <nav class="course-discovery__chip-list" aria-label="فیلتر بر اساس سطح">
+                        {% for level in level_filters %}
+                        <a class="course-discovery__chip{% if level.value == catalog.selected_level %} is-active{% endif %}" href="?category={{ catalog.selected_category|urlencode }}&amp;level={{ level.value|urlencode }}{% if catalog.search %}&amp;search={{ catalog.search|urlencode }}{% endif %}" {% if level.value == catalog.selected_level %}aria-current="page"{% endif %}>{{ level.label }}</a>
+                        {% endfor %}
+                    </nav>
+                </div>
+            </div>
+            {% if catalog.search or catalog.selected_category != 'all' or catalog.selected_level != 'all' %}
+            <a class="course-discovery__clear" href="{% url 'courses_web:course_list' %}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg> پاک کردن فیلترها</a>
+            {% endif %}
+        </div>
+
         {% if catalog.courses %}
-            <section class="courses" data-catalog-grid>
-                {% for course in catalog.courses %}
-                    {% include "web/courses/_course_card.html" with course=course %}
-                {% endfor %}
-            </section>
+        <div class="course-discovery__grid" data-catalog="courses" data-catalog-type="دوره" data-catalog-grid>
+            {% for course in catalog.courses %}
+                {% include "web/courses/_course_card.html" with course=course card_variant="catalog" %}
+            {% endfor %}
+        </div>
         {% else %}
-            <div class="course_empty_state">{{ empty_message }}</div>
+        <div class="course-discovery__empty" role="status">
+            <span class="course-discovery__empty-icon" aria-hidden="true"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5M8 11h6"/></svg></span>
+            <h3>دوره‌ای با این فیلترها پیدا نشد</h3>
+            <p>{{ empty_message }}</p>
+            <a class="course-discovery__button course-discovery__button--primary" href="{% url 'courses_web:course_list' %}">نمایش همه دوره‌ها</a>
+        </div>
         {% endif %}
     </section>
 
-    <section class="why_us stats flex-around courses-benefits-v2" aria-labelledby="courses-benefits-title">
-        <div class="courses-benefits-v2__intro">
-            <span class="courses-benefits-v2__eyebrow">چرا تجربه یادگیری در {{ project.display_name }} متفاوت است؟</span>
-            <h2 id="courses-benefits-title" class="section-title">مزیت‌هایی که مسیر یادگیری را کاربردی‌تر می‌کنند</h2>
-        </div>
-
-        <div class="courses-benefits-v2__grid">
-            <article class="courses-benefit-card-v2">
-                <span class="courses-benefit-card-v2__icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
-                <h4>پشتیبانی</h4>
-                <p>سوال‌های خود را در طول مسیر مطرح کنید و بدون توقف جلو بروید.</p>
-            </article>
-            <article class="courses-benefit-card-v2">
-                <span class="courses-benefit-card-v2__icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg></span>
-                <h4>مسیر یادگیری</h4>
-                <p>از سردرگمی خارج شوید و با یک مسیر مشخص، مرحله‌به‌مرحله رشد کنید.</p>
-            </article>
-            <article class="courses-benefit-card-v2">
-                <span class="courses-benefit-card-v2__icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h20"/><path d="M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3"/><path d="m7 21 5-5 5 5"/></svg></span>
-                <h4>منتورینگ</h4>
-                <p>در طول یادگیری از راهنمایی منتورها برای تصمیم‌های بهتر استفاده کنید.</p>
-            </article>
-            <article class="courses-benefit-card-v2">
-                <span class="courses-benefit-card-v2__icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/><path d="m10 8-3 3 3 3"/><path d="m14 14 3-3-3-3"/></svg></span>
-                <h4>پروژه‌محور</h4>
-                <p>با ساخت پروژه واقعی، مهارت خود را به خروجی قابل ارائه تبدیل کنید.</p>
-            </article>
+    <section class="course-discovery__benefits" aria-labelledby="course-benefits-title">
+        <div class="course-discovery__container">
+            <div class="course-discovery__section-heading course-discovery__section-heading--center">
+                <div><span class="course-discovery__section-kicker">LEARN WITH PURPOSE</span><h2 id="course-benefits-title">یادگیری، فراتر از تماشای ویدئو</h2><p>دوره و مسیر متناسب با هدفت را انتخاب کن و آموخته‌هایت را به عمل تبدیل کن.</p></div>
+            </div>
+            <div class="course-discovery__benefit-grid">
+                <article class="course-discovery__benefit"><span class="course-discovery__benefit-icon" aria-hidden="true"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h18v12H3zM8 20h8M12 16v4M7 9l3 3 6-6"/></svg></span><span class="course-discovery__benefit-index">01 /</span><h3>تمرین و پروژه</h3><p>مفاهیم را در مسیر ساخت یک خروجی کاربردی تمرین کن.</p></article>
+                <article class="course-discovery__benefit"><span class="course-discovery__benefit-icon" aria-hidden="true"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="2"/><circle cx="12" cy="6" r="2"/><circle cx="19" cy="15" r="2"/><path d="m7.5 16.8 3.3-8.9m2.8-.5 4 5.8"/></svg></span><span class="course-discovery__benefit-index">02 /</span><h3>مسیر مشخص</h3><p>با نقشه‌های راه، قدم بعدی یادگیری‌ات را راحت‌تر پیدا کن.</p></article>
+                <article class="course-discovery__benefit"><span class="course-discovery__benefit-icon" aria-hidden="true"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 17v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 7a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM3 20h18"/></svg></span><span class="course-discovery__benefit-index">03 /</span><h3>منتورینگ</h3><p>در بخش منتورها راهنمایی متناسب با نیاز خودت را جستجو کن.</p></article>
+            </div>
         </div>
     </section>
 
-    <section class="courses_cta">
-        <div class="courses_box flex-center">
-            <h4 class="title reveal">آماده شروع <span class="gradient_word">مسیر یادگیری</span> هستی؟</h4>
-            <p class="subtitle text-center mt-2" style="width:100%">دوره مناسب را انتخاب کن و قدم اول را بردار.</p>
-            <section class="buttons flex-center">
-                <a class="courses_link" href="{% url 'pages_web:contact_us' %}">مشاوره رایگان</a>
-                <a class="starting" href="{% url 'courses_web:roadmap_list' %}">مشاهده نقشه راه‌ها</a>
-            </section>
+    <section class="course-discovery__cta course-discovery__container" aria-labelledby="course-cta-title">
+        <div class="course-discovery__cta-panel">
+            <div><span class="course-discovery__section-kicker">YOUR NEXT CHAPTER</span><h2 id="course-cta-title">برای قدم بعدی آماده‌ای؟</h2><p>مسیرهای آموزشی را ببین یا برای انتخاب دوره از ما راهنمایی بگیر.</p></div>
+            <div class="course-discovery__cta-actions"><a class="course-discovery__button course-discovery__button--light" href="{% url 'courses_web:roadmap_list' %}">مشاهده نقشه‌های راه <span aria-hidden="true">↗</span></a><a class="course-discovery__button course-discovery__button--outline" href="{% url 'pages_web:contact_us' %}">ارتباط با ما</a></div>
         </div>
     </section>
-</section>
+</main>
 {% endblock %}

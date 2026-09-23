@@ -73,14 +73,17 @@ media/tax_reports
 .idea/**/uiDesigner.xml
 .idea/**/dbnavigator.xml
 # Gradle
+updates
 .idea/**/gradle.xml
 .idea/**/libraries
 # File-based project format
 *.iws
-
+experiece
+poetry.lock
+pyproject.toml
 # IntelliJ
 out/
-
+microservices_expert_notes_fa_rtl_corrected.pdf
 # JIRA plugin
 atlassian-ide-plugin.xml
 *mock_ex*

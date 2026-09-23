@@ -44,6 +44,10 @@ from backend.apps.telegram_bot.dtos.account_link_dtos import (
 )
 from backend.apps.telegram_bot.dtos.profile_dtos import DisconnectMessengerProfileDTO
 from backend.apps.telegram_bot.logic.profile_logic import MessengerProfileLogic
+from backend.apps.telegram_bot.controllers.marketplace_controller import MarketplaceBotController
+from backend.apps.telegram_bot.vo.marketplace_vo import (
+    MarketplaceBotCallbackVO, MarketplaceBotMessageVO, MarketplaceBotSection,
+)
 from backend.apps.telegram_bot.models import BotSupportTicket, TelegramProfile
 from backend.apps.telegram_bot.enums.bot_setting_enums import BotSettingProviderEnum
 from backend.apps.telegram_bot.repositories.bot_cache_repository import TelegramBotCacheRepository
@@ -242,6 +246,12 @@ class TelegramBotService:
         self.support_logic = support_logic or BotSupportLogicRepository()
         self.account_logic = account_logic or AccountLogicRepository()
         self.messenger_profile_logic = messenger_profile_logic or MessengerProfileLogic()
+        self.marketplace_controller = MarketplaceBotController(
+            send_chain_message=self.send_chain_message,
+            language_resolver=self.lang,
+            linked_user_resolver=self.linked_user_or_none,
+            app_url_resolver=self.web_app_url,
+        )
         self.article_controller = ArticleBotController(
             logic=ArticleBotLogic(cache_prefix=self.CACHE_PREFIX),
             send_chain_message=self.send_chain_message,
@@ -395,6 +405,12 @@ class TelegramBotService:
 
         if not self.has_selected_language(profile):
             self.show_language_selection(profile)
+            return
+
+        if data.startswith(MarketplaceBotCallbackVO.PREFIX):
+            self.marketplace_controller.handle_callback(
+                profile, data, message_id=message.get("message_id"),
+            )
             return
 
         if data == self.CALLBACK_MAIN_MENU:
@@ -2417,6 +2433,21 @@ class TelegramBotService:
             return
 
         self._send_forgot_password_sms(profile, phone_number)
+
+    def _show_marketplace(self, profile: TelegramProfile, section: MarketplaceBotSection) -> None:
+        self.marketplace_controller.show(profile, section)
+
+    def handle_marketplace(self, profile: TelegramProfile, command: TelegramCommand) -> None:
+        self._show_marketplace(profile, MarketplaceBotSection.HOME)
+
+    def handle_mentors(self, profile: TelegramProfile, command: TelegramCommand) -> None:
+        self._show_marketplace(profile, MarketplaceBotSection.MENTORS)
+
+    def handle_collaborations(self, profile: TelegramProfile, command: TelegramCommand) -> None:
+        self._show_marketplace(profile, MarketplaceBotSection.COLLABORATIONS)
+
+    def handle_workspace(self, profile: TelegramProfile, command: TelegramCommand) -> None:
+        self._show_marketplace(profile, MarketplaceBotSection.WORKSPACE)
 
     def handle_webapp(self, profile: TelegramProfile, command: TelegramCommand) -> None:
         web_app_url = self.web_app_url()
@@ -5326,6 +5357,7 @@ class TelegramBotService:
 
         if is_linked:
             rows.append([cls.button(profile, "articles"), cls.button(profile, "courses")])
+            rows.append([MarketplaceBotMessageVO.COMMAND])
             rows.append([cls.button(profile, "my_courses"), cls.button(profile, "my_orders")])
             rows.append([cls.button(profile, "account"), cls.button(profile, "forgot_password")])
             if profile and cls.is_admin_profile(profile):
@@ -5353,6 +5385,7 @@ class TelegramBotService:
                 rows.append([cls.web_app_button(profile), cls.button(profile, "help")])
         else:
             rows.append([cls.button(profile, "articles"), cls.button(profile, "courses")])
+            rows.append([MarketplaceBotMessageVO.COMMAND])
             rows.append([cls.button(profile, "link"), cls.button(profile, "forgot_password")])
             rows.append([cls.button(profile, "channels"), cls.button(profile, "help")])
             if cls.web_app_url():

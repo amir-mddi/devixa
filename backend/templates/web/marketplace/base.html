@@ -1,0 +1,17 @@
+{% extends "web/pages/base.html" %}{% load project_tags %}
+{% block title %}{{ heading|default:"بازار آموزش و خدمات" }} | {{ project.display_name }}{% endblock %}
+{% block page_styles_after %}<link rel="stylesheet" href="{% project_static 'Styles/marketplace.css' %}">{% endblock %}
+{% block content %}<main class="mp" id="main-content">
+    <div class="mp__container">
+      <div class="mp__hero"><span class="mp__eyebrow">DEVIXA MARKETPLACE</span><h1>{% block mp_title %}مدرس، مدرسه و فرصت همکاری{% endblock %}</h1>
+      <p>{% block mp_intro %}پروفایل متخصص‌ها، معرفی مراکز آموزشی، جلسات منتورینگ و نیازمندی‌های آموزشی و فنی{% endblock %}</p></div>
+      <nav class="mp__tabs" aria-label="دسته‌بندی خدمات آموزشی">
+        <a href="{% url 'marketplace:mentors' %}"><i class="fa-solid fa-people-group" aria-hidden="true"></i> منتورها</a>
+        <a href="{% url 'marketplace:academies' %}"><i class="fa-solid fa-school" aria-hidden="true"></i> مدارس و آموزشگاه‌ها</a>
+        <a href="{% url 'marketplace:opportunities' %}"><i class="fa-solid fa-briefcase" aria-hidden="true"></i> فرصت‌های همکاری</a>
+        <a href="{% url 'marketplace:collaborations' %}"><i class="fa-solid fa-handshake" aria-hidden="true"></i> همکاری</a>
+        <a href="{% url 'marketplace:dashboard' %}"><i class="fa-solid fa-table-columns" aria-hidden="true"></i> میزکار من</a>
+      </nav>
+      {% block mp_body %}{% endblock %}
+    </div>
+  </main>{% endblock %}

@@ -16,6 +16,9 @@
     </style>
 {% endblock %}
 
+{% block page_styles_after %}
+    <link rel="stylesheet" href="{% project_static 'Styles/course-detail-polish.css' %}">
+{% endblock %}
 {% block content %}
 <section class="single_course_hero course-detail-hero">
     <section class="introduction course-detail-hero__content reveal_right">
@@ -116,6 +119,7 @@
                 <h5 class="name title">{{ course|course_instructor_label }}</h5>
                 <h6 class="subtitle mt-1" style="width:100%">مدرس و منتور <span class="brand-text">{{ project.display_name }}</span></h6>
                 <p class="subtitle mt-2" style="width:100%">این دوره با تمرکز روی پروژه، تمرین و ساخت نمونه‌کار طراحی شده است.</p>
+                {% if public_mentor %}<a class="Registration" href="{% url 'marketplace:mentor_detail' public_mentor.pk %}">پروفایل منتور و رزرو جلسه خصوصی</a>{% endif %}
             </section>
             <section class="picture flex-center">
                 <svg class="prof" xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/></svg>

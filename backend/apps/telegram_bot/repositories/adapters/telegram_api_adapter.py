@@ -13,6 +13,7 @@ from backend.apps.telegram_bot.dtos.commerce_bot_dtos import BotDownloadedFileDT
 from backend.apps.telegram_bot.enums.bot_setting_enums import BotSettingProviderEnum
 from backend.apps.telegram_bot.interfaces.bot_client_interface import BotClientInterface
 from backend.apps.telegram_bot.repositories.logic.bot_setting_logic import BotRuntimeConfigProvider
+from backend.apps.common.utils.proxy_utils import normalize_proxy_url, normalize_proxy_mapping
 from backend.apps.telegram_bot.repositories.adapters.bot_http_transport import BotProviderHttpTransport
 
 
@@ -39,7 +40,7 @@ class TelegramApiAdapter(BotClientInterface):
 
     @property
     def proxy_url(self) -> str:
-        return (self._proxy_url_override or BotRuntimeConfigProvider.get(self.PROVIDER, "proxy_url") or "").strip()
+        return normalize_proxy_url(self._proxy_url_override or BotRuntimeConfigProvider.get(self.PROVIDER, "proxy_url")) or ""
 
     @property
     def is_configured(self) -> bool:
@@ -47,10 +48,7 @@ class TelegramApiAdapter(BotClientInterface):
 
     @property
     def proxies(self) -> dict[str, str] | None:
-        proxy_url = self.proxy_url
-        if not proxy_url:
-            return None
-        return {"http": proxy_url, "https": proxy_url}
+        return normalize_proxy_mapping({"http": self.proxy_url, "https": self.proxy_url})
 
     async def _runtime_values(self) -> tuple[str, str]:
         return await sync_to_async(
@@ -67,7 +65,7 @@ class TelegramApiAdapter(BotClientInterface):
         if not token:
             raise RuntimeError("TELEGRAM_BOT_TOKEN is required.")
 
-        proxies = {"http": proxy_url, "https": proxy_url} if proxy_url else None
+        proxies = normalize_proxy_mapping({"http": proxy_url, "https": proxy_url}) if proxy_url else None
         body = await BotProviderHttpTransport.apost_json(
             url=f"https://api.telegram.org/bot{token}/{method_name}",
             method_name=method_name,
@@ -98,7 +96,7 @@ class TelegramApiAdapter(BotClientInterface):
         if not token:
             raise RuntimeError("TELEGRAM_BOT_TOKEN is required.")
 
-        proxies = {"http": proxy_url, "https": proxy_url} if proxy_url else None
+        proxies = normalize_proxy_mapping({"http": proxy_url, "https": proxy_url}) if proxy_url else None
         body = await BotProviderHttpTransport.apost_multipart(
             url=f"https://api.telegram.org/bot{token}/{method_name}",
             method_name=method_name,
@@ -172,8 +170,9 @@ class TelegramApiAdapter(BotClientInterface):
         try:
             async with httpx.AsyncClient(
                 timeout=httpx.Timeout(connect=5.0, read=30.0, write=30.0, pool=5.0),
-                proxy=proxy_url or None,
+                proxy=normalize_proxy_url(proxy_url),
                 follow_redirects=False,
+                trust_env=False,
             ) as client:
                 async with client.stream("GET", provider_url) as response:
                     if response.status_code != 200:

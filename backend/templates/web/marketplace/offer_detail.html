@@ -1,0 +1,5 @@
+{% extends "web/marketplace/base.html" %}
+{% block mp_title %}{{ offer.title }}{% endblock %}
+{% block mp_intro %}{{ offer.mentor.display_name }} · {{ offer.subject }} · {{ offer.get_mode_display }}{% endblock %}
+{% block mp_body %}<section class="mp__panel"><h2>درباره این جلسه</h2><p class="mp__preline">{{ offer.description }}</p><div class="mp__meta">{{ offer.city|default:offer.mentor.city }} · {{ offer.hourly_price }} تومان برای هر ساعت</div><a href="{% url 'marketplace:mentor_detail' offer.mentor.pk %}">مشاهده پروفایل مدرس</a><p class="mp__note">رزرو صرفاً ثبت درخواست است؛ پرداخت آنلاین و ساخت لینک جلسه در این نسخه فعال نیست.</p></section>
+<h2>زمان‌های آزاد</h2><div class="mp__grid">{% for slot in slots %}<article class="mp__card"><h3>{{ slot.starts_at|date:"Y/m/d – H:i" }}</h3><p>تا {{ slot.ends_at|date:"H:i" }}</p><form method="post" action="{% url 'marketplace:slot_book' slot.pk %}">{% csrf_token %}<button type="submit" class="mp__button">درخواست این جلسه</button></form></article>{% empty %}<p class="mp__empty">در حال حاضر زمان آزادی برای این جلسه ثبت نشده است.</p>{% endfor %}</div>{% endblock %}

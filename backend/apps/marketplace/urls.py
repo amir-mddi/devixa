@@ -1,0 +1,35 @@
+from django.urls import path
+from . import views
+
+app_name = "marketplace"
+urlpatterns = [
+    path("mentors/", views.mentors, name="mentors"),
+    path("collaborations/", views.collaborations, name="collaborations"),
+    path("collaborations/new/", views.collaboration_new, name="collaboration_new"),
+    path("collaborations/requests/<int:pk>/<str:decision>/", views.collaboration_decide, name="collaboration_decide"),
+    path("collaborations/<int:pk>/apply/", views.collaboration_apply, name="collaboration_apply"),
+    path("collaborations/<int:pk>/", views.collaboration_detail, name="collaboration_detail"),
+    path("mentors/profile/", views.edit_mentor, name="mentor_edit"),
+    path("mentors/resume/", views.resume_download, name="resume_download"),
+    path("mentors/<int:mentor_id>/staff-resume/", views.staff_resume_download, name="staff_resume_download"),
+    path("mentors/<int:pk>/", views.mentor_detail, name="mentor_detail"),
+    path("mentorship/new/", views.new_offer, name="offer_new"),
+    path("mentorship/<int:offer_id>/edit/", views.edit_offer, name="offer_edit"),
+    path("mentorship/<int:pk>/", views.offer_detail, name="offer_detail"),
+    path("mentorship/<int:offer_id>/slots/new/", views.new_slot, name="slot_new"),
+    path("mentorship/slots/<int:slot_id>/book/", views.book_slot, name="slot_book"),
+    path("mentorship/bookings/<int:booking_id>/<str:action>/", views.booking_action, name="booking_action"),
+    path("mentorship/bookings/<int:booking_id>/review/", views.review_booking, name="booking_review"),
+    path("academies/", views.academies, name="academies"),
+    path("academies/new/", views.new_academy, name="academy_new"),
+    path("academies/<int:academy_id>/edit/", views.edit_academy, name="academy_edit"),
+    path("academies/<int:pk>/", views.academy_detail, name="academy_detail"),
+    path("academies/<int:academy_id>/photos/new/", views.add_academy_photo, name="academy_photo_new"),
+    path("academies/<int:academy_id>/opportunities/new/", views.new_opportunity, name="opportunity_new"),
+    path("opportunities/", views.opportunities, name="opportunities"),
+    path("opportunities/<int:pk>/", views.opportunity_detail, name="opportunity_detail"),
+    path("opportunities/<int:pk>/apply/", views.apply, name="opportunity_apply"),
+    path("my-marketplace/", views.dashboard, name="dashboard"),
+    path("my-marketplace/applications/<int:application_id>/resume/", views.application_resume_download, name="application_resume_download"),
+    path("my-marketplace/applications/<int:application_id>/revoke-resume/", views.revoke_resume_access, name="revoke_resume_access"),
+]

@@ -1,0 +1,45 @@
+/* Marketplace pages: isolated, responsive and compatible with the existing theme tokens. */
+.mp{padding-block:clamp(28px,5vw,65px) 100px;color:var(--text-primary);font-family:var(--font-ui);min-width:0}
+.mp *{box-sizing:border-box}.mp__container{width:min(100% - 32px,1240px);margin-inline:auto;min-width:0}
+.mp__hero{text-align:center;border:1px solid var(--border-soft);border-radius:24px;padding:clamp(22px,5vw,56px) 18px;margin-block:0 22px;background:var(--bg-surface)}
+.mp__eyebrow{font-size:12px;letter-spacing:.18em;color:var(--primary);font-weight:800}
+.mp__hero h1{font-size:clamp(25px,3.5vw,44px);line-height:1.55;margin:10px 0;color:var(--text-primary)}
+.mp__hero p{max-width:670px;margin:0 auto;color:var(--text-secondary);line-height:1.95;font-size:clamp(14px,1.15vw,16px)}
+.mp__tabs{display:flex;gap:10px;overflow-x:auto;max-width:100%;padding:5px 1px 14px;scrollbar-width:thin}
+.mp__tabs a,.mp__action{border:1px solid var(--border-soft);border-radius:14px;background:var(--bg-card);color:var(--text-primary);text-decoration:none;padding:12px 17px;white-space:nowrap;min-height:46px;display:inline-flex;gap:9px;align-items:center;font-size:14px;font-weight:700}
+.mp__tabs a:hover,.mp__action:hover{border-color:var(--primary);color:var(--primary)}
+.mp__filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,185px),1fr));gap:14px;align-items:end;padding:18px;background:var(--bg-surface);border:1px solid var(--border-soft);border-radius:20px;margin:5px 0 28px}
+.mp__filters label,.mp__field label{display:flex;flex-direction:column;gap:7px;font-size:14px;font-weight:600;color:var(--text-primary);min-width:0}
+.mp input:not([type=checkbox]),.mp select,.mp textarea{width:100%;max-width:100%;min-height:45px;padding:10px 12px;border:1px solid var(--border-soft);border-radius:10px;background:var(--bg-input);color:var(--text-primary);font:inherit;font-size:15px;line-height:1.7}
+.mp textarea{min-height:110px;resize:vertical}.mp input:focus-visible,.mp select:focus-visible,.mp textarea:focus-visible,.mp__button:focus-visible,.mp a:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.mp__section-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin:35px 0 17px}
+.mp__section-head h2,.mp__panel h2,.mp>h2{font-size:clamp(20px,2.2vw,27px);line-height:1.55;color:var(--text-primary);margin:0}
+.mp__section-head a,.mp__panel a{color:var(--primary);font-weight:700;text-decoration:none}
+.mp__grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,285px),1fr));gap:17px;align-items:stretch}
+.mp__card,.mp__panel{min-width:0;border:1px solid var(--border-soft);border-radius:19px;background:var(--bg-card);color:var(--text-primary);padding:clamp(17px,2vw,23px)}
+.mp__card{display:flex;flex-direction:column;gap:12px}.mp__card h3{font-size:clamp(17px,1.6vw,21px);line-height:1.65;margin:0;overflow-wrap:anywhere}
+.mp__card h3 a{color:inherit;text-decoration:none}.mp__card p{margin:0;color:var(--text-secondary);font-size:14px;line-height:1.9}
+.mp__card .mp__button--ghost{margin-block-start:auto}.mp__meta{font-size:13px;line-height:1.9;color:var(--text-secondary);overflow-wrap:anywhere}
+.mp__badge{display:inline-block;align-self:flex-start;color:var(--primary);background:color-mix(in srgb,var(--primary) 12%,var(--bg-card));border-radius:999px;padding:4px 11px;font-size:12px;font-weight:700}
+.mp__card-bottom{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:13px;margin-block-start:auto;padding-block-start:12px}.mp__card-bottom strong{white-space:nowrap;font-size:14px}
+.mp__button{display:inline-flex;align-items:center;justify-content:center;min-height:45px;max-width:100%;padding:9px 17px;background:var(--primary);border:1px solid transparent;color:#fff!important;border-radius:11px;font:inherit;font-weight:700;font-size:14px;text-decoration:none!important;cursor:pointer;text-align:center;line-height:1.5;overflow-wrap:anywhere}
+.mp__button--ghost{color:var(--text-primary)!important;background:transparent;border-color:var(--border-soft)}.mp__button:hover{filter:brightness(1.12)}
+.mp__empty{grid-column:1/-1;text-align:center;color:var(--text-secondary);background:var(--bg-surface);border:1px dashed var(--border-soft);padding:28px 17px;border-radius:15px}
+.mp__panel{margin:22px 0;line-height:1.9}.mp__panel h2{margin:14px 0}.mp__panel p{color:var(--text-secondary)}.mp__preline{white-space:pre-line;overflow-wrap:anywhere}.mp__note{font-size:13px;border-inline-start:3px solid var(--primary);padding-inline-start:12px}
+.mp__panel--form{max-width:760px;margin-inline:auto}.mp__form{display:grid;gap:16px;min-width:0}.mp__field{min-width:0;display:grid;gap:7px}.mp__field small{font-size:12px;color:var(--text-secondary)}.mp__errors{color:#ef6868;font-size:13px}.mp__errors ul{margin:3px 0}
+.mp__action-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:14px}.mp__action{white-space:normal;min-height:70px}.mp__actions{display:flex;flex-wrap:wrap;gap:8px}
+@media(max-width:600px){.mp__container{width:calc(100% - 28px)}.mp__tabs{gap:7px}.mp__tabs a{padding:10px 12px;font-size:13px}.mp__grid{grid-template-columns:minmax(0,1fr)}.mp__card-bottom{align-items:stretch}.mp__card-bottom .mp__button{width:100%}.mp__filters{padding:15px}}
+@media(prefers-reduced-motion:reduce){.mp *{transition:none!important;animation:none!important}}
+
+.mp__gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:14px}.mp__gallery figure{margin:0;min-width:0}.mp__gallery img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px}.mp__gallery figcaption{font-size:13px;color:var(--text-secondary);margin-top:5px;overflow-wrap:anywhere}
+
+/* Mobile marketplace tabs: all destinations stay visible, no clipped horizontal rail. */
+@media (max-width:600px){
+  .mp__tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;overflow:visible;padding-block:4px 12px}
+  .mp__tabs a{min-width:0;min-height:48px;justify-content:center;padding:8px 6px;white-space:normal;text-align:center;font-size:clamp(11px,3.2vw,13px);line-height:1.5}
+  .mp__tabs a i{flex-shrink:0}
+  .mp__tabs a:last-child:nth-child(odd){grid-column:1/-1}
+  .mp__hero{padding-block:22px;margin-bottom:16px}
+  .mp__hero h1{font-size:clamp(21px,5.5vw,29px)}
+}
+@media(min-width:601px){.mp__tabs{flex-wrap:wrap;overflow:visible}}

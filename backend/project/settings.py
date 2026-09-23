@@ -122,6 +122,7 @@ INSTALLED_APPS = [
     'backend.apps.pages.apps.PagesConfig',
     'backend.apps.shared.apps.SharedConfig',
     'backend.apps.courses.apps.CoursesConfig',
+    'backend.apps.marketplace.apps.MarketplaceConfig',
     'backend.apps.articles.apps.ArticlesConfig',
     'backend.apps.billing.apps.BillingConfig',
     'backend.apps.telegram_bot.apps.TelegramBotConfig',

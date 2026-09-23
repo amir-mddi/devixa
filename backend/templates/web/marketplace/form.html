@@ -1,0 +1,4 @@
+{% extends "web/marketplace/base.html" %}
+{% block mp_title %}{{ heading }}{% endblock %}
+{% block mp_intro %}اطلاعات دقیق و واقعی وارد کنید. پروفایل‌ها و آگهی‌ها پس از بررسی نمایش داده می‌شوند.{% endblock %}
+{% block mp_body %}<section class="mp__panel mp__panel--form"><form class="mp__form" method="post" enctype="multipart/form-data">{% csrf_token %}{% if form.non_field_errors %}<div class="mp__errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}{% for field in form %}<div class="mp__field"><label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span aria-label="ضروری">*</span>{% endif %}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% if field.errors %}<div class="mp__errors" role="alert">{{ field.errors }}</div>{% endif %}</div>{% endfor %}<button class="mp__button" type="submit">{{ submit_label }}</button></form></section>{% endblock %}

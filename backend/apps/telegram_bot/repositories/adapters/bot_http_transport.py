@@ -12,6 +12,7 @@ from backend.apps.common.utils.network_security import (
     UnsafeOutboundUrlError,
     validate_public_https_url,
 )
+from backend.apps.common.utils.proxy_utils import normalize_proxy_url
 
 
 class BotProviderTransportError(RuntimeError):
@@ -117,6 +118,7 @@ class BotProviderHttpTransport:
                 timeout=timeout_config,
                 proxy=cls._proxy_url(proxies),
                 follow_redirects=False,
+                trust_env=False,
             ) as client:
                 async with client.stream(
                     "POST",
@@ -198,7 +200,7 @@ class BotProviderHttpTransport:
     def _proxy_url(proxies: dict[str, str] | None) -> str | None:
         if not proxies:
             return None
-        return proxies.get("https") or proxies.get("http")
+        return normalize_proxy_url(proxies.get("https") or proxies.get("http"))
 
     @classmethod
     def _validate_method(cls, method_name: str) -> None:

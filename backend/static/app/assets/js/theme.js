@@ -45,7 +45,7 @@
 
         document
             .querySelector('meta[name="theme-color"]')
-            ?.setAttribute("content", isLight ? "#f5f7ff" : "#070b14");
+            ?.setAttribute("content", isLight ? "#f5f7fe" : "#080d1c");
     };
 
     applyTheme(shouldUseLight);
