@@ -209,7 +209,7 @@
     overflow:hidden;
 }
 
-.course-overview-card h2{
+.course-overview-card h4{
     margin:0 0 18px !important;
     color:var(--primary) !important;
     font-size:clamp(20px, 1.8vw, 28px) !important;
@@ -354,7 +354,7 @@
     border-bottom:1px solid var(--border-soft) !important;
 }
 
-.curriculum .items .lesson_item .left_faq .faq_item .row_1 h3{
+.curriculum .items .lesson_item .left_faq .faq_item .row_1 h4{
     margin:0 !important;
     font-size:15px !important;
     line-height:1.7 !important;
@@ -589,5 +589,84 @@
 
     .curriculum .items .lesson_item .left_faq .faq_item .row_2 .L_item span.item_name{
         max-width:100%;
+    }
+}
+
+/* Final layout corrections for course detail page */
+.course-detail-hero__content,
+.course-overview-card,
+.course-detail-card,
+.course-detail-section {
+    min-width: 0;
+}
+
+.course-detail-section {
+    width: min(1180px, calc(100% - 32px));
+    margin-inline: auto;
+}
+
+.course-description-box,
+.course_description_box {
+    text-align: start;
+}
+
+.course_description_box .title {
+    margin-bottom: 12px;
+    font-size: clamp(24px, 3vw, 36px);
+}
+
+.related-courses-grid {
+    width: min(1180px, calc(100% - 32px));
+    margin-inline: auto;
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 360px));
+    justify-content: center;
+    gap: 24px;
+}
+
+.course-outcome-card {
+    min-width: 0;
+    min-height: 120px !important;
+}
+
+@media (max-width: 900px) {
+    .course-detail-hero {
+        grid-template-columns: 1fr !important;
+        padding: 48px 20px !important;
+    }
+
+    .course-detail-hero__content {
+        justify-self: stretch;
+        align-items: stretch !important;
+    }
+
+    .course-overview-card {
+        justify-self: stretch;
+        max-width: none !important;
+    }
+
+    .course-detail-hero .Enroll_btn {
+        max-width: none !important;
+        grid-template-columns: 1fr !important;
+    }
+}
+
+@media (max-width: 600px) {
+    .course-detail-section,
+    .related-courses-grid {
+        width: calc(100% - 24px);
+    }
+
+    .course-detail-hero .course_features .extra_info {
+        grid-template-columns: 1fr !important;
+    }
+
+    .course-detail-hero .title {
+        font-size: clamp(30px, 9vw, 40px) !important;
+    }
+
+    .course-overview-card {
+        padding: 18px !important;
+        border-radius: 22px !important;
     }
 }

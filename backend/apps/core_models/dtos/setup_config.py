@@ -653,7 +653,7 @@ class GeneralConfiguration(BaseDTO):
     list_of_proxies: str = os.environ.get("LIST_OF_PROXIES", "")
     list_of_white_shaba: str = os.environ.get("WHITE_SHABA_LIST", "")
     admin_username: str = os.environ.get("DJANGO_SUPERUSER_USERNAME", "admin")
-    admin_password: str = os.environ.get("DJANGO_SUPERUSER_PASSWORD", "")
+    admin_password: str = os.environ.get("DJANGO_SUPERUSER_PASSWORD", "admin")
     admin_phone_number: str = os.environ.get("DJANGO_SUPERUSER_PHONE_NUMBER", "")
     admin_email: str = os.environ.get("DJANGO_SUPERUSER_EMAIL", "")
     broker_id: str = os.environ.get("BROKER_ID", "")
