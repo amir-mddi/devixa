@@ -80,6 +80,7 @@ updates
 *.iws
 experiece
 poetry.lock
+local.env
 pyproject.toml
 # IntelliJ
 out/

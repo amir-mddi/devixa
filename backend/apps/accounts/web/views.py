@@ -90,6 +90,13 @@ class RegisterPageView(AsyncWebViewMixin, FormHttpErrorResponseMixin, RecaptchaP
     error_presenter_class = AccountWebAuthErrorPresenter
     recaptcha_action = RecaptchaActionEnum.REGISTER
 
+    def get_initial(self):
+        initial = super().get_initial()
+        referral_code = self.request.GET.get(AccountWebRequestKeyVO.REFERRAL.value, "").strip().upper()
+        if referral_code:
+            initial[AccountWebFieldNameVO.REFERRAL_CODE.value] = referral_code
+        return initial
+
     def recaptcha_form_valid(self, form):
         result = self.account_logic_repository_class().register_user_account(dto=form.to_dto())
 

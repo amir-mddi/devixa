@@ -8,6 +8,7 @@ class AccountAuthErrorCodeVO(StrEnum):
     INACTIVE_ACCOUNT = "inactive_account"
     USERNAME_EXISTS = "username_exists"
     EMAIL_EXISTS = "email_exists"
+    INVALID_REFERRAL_CODE = "invalid_referral_code"
 
 
 class AccountUserQueryLookupVO(StrEnum):

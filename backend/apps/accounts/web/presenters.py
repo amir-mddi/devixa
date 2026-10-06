@@ -22,10 +22,12 @@ class AccountWebAuthErrorPresenter:
         AccountAuthErrorCodeVO.INACTIVE_ACCOUNT: AccountWebValidationMessageVO.INACTIVE_ACCOUNT.value,
         AccountAuthErrorCodeVO.USERNAME_EXISTS: AccountWebValidationMessageVO.USERNAME_EXISTS.value,
         AccountAuthErrorCodeVO.EMAIL_EXISTS: AccountWebValidationMessageVO.EMAIL_EXISTS.value,
+        AccountAuthErrorCodeVO.INVALID_REFERRAL_CODE: AccountWebValidationMessageVO.INVALID_REFERRAL_CODE.value,
     }
     _FIELDS_BY_ERROR_CODE = {
         AccountAuthErrorCodeVO.USERNAME_EXISTS: AccountWebFieldNameVO.USERNAME.value,
         AccountAuthErrorCodeVO.EMAIL_EXISTS: AccountWebFieldNameVO.EMAIL.value,
+        AccountAuthErrorCodeVO.INVALID_REFERRAL_CODE: AccountWebFieldNameVO.REFERRAL_CODE.value,
     }
 
     @classmethod

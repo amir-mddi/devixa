@@ -122,6 +122,8 @@ class TelegramBotButtonKeyVO:
     COURSES = "courses"
     MY_COURSES = "my_courses"
     MY_ORDERS = "my_orders"
+    MARKETPLACE = "marketplace"
+    REFERRAL = "referral"
     REVIEW_QUEUE = "review_queue"
     PAYMENT_QUEUE = "payment_queue"
     ADMIN_COURSES = "admin_courses"
@@ -173,6 +175,8 @@ class TelegramBotButtonTextVO:
             TelegramBotButtonKeyVO.COURSES: "📚 Courses",
             TelegramBotButtonKeyVO.MY_COURSES: "🎓 My courses",
             TelegramBotButtonKeyVO.MY_ORDERS: "🧾 My orders",
+            TelegramBotButtonKeyVO.MARKETPLACE: "🛍 Marketplace",
+            TelegramBotButtonKeyVO.REFERRAL: "🎁 Referrals",
             TelegramBotButtonKeyVO.REVIEW_QUEUE: "🛡 Review queue",
             TelegramBotButtonKeyVO.PAYMENT_QUEUE: "💳 Payment queue",
             TelegramBotButtonKeyVO.ADMIN_COURSES: "🧑‍🏫 Admin courses",
@@ -210,6 +214,8 @@ class TelegramBotButtonTextVO:
             TelegramBotButtonKeyVO.COURSES: "📚 دوره‌ها",
             TelegramBotButtonKeyVO.MY_COURSES: "🎓 دوره‌های من",
             TelegramBotButtonKeyVO.MY_ORDERS: "🧾 سفارش‌های من",
+            TelegramBotButtonKeyVO.MARKETPLACE: "🛍 بازار خدمات",
+            TelegramBotButtonKeyVO.REFERRAL: "🎁 دعوت دوستان",
             TelegramBotButtonKeyVO.REVIEW_QUEUE: "🛡 بررسی دیدگاه‌ها",
             TelegramBotButtonKeyVO.PAYMENT_QUEUE: "💳 بررسی پرداخت‌ها",
             TelegramBotButtonKeyVO.ADMIN_COURSES: "🧑‍🏫 مدیریت دوره‌ها",
@@ -259,6 +265,8 @@ class TelegramBotAliasVO:
         TelegramBotButtonKeyVO.COURSES: {"courses", "course", "دوره", "دوره‌ها", "دوره ها"},
         TelegramBotButtonKeyVO.MY_COURSES: {"my courses", "my course", "دوره‌های من", "دوره های من"},
         TelegramBotButtonKeyVO.MY_ORDERS: {"my orders", "orders", "سفارش‌های من", "سفارش های من"},
+        TelegramBotButtonKeyVO.MARKETPLACE: {"marketplace", "market place", "بازار خدمات", "مارکت پلیس", "مارکت‌پلیس"},
+        TelegramBotButtonKeyVO.REFERRAL: {"referral", "referrals", "invite friends", "دعوت دوستان", "کد معرف", "معرف"},
         TelegramBotButtonKeyVO.REVIEW_QUEUE: {"review queue", "reviews queue", "بررسی دیدگاه‌ها", "بررسی دیدگاه ها"},
         TelegramBotButtonKeyVO.PAYMENT_QUEUE: {"payment queue", "payments", "payment approvals", "بررسی پرداخت‌ها", "بررسی پرداخت ها", "پرداخت‌ها", "پرداخت ها"},
         TelegramBotButtonKeyVO.ADMIN_COURSES: {"admin courses", "manage courses", "course admin", "مدیریت دوره‌ها", "مدیریت دوره ها"},
@@ -1029,14 +1037,14 @@ class TelegramBotProfileVO:
         TelegramBotLanguageVO.FA: (
             "سلام! به ربات {project_name} خوش آمدید. 👋\n\n"
             "با این ربات می‌توانید دوره‌ها را ببینید، خرید و ثبت‌نام انجام دهید، "
-            "سفارش‌ها و دوره‌های خود را پیگیری کنید، دیدگاه ثبت کنید، حساب را متصل کنید، "
+            "کلاس، درس، تمرین، پروژه و نمرات خود را پیگیری کنید، کد معرفی بگیرید، دیدگاه ثبت کنید، حساب را متصل کنید، "
             "ایمیل و شماره موبایل را تأیید کنید و اگر مدیر باشید کاربران و دیدگاه‌ها را مدیریت کنید.\n\n"
             "برای شروع، دکمه Start را بزنید."
         ),
         TelegramBotLanguageVO.EN: (
             "Welcome to {project_name} bot. 👋\n\n"
-            "Use this bot to browse and buy courses, track orders and enrollments, "
-            "submit reviews, link your account, verify email and phone, recover password, "
+            "Use this bot to browse and buy courses, access lessons, assignments, projects and grades, "
+            "track referrals and orders, submit reviews, link your account, verify email and phone, recover password, "
             "and manage users/reviews if you are an admin.\n\n"
             "Tap Start to begin."
         ),
@@ -1059,7 +1067,9 @@ class TelegramBotProfileVO:
             {"command": "start", "description": "شروع و نمایش منو"},
             {"command": "link", "description": "اتصال حساب با ایمیل یا موبایل"},
             {"command": "courses", "description": "مشاهده دوره‌ها"},
-            {"command": "my_courses", "description": "دوره‌های من"},
+            {"command": "my_courses", "description": "دوره‌ها و کلاس‌های من"},
+            {"command": "marketplace", "description": "بازار خدمات آموزشی"},
+            {"command": "referral", "description": "کد معرف و دعوت دوستان"},
             {"command": "orders", "description": "سفارش‌های من"},
             {"command": "channels", "description": "کانال‌های رسمی"},
             {"command": "admin_courses", "description": "مدیریت دوره‌ها - فقط ادمین"},
@@ -1077,7 +1087,9 @@ class TelegramBotProfileVO:
             {"command": "start", "description": "Start and show menu"},
             {"command": "link", "description": "Link account by email or phone"},
             {"command": "courses", "description": "Browse courses"},
-            {"command": "my_courses", "description": "My courses"},
+            {"command": "my_courses", "description": "My courses and classrooms"},
+            {"command": "marketplace", "description": "Educational marketplace"},
+            {"command": "referral", "description": "Referral code and invites"},
             {"command": "orders", "description": "My orders"},
             {"command": "channels", "description": "Official channels"},
             {"command": "admin_courses", "description": "Manage courses - admin only"},

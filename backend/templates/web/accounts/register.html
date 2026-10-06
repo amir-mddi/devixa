@@ -47,6 +47,12 @@
         <div class="auth-input-wrap">{{ form.password_confirm }}<i class="fa-solid fa-shield-halved" aria-hidden="true"></i></div>
         {% include "web/shared/_field_errors.html" with field=form.password_confirm %}
     </div>
+    <div class="auth-field auth-form__full">
+        <label for="{{ form.referral_code.id_for_label }}">کد معرف <span class="auth-field__optional">(اختیاری)</span></label>
+        <div class="auth-input-wrap">{{ form.referral_code }}<i class="fa-solid fa-user-group" aria-hidden="true"></i></div>
+        {% include "web/shared/_field_errors.html" with field=form.referral_code %}
+        <small class="auth-field__hint">اگر دوست یا مدرس شما را معرفی کرده، کد او را اینجا وارد کنید. بدون کد هم می‌توانید ثبت‌نام کنید.</small>
+    </div>
     <button class="auth-submit auth-form__full" type="submit">
         <span>ایجاد حساب کاربری</span><i class="fa-solid fa-user-plus" aria-hidden="true"></i>
     </button>

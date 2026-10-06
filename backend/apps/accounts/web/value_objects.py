@@ -88,6 +88,7 @@ class AccountWebReverseNameVO(StrEnum):
 
 class AccountWebRequestKeyVO(StrEnum):
     NEXT = "next"
+    REFERRAL = "ref"
 
 
 class AccountWebUrlSeparatorVO(StrEnum):
@@ -119,6 +120,7 @@ class AccountWebFieldNameVO(StrEnum):
     PAID_AMOUNT = "paid_amount"
     NOTE = "note"
     RECAPTCHA_TOKEN = "recaptcha_token"
+    REFERRAL_CODE = "referral_code"
 
 
 class AccountWebFieldLimitVO(IntEnum):
@@ -134,6 +136,7 @@ class AccountWebFieldLimitVO(IntEnum):
     PAYMENT_TRACKING_CODE_MAX_LENGTH = 120
     PAYMENT_NOTE_MAX_LENGTH = 1000
     RECAPTCHA_TOKEN_MAX_LENGTH = 4096
+    REFERRAL_CODE_MAX_LENGTH = 16
 
 
 class AccountWebWidgetAttrVO(StrEnum):
@@ -174,6 +177,7 @@ class AccountWebPlaceholderVO(StrEnum):
     PAYMENT_CARD_LAST4 = "۴ رقم آخر کارت پرداخت‌کننده"
     PAYMENT_AMOUNT = "مبلغ پرداخت‌شده"
     PAYMENT_NOTE = "توضیحات تکمیلی (اختیاری)"
+    REFERRAL_CODE = "کد معرف (اختیاری)"
 
 
 class AccountWebValidationMessageVO(StrEnum):
@@ -213,6 +217,7 @@ class AccountWebValidationMessageVO(StrEnum):
     INVALID_CARD_LAST4 = "۴ رقم آخر کارت باید دقیقاً چهار رقم باشد."
     RECAPTCHA_FAILED = "اعتبارسنجی امنیتی ناموفق بود. صفحه را تازه‌سازی کنید و دوباره تلاش کنید."
     RECAPTCHA_UNAVAILABLE = "سرویس اعتبارسنجی امنیتی در دسترس نیست. اتصال اینترنت را بررسی کرده و دوباره تلاش کنید."
+    INVALID_REFERRAL_CODE = "کد معرف معتبر نیست. می‌توانید این فیلد را خالی بگذارید."
 
 
 class AccountWebFormErrorKeyVO(StrEnum):

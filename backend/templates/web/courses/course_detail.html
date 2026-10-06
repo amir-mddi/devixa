@@ -1,155 +1,123 @@
 {% extends "web/pages/base.html" %}
-{% load static project_tags course_web_tags %}
+{% load project_tags course_web_tags %}
 
 {% block title %}{{ seo.title }}{% endblock %}
 {% block meta_description %}{{ seo.description }}{% endblock %}
-{% block page_styles %}
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css">
-    <link rel="stylesheet" href="{% project_static 'Styles/single_course.css' %}">
-    <link rel="stylesheet" href="{% project_static 'Styles/courses.css' %}">
-{% endblock %}
+{% block page_styles %}<link rel="stylesheet" href="{% project_static 'Styles/courses.css' %}">{% endblock %}
+{% block page_styles_after %}<link rel="stylesheet" href="{% project_static 'Styles/course-detail-polish.css' %}?v=course-premium-2">{% endblock %}
 
-{% block page_styles_after %}
-    <link rel="stylesheet" href="{% project_static 'Styles/course-detail-polish.css' %}">
-{% endblock %}
 {% block content %}
-<section class="single_course_hero course-detail-hero">
-    <section class="introduction course-detail-hero__content reveal_right">
-        <h4 class="badge flex-center"><span class="circle_gradient"></span>{{ course.category.title|default:"دوره آموزشی" }}</h4>
-        <h1 class="title mt-3">{{ course.title }}</h1>
-        <p class="subtitle mt-2" style="width:100%">{{ course.short_description|default:course.description|truncatechars:220 }}</p>
-        <section class="extra_info flex-around">
-            <div class="info">سطح: {{ course.level|course_level_label }}</div>
-            <div class="info">مدت: {{ course.duration_minutes|course_duration_label }}</div>
-            <div class="info">مدرس: {{ course|course_instructor_label }}</div>
-        </section>
-        <section class="Enroll_btn flex-between">
-            <div class="price flex-center">{{ course|course_price_label }}</div>
-            {% if request.user.is_authenticated %}
-                <form method="post" action="{% url 'billing_web:add_item' %}" class="course-purchase-form">
-                    {% csrf_token %}
-                    <input type="hidden" name="course_id" value="{{ course.id }}">
-                    <input type="hidden" name="next" value="{% url 'billing_web:basket' %}">
-                    <button class="Registration" type="submit"><i class="fa-solid fa-cart-plus"></i> افزودن به سبد خرید</button>
-                </form>
-            {% else %}
-                <a class="Registration" href="{% url 'accounts_web:login' %}?next={{ request.get_full_path|urlencode }}">ورود و خرید دوره</a>
-            {% endif %}
-        </section>
-        <section class="course_features mt-4">
-            <section class="extra_info flex-center">
-                <div class="info">پروژه محور <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></div>
-                <div class="info">دسترسی دائمی <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></div>
-                <div class="info">پشتیبانی <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></div>
-            </section>
-        </section>
-    </section>
-    <section class="dashboard_mockup course-overview-card reveal_left">
-        <h4>نمای کلی دوره</h4>
-        <div class="card completed flex-between"><span>شروع مسیر</span><span>✅</span></div>
-        <div class="card completed flex-between"><span>تمرین‌های عملی</span><span>✅</span></div>
-        <div class="card locked flex-between"><span>پروژه نهایی</span><span>🔒</span></div>
-        <div class="progress flex-between"><div class="txt">آمادگی بازار کار</div><div class="bar"><div class="loading"></div></div></div>
-    </section>
-</section>
+<main class="premium-course-page">
+    <section class="premium-course-hero">
+        <div class="premium-course-hero__copy">
+            <div class="premium-course-hero__badges">
+                <span><i class="fa-solid fa-layer-group"></i>{{ course.category.title|default:"دوره آموزشی" }}</span>
+                <span><i class="fa-solid fa-signal"></i>{{ course.level|course_level_label }}</span>
+            </div>
+            <h1>{{ course.title }}</h1>
+            <p class="premium-course-hero__lead">{{ course.short_description|default:course.description|truncatechars:250 }}</p>
+            <div class="premium-course-hero__facts">
+                <div><i class="fa-regular fa-clock"></i><span>مدت دوره</span><strong>{{ course.duration_minutes|course_duration_label }}</strong></div>
+                <div><i class="fa-solid fa-book-open"></i><span>تعداد درس</span><strong>{{ course.lessons.count }} درس</strong></div>
+                <div><i class="fa-solid fa-chalkboard-user"></i><span>مدرس</span><strong>{{ course|course_instructor_label }}</strong></div>
+            </div>
+            <div class="premium-course-hero__trust">
+                <span><i class="fa-solid fa-circle-check"></i> پروژه‌محور</span>
+                <span><i class="fa-solid fa-circle-check"></i> تمرین و بازخورد</span>
+                <span><i class="fa-solid fa-circle-check"></i> ارتباط با مدرس</span>
+                <span><i class="fa-solid fa-circle-check"></i> مشاهده نمرات</span>
+            </div>
+        </div>
 
-<section class="course_description_box course-detail-card">
-    <h4 class="title">درباره این دوره</h4>
-    <p class="subtitle mt-2" style="width:100%;text-align:right;">{{ course.description|default:course.short_description }}</p>
-</section>
-
-<section class="curriculum course-detail-section course-detail-curriculum text-center">
-    <h4 class="title reveal">سرفصل‌های <span class="gradient_word">دوره</span></h4>
-    <p class="subtitle mt-1 reveal_right" style="width:100%">لیست درس‌ها و بخش‌هایی که در این دوره یاد می‌گیرید.</p>
-    <section class="summery_badges flex-around">
-        <div class="badge flex-center">{{ course.lessons.count }} درس</div>
-        <div class="badge flex-center">{{ course.duration_minutes|course_duration_label }}</div>
-        <div class="badge flex-center">{{ course.level|course_level_label }}</div>
-    </section>
-    <section class="items">
-        <section class="lesson_item">
-            <section class="left_faq">
-                {% for lesson in course.lessons.all %}
-                    {% if lesson.is_active and not lesson.is_deleted %}
-                        <input type="checkbox" id="chck{{ forloop.counter }}">
-                        <div class="faq_item item{{ forloop.counter }}">
-                            <div class="row_1 flex-between">
-                                <h4>{{ forloop.counter }}. {{ lesson.title }}</h4>
-                                <div class="btn"><label for="chck{{ forloop.counter }}">جزئیات</label></div>
-                            </div>
-                            <div class="row_2">
-                                <div class="L_item flex-between">
-                                    <span class="item_name">{{ lesson.description|default:"توضیحات این درس به زودی تکمیل می‌شود." }}</span>
-                                    <span>{{ lesson.duration_minutes|course_duration_label }}</span>
-                                    {% if lesson.is_preview %}<span class="lesson_preview">پیش‌نمایش</span>{% else %}<span class="lesson_lock">قفل</span>{% endif %}
-                                </div>
-                            </div>
-                        </div>
+        <aside class="premium-course-purchase">
+            <div class="premium-course-purchase__visual">
+                {% if course.thumbnail %}<img src="{{ course.thumbnail.url }}" alt="{{ course.title }}">{% else %}<div class="premium-course-purchase__placeholder"><i class="fa-solid fa-code"></i><span>{{ course.category.title|default:"آموزش تخصصی" }}</span></div>{% endif %}
+            </div>
+            <div class="premium-course-purchase__body">
+                {% if is_course_instructor %}
+                    <span class="premium-course-purchase__state"><i class="fa-solid fa-chalkboard-user"></i> شما مدرس این دوره هستید</span>
+                    <a class="premium-course-primary" href="{% url 'courses_web:instructor_panel' slug=course.slug %}"><i class="fa-solid fa-table-columns"></i> مدیریت کلاس</a>
+                    <a class="premium-course-secondary" href="{% url 'courses_web:classroom' slug=course.slug %}">نمای کلاس</a>
+                {% elif is_course_enrolled %}
+                    <span class="premium-course-purchase__state is-success"><i class="fa-solid fa-circle-check"></i> ثبت‌نام شما فعال است</span>
+                    <a class="premium-course-primary" href="{% url 'courses_web:classroom' slug=course.slug %}"><i class="fa-solid fa-door-open"></i> ورود به کلاس</a>
+                    <p class="premium-course-purchase__note">درس‌ها، فایل‌ها، تمرین‌ها، پروژه‌ها، سؤال‌ها و نمرات داخل فضای اختصاصی کلاس قرار دارند.</p>
+                {% else %}
+                    <div class="premium-course-price"><span>هزینه ثبت‌نام</span><strong>{{ course|course_price_label }}</strong></div>
+                    {% if request.user.is_authenticated %}
+                        <form method="post" action="{% url 'billing_web:add_item' %}">
+                            {% csrf_token %}<input type="hidden" name="course_id" value="{{ course.id }}"><input type="hidden" name="next" value="{% url 'billing_web:basket' %}">
+                            <button class="premium-course-primary" type="submit"><i class="fa-solid fa-cart-plus"></i> افزودن به سبد و ثبت‌نام</button>
+                        </form>
+                    {% else %}
+                        <a class="premium-course-primary" href="{% url 'accounts_web:login' %}?next={{ request.get_full_path|urlencode }}"><i class="fa-solid fa-right-to-bracket"></i> ورود و ثبت‌نام در دوره</a>
                     {% endif %}
-                {% empty %}
-                    <div class="course_empty_state">هنوز درسی برای این دوره ثبت نشده است.</div>
-                {% endfor %}
-            </section>
-        </section>
+                    <ul class="premium-course-purchase__list"><li><i class="fa-solid fa-check"></i> دسترسی به کلاس اختصاصی</li><li><i class="fa-solid fa-check"></i> دریافت فایل‌ها و منابع آموزشی</li><li><i class="fa-solid fa-check"></i> تحویل تمرین و پروژه با مهلت مشخص</li><li><i class="fa-solid fa-check"></i> گفت‌وگو با مدرس و مشاهده نمره</li></ul>
+                {% endif %}
+            </div>
+        </aside>
     </section>
-</section>
 
-<section class="will_learn course-detail-section course-detail-learning">
-    <h4 class="title reveal">در این دوره چه چیزی <span class="gradient_word">یاد می‌گیری؟</span></h4>
-    <p class="subtitle mt-1 reveal_right" style="width:100%">تمرکز این دوره روی خروجی قابل ارائه و مهارت واقعی است.</p>
-    <section class="card_learn mt-4">
-        <div class="card course-outcome-card flex-center"><p class="course-outcome-card__title">کدنویسی تمیز و قابل توسعه</p></div>
-        <div class="card course-outcome-card flex-center"><p class="course-outcome-card__title">ساخت پروژه واقعی</p></div>
-        <div class="card course-outcome-card flex-center"><p class="course-outcome-card__title">آمادگی برای بازار کار</p></div>
+    <section class="premium-course-value-grid" aria-label="مزایای دوره">
+        <article><span><i class="fa-solid fa-diagram-project"></i></span><div><h2>یادگیری با خروجی واقعی</h2><p>هر بخش به تمرین یا پروژه قابل اجرا متصل می‌شود تا آموخته‌ها به مهارت تبدیل شوند.</p></div></article>
+        <article><span><i class="fa-solid fa-comments"></i></span><div><h2>پشتیبانی آموزشی</h2><p>هنرجوی ثبت‌نام‌شده می‌تواند برای هر موضوع گفت‌وگوی مستقل با مدرس ایجاد کند.</p></div></article>
+        <article><span><i class="fa-solid fa-ranking-star"></i></span><div><h2>ارزیابی شفاف</h2><p>مهلت تحویل، وضعیت تمرین، نمره و بازخورد مدرس همه در پنل کلاس قابل مشاهده‌اند.</p></div></article>
     </section>
-</section>
 
-<section class="instructor course-detail-section course-detail-instructor">
-    <h4 class="badge flex-center">مدرس دوره</h4>
-    <section class="teacher">
-        <section class="intro_teacher">
-            <section class="resume">
-                <h5 class="name title">{{ course|course_instructor_label }}</h5>
-                <h6 class="subtitle mt-1" style="width:100%">مدرس و منتور <span class="brand-text">{{ project.display_name }}</span></h6>
-                <p class="subtitle mt-2" style="width:100%">این دوره با تمرکز روی پروژه، تمرین و ساخت نمونه‌کار طراحی شده است.</p>
-                {% if public_mentor %}<a class="Registration" href="{% url 'marketplace:mentor_detail' public_mentor.pk %}">پروفایل منتور و رزرو جلسه خصوصی</a>{% endif %}
+    <div class="premium-course-layout">
+        <div class="premium-course-main">
+            <section class="premium-course-section" id="about-course">
+                <header><span>معرفی دوره</span><h2>این دوره برای چه چیزی طراحی شده است؟</h2></header>
+                <div class="premium-course-prose">{{ course.description|default:course.short_description|linebreaks }}</div>
             </section>
-            <section class="picture flex-center">
-                <svg class="prof" xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/></svg>
+
+            <section class="premium-course-section" id="curriculum">
+                <header><span>ساختار یادگیری</span><h2>سرفصل‌ها و درس‌های دوره</h2><p>محتوای اصلی داخل کلاس فقط برای هنرجوهای ثبت‌نام‌شده باز می‌شود.</p></header>
+                <div class="premium-course-curriculum">
+                    {% for lesson in course.lessons.all %}
+                    {% if lesson.is_active and not lesson.is_deleted %}
+                    <article>
+                        <div class="premium-course-curriculum__number">{{ forloop.counter|stringformat:"02d" }}</div>
+                        <div class="premium-course-curriculum__content"><div><h3>{{ lesson.title }}</h3>{% if lesson.is_preview %}<span class="is-preview">پیش‌نمایش</span>{% else %}<span><i class="fa-solid fa-lock"></i> داخل کلاس</span>{% endif %}</div><p>{{ lesson.description|default:"این درس بخشی از مسیر آموزشی دوره است." }}</p></div>
+                        <time>{{ lesson.duration_minutes|course_duration_label }}</time>
+                    </article>
+                    {% endif %}
+                    {% empty %}<div class="premium-course-empty"><i class="fa-solid fa-book-open"></i><p>سرفصل‌های این دوره در حال تکمیل هستند.</p></div>{% endfor %}
+                </div>
             </section>
-        </section>
+
+            <section class="premium-course-section">
+                <header><span>سیستم کلاس</span><h2>بعد از ثبت‌نام چه امکاناتی دارید؟</h2></header>
+                <div class="premium-course-feature-list">
+                    <article><i class="fa-solid fa-play"></i><div><h3>درس و محتوای مرحله‌ای</h3><p>فهرست درس‌ها، محتوای متنی، ویدئو و وضعیت پیشرفت در یک صفحه.</p></div></article>
+                    <article><i class="fa-solid fa-folder-open"></i><div><h3>فایل و منابع محافظت‌شده</h3><p>فایل‌های اختصاصی دوره فقط پس از بررسی ثبت‌نام فعال دانلود می‌شوند.</p></div></article>
+                    <article><i class="fa-solid fa-list-check"></i><div><h3>تمرین و پروژه با Deadline</h3><p>مدرس می‌تواند زمان شروع و پایان تعیین کند و بعد از مهلت، تحویل را ببندد.</p></div></article>
+                    <article><i class="fa-solid fa-message"></i><div><h3>سؤال و گفت‌وگوی مستقیم</h3><p>هر هنرجو می‌تواند برای سؤال‌های آموزشی یک thread مستقل با مدرس داشته باشد.</p></div></article>
+                    <article><i class="fa-solid fa-ranking-star"></i><div><h3>نمره و بازخورد</h3><p>نمره تمرین، پروژه و ارزیابی‌های دستی با توضیح مدرس در پنل نمایش داده می‌شود.</p></div></article>
+                    <article><i class="fa-solid fa-bullhorn"></i><div><h3>اعلان‌های کلاس</h3><p>اطلاعیه‌ها، تغییر برنامه و نکته‌های مهم کلاس در بالای فضای آموزشی قرار می‌گیرند.</p></div></article>
+                </div>
+            </section>
+        </div>
+
+        <aside class="premium-course-side">
+            <section class="premium-course-instructor-card">
+                <div class="premium-course-instructor-card__avatar">{% if course.instructor.profile_photo %}<img src="{{ course.instructor.profile_photo.url }}" alt="{{ course|course_instructor_label }}">{% else %}<i class="fa-solid fa-user-tie"></i>{% endif %}</div>
+                <span>مدرس دوره</span><h2>{{ course|course_instructor_label }}</h2><p>مسئول ارائه محتوای دوره، بررسی تمرین‌ها و پاسخ‌گویی به سؤال‌های آموزشی.</p>
+                {% if public_mentor %}<a href="{% url 'marketplace:mentor_detail' public_mentor.pk %}">مشاهده پروفایل مدرس و رزرو جلسه <i class="fa-solid fa-arrow-left"></i></a>{% endif %}
+            </section>
+        </aside>
+    </div>
+
+    <section class="premium-course-section premium-course-section--reviews">
+        <header><span>تجربه هنرجوها</span><h2>دیدگاه‌های دوره</h2></header>
+        <div class="premium-course-review-grid">
+            {% for review in reviews %}<article><div class="premium-course-review__stars"><i class="fa-solid fa-star"></i> {{ review.rating }} از ۵</div><p>{{ review.comment }}</p><footer><strong>{{ review.user.get_full_name|default:review.user.username }}</strong><span>{{ review.title|default:"هنرجوی دوره" }}</span></footer></article>{% empty %}<div class="premium-course-empty"><i class="fa-regular fa-comments"></i><p>{{ reviews_empty_message }}</p></div>{% endfor %}
+        </div>
     </section>
-</section>
 
-<section class="student_reviews course-detail-section course-detail-reviews">
-    <h4 class="title text-center reveal">نظر دانشجوها</h4>
-    {% if reviews %}
-        <section class="carousel_wrapper">
-            <section class="review_cards">
-                {% for review in reviews %}
-                    <div class="card">
-                        <div class="scores">{{ review.rating }} / 5 ⭐</div>
-                        <p class="openion subtitle mt-2" style="width:100%">{{ review.comment }}</p>
-                        <div class="student flex-between"><span>{{ review.user.username }}</span><span>{{ review.title }}</span></div>
-                    </div>
-                {% endfor %}
-            </section>
-        </section>
-    {% else %}
-        <div class="course_empty_state">{{ reviews_empty_message }}</div>
-    {% endif %}
-</section>
-
-<section class="related_courses_title course-detail-section text-center">
-    <h4 class="title reveal">دوره‌های <span class="gradient_word">مرتبط</span></h4>
-</section>
-{% if related_courses %}
-    <section class="courses related-courses-grid">
-        {% for course in related_courses %}
-            {% include "web/courses/_course_card.html" with course=course %}
-        {% endfor %}
+    <section class="premium-course-related">
+        <header><div><span>ادامه مسیر</span><h2>دوره‌های مرتبط</h2></div><a href="{% url 'courses_web:course_list' %}">همه دوره‌ها</a></header>
+        {% if related_courses %}<div class="courses related-courses-grid">{% for course in related_courses %}{% include "web/courses/_course_card.html" with course=course %}{% endfor %}</div>{% else %}<div class="premium-course-empty"><p>{{ related_courses_empty_message }}</p></div>{% endif %}
     </section>
-{% else %}
-    <div class="course_empty_state">{{ related_courses_empty_message }}</div>
-{% endif %}
+</main>
 {% endblock %}

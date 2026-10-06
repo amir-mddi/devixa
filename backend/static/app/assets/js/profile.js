@@ -50,6 +50,29 @@
         });
     });
 
+    page.querySelectorAll("[data-copy-value]").forEach((button) => {
+        button.addEventListener("click", async () => {
+            const value = button.dataset.copyValue || "";
+            if (!value) return;
+            try {
+                await navigator.clipboard.writeText(value);
+                const original = button.innerHTML;
+                button.innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i> کپی شد';
+                window.setTimeout(() => { button.innerHTML = original; }, 1400);
+            } catch (_error) {
+                const fallback = document.createElement("textarea");
+                fallback.value = value;
+                fallback.setAttribute("readonly", "");
+                fallback.style.position = "fixed";
+                fallback.style.opacity = "0";
+                document.body.appendChild(fallback);
+                fallback.select();
+                document.execCommand("copy");
+                fallback.remove();
+            }
+        });
+    });
+
     const photoInput = page.querySelector('input[type="file"][name="profile_photo"]');
     if (photoInput) {
         photoInput.addEventListener("change", () => {

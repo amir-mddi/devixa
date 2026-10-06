@@ -46,6 +46,8 @@ from backend.apps.core_models.dtos.sms_providers.kavenegar_params_dto import (
 )
 from backend.apps.core_models.vo.common_vo import KavenegarVo
 from backend.apps.shared.repositories.logic import SharedApplicationLogic
+from backend.apps.referrals.dtos import ReferralApplyDTO
+from backend.apps.referrals.logic import ReferralLogic
 
 logger = CommonUtils.get_project_logger(__name__)
 User = get_user_model()
@@ -57,6 +59,7 @@ class AccountLogicRepository(metaclass=Singleton):
         self.gmail_adapter = AccountEmailAdapter()
         self.verification_code_cache = VerificationCodeCacheAdapter()
         self.shared_logic = SharedApplicationLogic()
+        self.referral_logic = ReferralLogic()
 
     async def async_authenticate_user_by_identifier(self, request, dto: LoginUserDTO) -> AuthResultDTO:
         return await sync_to_async(
@@ -195,7 +198,6 @@ class AccountLogicRepository(metaclass=Singleton):
 
         return AuthResultDTO.success(user=user)
 
-    @transaction.atomic
     def register_user_account(self, dto: RegisterUserDTO) -> AuthResultDTO:
         if self.postgres_adapter.username_exists(dto.username):
             return AuthResultDTO.failed(error_code=AccountAuthErrorCodeVO.USERNAME_EXISTS)
@@ -203,9 +205,13 @@ class AccountLogicRepository(metaclass=Singleton):
         if self.postgres_adapter.email_exists(dto.email):
             return AuthResultDTO.failed(error_code=AccountAuthErrorCodeVO.EMAIL_EXISTS)
 
+        referral_code = self.referral_logic.normalize_code(dto.referral_code)
+        if referral_code and not self.referral_logic.is_valid_code(referral_code):
+            return AuthResultDTO.failed(error_code=AccountAuthErrorCodeVO.INVALID_REFERRAL_CODE)
+
         try:
-            # The inner savepoint handles races between the pre-check and the
-            # database's case-insensitive uniqueness constraints.
+            # User creation and referral attribution are one transaction so a
+            # referral race/failure can never leave a partially registered user.
             with transaction.atomic():
                 user = self.postgres_adapter.create_user_account(
                     first_name=dto.first_name,
@@ -214,6 +220,10 @@ class AccountLogicRepository(metaclass=Singleton):
                     email=dto.email,
                     password=dto.password,
                 )
+                if referral_code:
+                    self.referral_logic.apply(ReferralApplyDTO(invitee=user, code=referral_code))
+        except DjangoValidationError:
+            return AuthResultDTO.failed(error_code=AccountAuthErrorCodeVO.INVALID_REFERRAL_CODE)
         except IntegrityError:
             if self.postgres_adapter.username_exists(dto.username):
                 return AuthResultDTO.failed(error_code=AccountAuthErrorCodeVO.USERNAME_EXISTS)

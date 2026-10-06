@@ -37,3 +37,24 @@ __all__ = [
     "ReviewCreateDTO",
     "ReviewModerationDTO",
 ]
+
+from .lms_dtos import (
+    CourseAnnouncementCreateDTO,
+    CourseAssignmentCreateDTO,
+    CourseGradeItemDTO,
+    CourseLessonManageDTO,
+    CourseProgressToggleDTO,
+    CourseQuestionCreateDTO,
+    CourseQuestionReplyDTO,
+    CourseResourceCreateDTO,
+    CourseSectionCreateDTO,
+    CourseSubmissionDTO,
+    CourseSubmissionGradeDTO,
+)
+
+__all__ += [
+    "CourseAnnouncementCreateDTO", "CourseAssignmentCreateDTO", "CourseGradeItemDTO",
+    "CourseLessonManageDTO", "CourseProgressToggleDTO", "CourseQuestionCreateDTO",
+    "CourseQuestionReplyDTO", "CourseResourceCreateDTO", "CourseSectionCreateDTO",
+    "CourseSubmissionDTO", "CourseSubmissionGradeDTO",
+]

@@ -8,11 +8,9 @@ from typing import Any
 
 from django.conf import settings
 from django.core.files.base import ContentFile
-from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
-from django.db import IntegrityError, transaction
-from django.db.models import Q
+from django.db import IntegrityError
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError as DRFValidationError
 
@@ -45,14 +43,18 @@ from backend.apps.telegram_bot.dtos.account_link_dtos import (
 from backend.apps.telegram_bot.dtos.profile_dtos import DisconnectMessengerProfileDTO
 from backend.apps.telegram_bot.logic.profile_logic import MessengerProfileLogic
 from backend.apps.telegram_bot.controllers.marketplace_controller import MarketplaceBotController
+from backend.apps.telegram_bot.controllers.lms_controller import LMSBotController
+from backend.apps.telegram_bot.controllers.referral_controller import ReferralBotController
 from backend.apps.telegram_bot.vo.marketplace_vo import (
-    MarketplaceBotCallbackVO, MarketplaceBotMessageVO, MarketplaceBotSection,
+    MarketplaceBotCallbackVO, MarketplaceBotSection,
 )
+from backend.apps.telegram_bot.vo.lms_bot_vo import LMSBotCallbackVO, LMSBotTextVO
 from backend.apps.telegram_bot.models import BotSupportTicket, TelegramProfile
 from backend.apps.telegram_bot.enums.bot_setting_enums import BotSettingProviderEnum
 from backend.apps.telegram_bot.repositories.bot_cache_repository import TelegramBotCacheRepository
 from backend.apps.telegram_bot.repositories.profile_repository import TelegramProfileRepository
 from backend.apps.telegram_bot.repositories.user_role_repository import TelegramUserRoleRepository
+from backend.apps.telegram_bot.repositories.user_repository import TelegramUserRepository
 from backend.apps.telegram_bot.repositories.adapters.telegram_api_adapter import TelegramBotClient
 from backend.apps.telegram_bot.vo.commerce_bot_vo import (
     TelegramBotAliasVO,
@@ -84,8 +86,6 @@ from backend.apps.billing.enums import CurrencyEnum, PaymentProviderEnum, Paymen
 
 
 logger = CommonUtils.get_project_logger(__name__)
-User = get_user_model()
-
 
 @dataclass(frozen=True)
 class TelegramCommand:
@@ -237,6 +237,8 @@ class TelegramBotService:
         account_logic: AccountLogicRepository | None = None,
         account_link_logic: BotAccountLinkLogicRepository | None = None,
         messenger_profile_logic: MessengerProfileLogic | None = None,
+        profile_repository: TelegramProfileRepository | None = None,
+        user_repository: TelegramUserRepository | None = None,
     ):
         self.client = client or TelegramBotClient()
         self.account_link_logic = account_link_logic or BotAccountLinkLogicRepository()
@@ -246,6 +248,8 @@ class TelegramBotService:
         self.support_logic = support_logic or BotSupportLogicRepository()
         self.account_logic = account_logic or AccountLogicRepository()
         self.messenger_profile_logic = messenger_profile_logic or MessengerProfileLogic()
+        self.profile_repository = profile_repository or TelegramProfileRepository()
+        self.user_repository = user_repository or TelegramUserRepository()
         self.marketplace_controller = MarketplaceBotController(
             send_chain_message=self.send_chain_message,
             language_resolver=self.lang,
@@ -257,6 +261,18 @@ class TelegramBotService:
             send_chain_message=self.send_chain_message,
             is_admin_profile=self.is_admin_profile,
             language_resolver=self.lang,
+        )
+        self.lms_controller = LMSBotController(
+            send_chain_message=self.send_chain_message,
+            language_resolver=self.lang,
+            linked_user_resolver=self.linked_user_or_none,
+            app_url_resolver=self.web_app_url,
+        )
+        self.referral_controller = ReferralBotController(
+            send_chain_message=self.send_chain_message,
+            language_resolver=self.lang,
+            linked_user_resolver=self.linked_user_or_none,
+            app_url_resolver=self.web_app_url,
         )
 
     def handle_update(self, update: dict[str, Any]) -> None:
@@ -405,6 +421,12 @@ class TelegramBotService:
 
         if not self.has_selected_language(profile):
             self.show_language_selection(profile)
+            return
+
+        if data.startswith(LMSBotCallbackVO.PREFIX):
+            self.lms_controller.handle_callback(
+                profile, data, message_id=message.get("message_id"),
+            )
             return
 
         if data.startswith(MarketplaceBotCallbackVO.PREFIX):
@@ -792,6 +814,8 @@ class TelegramBotService:
             "courses": lambda p: self.send_course_list(p, page=1),
             "my_courses": self.send_my_courses,
             "my_orders": self.send_my_orders,
+            "marketplace": lambda p: self._show_marketplace(p, MarketplaceBotSection.HOME),
+            "referral": lambda p: self.referral_controller.show(p),
             "review_queue": self.send_review_queue,
             "payment_queue": self.send_payment_receipt_queue,
             "admin_courses": lambda p: self.send_admin_course_list(p, page=1),
@@ -1772,7 +1796,7 @@ class TelegramBotService:
             )
             return
 
-        if User.objects.filter(username__iexact=username).exists():
+        if self.user_repository.username_exists(username):
             self.client.send_message(
                 profile.chat_id,
                 self.t(profile, "username_exists"),
@@ -1800,7 +1824,7 @@ class TelegramBotService:
             )
             return
 
-        if User.objects.filter(email__iexact=email).exists():
+        if self.user_repository.email_exists(email):
             self.client.send_message(
                 profile.chat_id,
                 self.t(profile, "email_exists"),
@@ -1830,7 +1854,7 @@ class TelegramBotService:
             )
             return
 
-        if User.objects.filter(phone_number=phone_number).exists():
+        if self.user_repository.phone_number_exists(phone_number):
             self.client.send_message(
                 profile.chat_id,
                 self.t(profile, "phone_exists"),
@@ -1915,18 +1939,14 @@ class TelegramBotService:
             return
 
         try:
-            with transaction.atomic():
-                self.ensure_default_user_role()
-                user = User.objects.create_user(
-                    username=data["username"],
-                    email=data["email"],
-                    password=None,
-                    phone_number=data["phone_number"],
-                    first_name=data["first_name"],
-                    last_name=data["last_name"],
-                    email_verified=False,
-                    phone_number_verified=False,
-                )
+            self.ensure_default_user_role()
+            user = self.user_repository.create_unverified_user(
+                username=data["username"],
+                email=data["email"],
+                phone_number=data["phone_number"],
+                first_name=data["first_name"],
+                last_name=data["last_name"],
+            )
         except IntegrityError:
             self.client.send_message(
                 profile.chat_id,
@@ -3179,7 +3199,11 @@ class TelegramBotService:
 
     def notify_admins_about_support_ticket(self, profile: TelegramProfile, ticket, message_text: str) -> None:
         try:
-            admins = TelegramProfile.objects.filter(messenger_provider=self.MESSENGER_PROVIDER, is_active=True, is_verified=True, user__isnull=False).filter(Q(user__is_staff=True) | Q(user__is_superuser=True)).exclude(chat_id=profile.chat_id)
+            admins = self.profile_repository.list_admin_profiles(
+                provider=self.MESSENGER_PROVIDER,
+                exclude_chat_id=profile.chat_id,
+                include_role_admin=False,
+            )
             user_label = profile.user.email if profile.user_id and profile.user.email else profile.username or profile.chat_id
             for admin_profile in admins[:20]:
                 self.client.send_message(
@@ -4122,6 +4146,10 @@ class TelegramBotService:
                 self.inline_button(self.t(profile, "lessons_button"), f"c:ls:{course_id}"),
                 self.inline_button(self.t(profile, "reviews_button"), f"c:rv:{course_id}"),
             ],
+        ]
+        if self.linked_user_or_none(profile):
+            keyboard.append([self.inline_button(LMSBotTextVO.get(self.lang(profile), "button_classroom"), LMSBotCallbackVO.classroom(course_id))])
+        keyboard += [
             [self.inline_button(self.t(profile, "buy_button"), f"c:buy:{course_id}")],
             [self.inline_button(self.t(profile, "write_review_button"), f"c:rr:{course_id}")],
             [self.inline_button(self.t(profile, "courses_back_button"), "c:l:1")],
@@ -4442,11 +4470,9 @@ class TelegramBotService:
                 logger.debug("Could not notify Telegram admin about payment receipt", exc_info=True)
 
     def admin_payment_profiles(self):
-        return (
-            TelegramProfile.objects.select_related("user", "user__role")
-            .filter(messenger_provider=self.MESSENGER_PROVIDER, is_verified=True, is_active=True, user__is_active=True)
-            .filter(Q(user__is_staff=True) | Q(user__is_superuser=True) | Q(user__role__symbol="admin"))
-            .order_by("chat_id")
+        return self.profile_repository.list_admin_profiles(
+            provider=self.MESSENGER_PROVIDER,
+            include_role_admin=True,
         )
 
     def send_my_courses(self, profile: TelegramProfile, *, message_id: int | None = None) -> None:
@@ -4475,7 +4501,12 @@ class TelegramBotService:
                     enrolled_at=f"{enrollment.enrolled_at:%Y-%m-%d}",
                 )
             )
-            keyboard.append([self.inline_button(self.t(profile, "open_course_button", title=course.title[:30]), f"c:d:{self.compact_id(course.id)}")])
+            keyboard.append([
+                self.inline_button(
+                    f"{LMSBotTextVO.get(self.lang(profile), 'button_classroom')} · {course.title[:24]}",
+                    LMSBotCallbackVO.classroom(self.compact_id(course.id)),
+                )
+            ])
         self.send_chain_message(profile, "\n".join(lines), reply_markup=self.inline_keyboard(keyboard), message_id=message_id)
 
     def send_my_orders(self, profile: TelegramProfile, *, message_id: int | None = None) -> None:
@@ -5315,6 +5346,7 @@ class TelegramBotService:
         rows: list[list[dict[str, Any]]] = []
         rows.append([self.inline_button(self.t(profile, "edit_course_button"), f"a:e:{course_id}")])
         rows.append([self.inline_button(self.t(profile, "add_lesson_button"), f"a:lc:{course_id}")])
+        rows.append([self.inline_button(LMSBotTextVO.get(self.lang(profile), "button_instructor_web"), LMSBotCallbackVO.classroom(course_id))])
         if course.status != CourseStatusEnum.PUBLISHED.value:
             rows.append([self.inline_button(self.t(profile, "publish_button"), f"a:p:{course_id}")])
         else:
@@ -5327,6 +5359,9 @@ class TelegramBotService:
             self.inline_button(self.t(profile, "all_courses_button"), "a:c:1"),
         ])
         return self.inline_keyboard(rows)
+
+    def handle_referral(self, profile: TelegramProfile, command: TelegramCommand) -> None:
+        self.referral_controller.show(profile)
 
     def handle_admin_courses(self, profile: TelegramProfile, command: TelegramCommand) -> None:
         self.send_admin_course_list(profile, page=1)
@@ -5357,7 +5392,7 @@ class TelegramBotService:
 
         if is_linked:
             rows.append([cls.button(profile, "articles"), cls.button(profile, "courses")])
-            rows.append([MarketplaceBotMessageVO.COMMAND])
+            rows.append([cls.button(profile, "marketplace"), cls.button(profile, "referral")])
             rows.append([cls.button(profile, "my_courses"), cls.button(profile, "my_orders")])
             rows.append([cls.button(profile, "account"), cls.button(profile, "forgot_password")])
             if profile and cls.is_admin_profile(profile):
@@ -5385,7 +5420,7 @@ class TelegramBotService:
                 rows.append([cls.web_app_button(profile), cls.button(profile, "help")])
         else:
             rows.append([cls.button(profile, "articles"), cls.button(profile, "courses")])
-            rows.append([MarketplaceBotMessageVO.COMMAND])
+            rows.append([cls.button(profile, "marketplace")])
             rows.append([cls.button(profile, "link"), cls.button(profile, "forgot_password")])
             rows.append([cls.button(profile, "channels"), cls.button(profile, "help")])
             if cls.web_app_url():

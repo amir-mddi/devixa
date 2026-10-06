@@ -58,6 +58,7 @@ deployment/env/local.env
 # Distribution / packaging
 .Python
 build/
+local.env
 poetry.lock
 pyproject.toml
 updates

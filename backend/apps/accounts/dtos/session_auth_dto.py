@@ -19,6 +19,7 @@ class RegisterUserDTO:
     username: str
     email: str
     password: str
+    referral_code: str = ""
 
 
 @dataclass(frozen=True, slots=True)

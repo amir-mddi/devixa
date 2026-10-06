@@ -118,6 +118,7 @@ INSTALLED_APPS = [
     'django_celery_results',
     # apps
     'backend.apps.accounts.apps.AccountConfig',
+    'backend.apps.referrals.apps.ReferralsConfig',
     'backend.apps.common.apps.CommonConfig',
     'backend.apps.pages.apps.PagesConfig',
     'backend.apps.shared.apps.SharedConfig',
@@ -205,6 +206,7 @@ STATICFILES_DIRS = [BASE_DIR / "backend/static"]
 STATIC_ROOT = os.path.join(BASE_DIR, "deployment/staticfiles")
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "backend/apps/media/")
+COURSE_PRIVATE_MEDIA_ROOT = BASE_DIR / "deployment" / "private_uploads" / "courses"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

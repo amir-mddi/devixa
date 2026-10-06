@@ -9,6 +9,7 @@ from rest_framework.exceptions import NotFound
 from backend.apps.common.project_config import get_request_project_context
 from backend.apps.common.web.seo.mixins import SeoContextMixin
 from backend.apps.courses.repositories.logic import CourseLogicRepository
+from backend.apps.courses.logic import CourseLMSLogic
 from backend.apps.marketplace.repositories.marketplace import MarketplaceRepository
 from backend.apps.courses.web.seo_presenters import CourseSeoPresenter
 from backend.apps.courses.vo.roadmap_vo import (
@@ -58,11 +59,19 @@ class CourseDetailPageView(AsyncWebViewMixin, CourseWebRepositoryMixin, Template
         except NotFound as exc:
             raise Http404(CourseWebMessageVO.COURSE_NOT_FOUND.value) from exc
 
+        lms_logic = CourseLMSLogic()
+        is_instructor = False
+        is_enrolled = False
+        if getattr(self.request.user, "is_authenticated", False):
+            is_instructor, is_enrolled = lms_logic.access_state(self.request.user, detail.course)
+
         context.update(
             {
                 CourseWebContextKeyVO.COURSE_DETAIL.value: detail,
                 CourseWebContextKeyVO.COURSE.value: detail.course,
                 "public_mentor": MarketplaceRepository().public_mentor_for_user(detail.course.instructor_id),
+                "is_course_instructor": is_instructor,
+                "is_course_enrolled": is_enrolled,
                 CourseWebContextKeyVO.REVIEWS.value: detail.reviews,
                 CourseWebContextKeyVO.RELATED_COURSES.value: detail.related_courses,
                 CourseWebContextKeyVO.RELATED_COURSES_EMPTY_MESSAGE.value: (

@@ -65,6 +65,7 @@ class AccountProfileSectionVO(StrEnum):
     PROFILE = "profile"
     CONTACT = "contact"
     COURSES = "courses"
+    REFERRALS = "referrals"
     BILLING = "billing"
     TICKETS = "tickets"
 

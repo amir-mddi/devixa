@@ -10,6 +10,7 @@ from backend.apps.telegram_bot.repositories.logic.bot_support_logic import (
 from backend.apps.telegram_bot.repositories.profile_repository import (
     TelegramProfileRepository,
 )
+from backend.apps.referrals.logic import ReferralLogic
 
 
 class AccountProfileDashboardLogic:
@@ -20,12 +21,14 @@ class AccountProfileDashboardLogic:
         billing_logic: BillingLogicRepository | None = None,
         support_logic: BotSupportLogicRepository | None = None,
         messenger_profile_repository: TelegramProfileRepository | None = None,
+        referral_logic: ReferralLogic | None = None,
     ):
         self.profile_logic = profile_logic or AccountProfileLogic()
         self.course_logic = course_logic or CourseLogicRepository()
         self.billing_logic = billing_logic or BillingLogicRepository()
         self.support_logic = support_logic or BotSupportLogicRepository()
         self.messenger_profile_repository = messenger_profile_repository or TelegramProfileRepository()
+        self.referral_logic = referral_logic or ReferralLogic()
 
     def build(self, user) -> AccountProfileDashboardDTO:
         reviews = tuple(self.course_logic.list_user_reviews(user))
@@ -43,4 +46,5 @@ class AccountProfileDashboardLogic:
                 for payment in payments
                 if self.billing_logic.can_upload_receipt(payment)
             ),
+            referral_summary=self.referral_logic.summary(user),
         )

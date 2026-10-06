@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
+set -e
+
 export PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus_multiproc
-mkdir -p "$PROMETHEUS_MULTIPROC_DIR" && chmod 777 "$PROMETHEUS_MULTIPROC_DIR" && mkdir db
+mkdir -p "$PROMETHEUS_MULTIPROC_DIR"
+chmod 777 "$PROMETHEUS_MULTIPROC_DIR"
+mkdir -p db
 python -m backend.project.manage check
 python -m backend.project.manage makemigrations --no-input
 python -m backend.project.manage migrate --no-input

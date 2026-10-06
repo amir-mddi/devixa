@@ -25,7 +25,7 @@ class Access(BaseModel):
 class Role(BaseModel):
     name = models.CharField(max_length=20, unique=True)
     accesses = models.ManyToManyField(
-        "Access", related_name="access_roles", null=False, default=None
+        "Access", related_name="access_roles", default=None
     )
     symbol = models.CharField(max_length=20, unique=True, null=True)
 

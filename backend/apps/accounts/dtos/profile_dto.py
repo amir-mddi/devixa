@@ -65,3 +65,4 @@ class AccountProfileDashboardDTO:
     messenger_profiles: tuple[Any, ...]
     reviews_by_course_id: dict[str, Any]
     receipt_upload_payment_ids: frozenset[Any]
+    referral_summary: Any | None = None

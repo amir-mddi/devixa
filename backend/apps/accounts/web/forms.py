@@ -64,8 +64,10 @@ class AccountWebFieldFactory:
         max_length: int,
         placeholder: AccountWebPlaceholderVO,
         autocomplete: AccountWebAutocompleteVO | None = None,
+        required: bool = True,
     ) -> forms.CharField:
         return forms.CharField(
+            required=required,
             max_length=max_length,
             error_messages=AccountWebFormErrorMessageFactory.char_field_messages(),
             widget=forms.TextInput(attrs=cls._widget_attrs(placeholder, autocomplete)),
@@ -230,6 +232,11 @@ class RegisterTemplateForm(
         placeholder=AccountWebPlaceholderVO.PASSWORD_CONFIRM,
         autocomplete=AccountWebAutocompleteVO.NEW_PASSWORD,
     )
+    referral_code = AccountWebFieldFactory.text_field(
+        max_length=AccountWebFieldLimitVO.REFERRAL_CODE_MAX_LENGTH,
+        placeholder=AccountWebPlaceholderVO.REFERRAL_CODE,
+        required=False,
+    )
 
     def get_password_validation_user(
         self, cleaned_data: dict[str, object]
@@ -277,6 +284,7 @@ class RegisterTemplateForm(
             username=self.cleaned_data[AccountWebFieldNameVO.USERNAME.value],
             email=self.cleaned_data[AccountWebFieldNameVO.EMAIL.value],
             password=self.cleaned_data[AccountWebFieldNameVO.PASSWORD.value],
+            referral_code=str(self.cleaned_data.get(AccountWebFieldNameVO.REFERRAL_CODE.value) or "").strip().upper(),
         )
 
 

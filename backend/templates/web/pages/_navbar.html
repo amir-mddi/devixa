@@ -91,11 +91,9 @@
         <a href="{% url 'courses_web:course_list' %}"><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i> دوره‌ها</a>
         <a href="{% url 'courses_web:roadmap_list' %}"><i class="fa-solid fa-route" aria-hidden="true"></i> نقشه راه</a>
         <a href="{% url 'marketplace:mentors' %}"><i class="fa-solid fa-people-group" aria-hidden="true"></i> منتورها</a>
-        <a href="{% url 'marketplace:academies' %}"><i class="fa-solid fa-school" aria-hidden="true"></i> مدارس</a>
-        <a href="{% url 'marketplace:opportunities' %}"><i class="fa-solid fa-briefcase" aria-hidden="true"></i> فرصت‌ها</a>
         <a href="{% url 'marketplace:collaborations' %}"><i class="fa-solid fa-handshake" aria-hidden="true"></i> همکاری</a>
         <a href="{% url 'marketplace:dashboard' %}"><i class="fa-solid fa-table-columns" aria-hidden="true"></i> میزکار</a>
-        <a href="{% url 'articles_web:article_list' %}"><i class="fa-solid fa-newspaper" aria-hidden="true"></i> مجله</a>
+        <a href="{% url 'articles_web:article_list' %}"><i class="fa-solid fa-newspaper" aria-hidden="true"></i> مطالب و مقالات</a>
         <a href="{% url 'pages_web:channels' %}"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i> کانال‌ها</a>
         <a href="{% url 'pages_web:contact_us' %}"><i class="fa-solid fa-envelope" aria-hidden="true"></i> تماس</a>
         <a href="{% url 'pages_web:about_us' %}"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> درباره ما</a>
@@ -120,12 +118,12 @@
         <i class="fa-solid fa-people-group" aria-hidden="true"></i>
         <span>منتورها</span>
     </a>
-    <a class="mobile-bottom-nav__item" data-mobile-nav-link="academies" href="{% url 'marketplace:academies' %}">
-        <i class="fa-solid fa-school" aria-hidden="true"></i>
-        <span>مدارس</span>
+    <a class="mobile-bottom-nav__item" data-mobile-nav-link="articles" href="{% url 'articles_web:article_list' %}">
+        <i class="fa-solid fa-newspaper" aria-hidden="true"></i>
+        <span>مطالب</span>
     </a>
-    <a class="mobile-bottom-nav__item" data-mobile-nav-link="opportunities" href="{% url 'marketplace:opportunities' %}">
-        <i class="fa-solid fa-briefcase" aria-hidden="true"></i>
-        <span>فرصت‌ها</span>
+    <a class="mobile-bottom-nav__item" data-mobile-nav-link="about" href="{% url 'pages_web:about_us' %}">
+        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+        <span>درباره ما</span>
     </a>
 </nav>
