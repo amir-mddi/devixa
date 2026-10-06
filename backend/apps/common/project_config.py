@@ -26,6 +26,7 @@ def _fallback_project_config() -> ProjectConfigDTO:
         github_url=data[ProjectConfigFieldNameVO.GITHUB_URL.value],
         linkedin_url=data[ProjectConfigFieldNameVO.LINKEDIN_URL.value],
         telegram_url=data[ProjectConfigFieldNameVO.TELEGRAM_URL.value],
+        bale_url=data[ProjectConfigFieldNameVO.BALE_URL.value],
         instagram_url=data[ProjectConfigFieldNameVO.INSTAGRAM_URL.value],
         telegram_bot_url=data[ProjectConfigFieldNameVO.TELEGRAM_BOT_URL.value],
         bale_bot_url=data[ProjectConfigFieldNameVO.BALE_BOT_URL.value],

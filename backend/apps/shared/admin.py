@@ -71,6 +71,7 @@ class ProjectConfigModelAdmin(admin.ModelAdmin):
                     "github_url",
                     "linkedin_url",
                     "telegram_url",
+                    "bale_url",
                     "instagram_url",
                     "telegram_bot_url",
                     "bale_bot_url",

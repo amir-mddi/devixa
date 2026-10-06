@@ -1955,8 +1955,7 @@ body :where(h1,h2,h3,h4,h5,h6){line-height:1.45;letter-spacing:-.02em;overflow-w
     direction:rtl !important;
 }
 .navbar .nav_cta .auth-menu.is-open .auth-menu__dropdown,
-.navbar .nav_cta .auth-menu:hover .auth-menu__dropdown,
-.navbar .nav_cta .auth-menu:focus-within .auth-menu__dropdown{
+.navbar .nav_cta .auth-menu.is-open .auth-menu__dropdown{
     opacity:1 !important;
     visibility:visible !important;
     transform:translateY(0) scale(1) !important;

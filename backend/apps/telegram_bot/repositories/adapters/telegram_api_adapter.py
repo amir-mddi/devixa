@@ -444,7 +444,15 @@ class TelegramApiAdapter(BotClientInterface):
         payload: dict[str, Any] = {
             "url": url,
             "drop_pending_updates": drop_pending_updates,
-            "allowed_updates": ["message", "edited_message", "channel_post", "edited_channel_post", "callback_query"],
+            "allowed_updates": [
+                "message",
+                "edited_message",
+                "channel_post",
+                "edited_channel_post",
+                "callback_query",
+                "chat_member",
+                "my_chat_member",
+            ],
         }
         if secret_token:
             payload["secret_token"] = secret_token
@@ -468,8 +476,35 @@ class TelegramApiAdapter(BotClientInterface):
     def get_webhook_info(self) -> dict[str, Any]:
         return self.request("getWebhookInfo")
 
+    def get_me(self) -> dict[str, Any]:
+        return self.request("getMe")
+
+    def get_chat(self, *, chat_id: str | int) -> dict[str, Any]:
+        return self.request("getChat", {"chat_id": chat_id})
+
     def get_chat_member(self, *, chat_id: str | int, user_id: str | int) -> dict[str, Any]:
         return self.request("getChatMember", {"chat_id": chat_id, "user_id": user_id})
+
+    def create_chat_invite_link(
+        self,
+        *,
+        chat_id: str | int,
+        name: str = "",
+        expire_date: int | None = None,
+        member_limit: int | None = None,
+        creates_join_request: bool = False,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "chat_id": chat_id,
+            "creates_join_request": bool(creates_join_request),
+        }
+        if name:
+            payload["name"] = name[:32]
+        if expire_date is not None:
+            payload["expire_date"] = int(expire_date)
+        if member_limit is not None and not creates_join_request:
+            payload["member_limit"] = int(member_limit)
+        return self.request("createChatInviteLink", payload)
 
     async def aget_updates(
         self,
@@ -488,6 +523,8 @@ class TelegramApiAdapter(BotClientInterface):
                 "channel_post",
                 "edited_channel_post",
                 "callback_query",
+                "chat_member",
+                "my_chat_member",
             ],
         }
         if offset is not None:

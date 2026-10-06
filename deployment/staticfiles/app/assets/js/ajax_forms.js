@@ -163,10 +163,22 @@
 
     const MANAGED_STYLE_SELECTOR = 'link[rel="stylesheet"], style[data-ajax-managed-style]';
 
-    const reconcileStyles = (nextDocument) => {
+    const waitForStylesheet = (link) => new Promise((resolve) => {
+        if (!link || link.sheet) {
+            resolve();
+            return;
+        }
+        const finish = () => resolve();
+        link.addEventListener("load", finish, {once: true});
+        link.addEventListener("error", finish, {once: true});
+        window.setTimeout(finish, 5000);
+    });
+
+    const reconcileStyles = async (nextDocument) => {
         const boundary = document.head.querySelector("[data-ajax-style-boundary]");
         const currentLinksByHref = new Map();
         const currentLinks = [...document.head.querySelectorAll('link[rel="stylesheet"]')];
+        const pendingStylesheets = [];
 
         currentLinks.forEach((link) => {
             const href = absoluteUrl(link.getAttribute("href"));
@@ -187,7 +199,11 @@
             if (nextStyle.matches('link[rel="stylesheet"]')) {
                 const href = absoluteUrl(nextStyle.getAttribute("href"));
                 const existingMatches = currentLinksByHref.get(href) || [];
-                styleNode = existingMatches.shift() || document.importNode(nextStyle, true);
+                styleNode = existingMatches.shift();
+                if (!styleNode) {
+                    styleNode = document.importNode(nextStyle, true);
+                    pendingStylesheets.push(waitForStylesheet(styleNode));
+                }
                 currentLinksByHref.set(href, existingMatches);
                 retainedLinks.add(styleNode);
             } else {
@@ -196,6 +212,8 @@
 
             document.head.insertBefore(styleNode, boundary || null);
         });
+
+        await Promise.all(pendingStylesheets);
 
         currentLinks.forEach((link) => {
             if (!retainedLinks.has(link)) {
@@ -262,7 +280,7 @@
         prepareRevealLifecycle(moduleScripts);
 
         document.dispatchEvent(new CustomEvent("devixa:before-page-swap"));
-        reconcileStyles(nextDocument);
+        await reconcileStyles(nextDocument);
         reconcileHeadMetadata(nextDocument);
         document.documentElement.lang = nextDocument.documentElement.lang || document.documentElement.lang;
         document.documentElement.dir = nextDocument.documentElement.dir || document.documentElement.dir;

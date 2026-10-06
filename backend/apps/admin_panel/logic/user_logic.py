@@ -3,11 +3,19 @@ from django.db import transaction
 
 from backend.apps.admin_panel.repositories import AdminPanelRepository
 from backend.apps.admin_panel.value_objects import AdminPanelMessageVO
+from backend.apps.referrals.logic import ChannelReferralLogic, ReferralLogic
 
 
 class AdminUserLogic:
-    def __init__(self, repository: AdminPanelRepository | None = None):
+    def __init__(
+        self,
+        repository: AdminPanelRepository | None = None,
+        referral_logic: ReferralLogic | None = None,
+        channel_referral_logic: ChannelReferralLogic | None = None,
+    ):
         self.repository = repository or AdminPanelRepository()
+        self.referral_logic = referral_logic or ReferralLogic()
+        self.channel_referral_logic = channel_referral_logic or ChannelReferralLogic()
 
     def list_users(self, *, search: str = "", role_id: str = "", active: str = ""):
         return self.repository.list_users(search=search, role_id=role_id, active=active)
@@ -17,6 +25,15 @@ class AdminUserLogic:
         if actor is not None:
             self._ensure_manageable(actor=actor, user=user)
         return user
+
+    def referral_detail(self, *, actor, user_id):
+        user = self.get_user(user_id, actor=actor)
+        channel_summary = self.channel_referral_logic.admin_summary(user)
+        summary = self.referral_logic.admin_summary(
+            user,
+            channel_summary=channel_summary,
+        )
+        return user, summary
 
     def list_roles(self, *, actor=None):
         roles = self.repository.list_roles()

@@ -32,6 +32,7 @@ from backend.apps.admin_panel.web.views import (
     AdminUserDeleteView,
     AdminUserEditView,
     AdminUserListView,
+    AdminUserReferralDetailView,
     AdminUserToggleView,
 )
 
@@ -81,6 +82,11 @@ urlpatterns = [
         "users/new/",
         AdminUserCreateView.as_view(),
         name=AdminPanelRouteVO.USER_CREATE.value,
+    ),
+    path(
+        "users/<uuid:user_id>/referrals/",
+        AdminUserReferralDetailView.as_view(),
+        name=AdminPanelRouteVO.USER_REFERRALS.value,
     ),
     path(
         "users/<uuid:user_id>/edit/",

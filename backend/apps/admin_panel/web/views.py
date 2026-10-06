@@ -242,6 +242,28 @@ class AdminUserListView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, AdminPa
         return render(request, f'{self.template_root}/users.html', self.base_context(active_section=AdminPanelSectionEnum.USERS, users_page=self.page(logic.list_users(**filters), request), roles=logic.list_roles(actor=request.user), filters=filters))
 
 
+class AdminUserReferralDetailView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
+    logic_class = AdminUserLogic
+
+    async def get(self, request, user_id):
+        return await sync_to_async(self._sync_get, thread_sensitive=True)(request, user_id)
+
+    def _sync_get(self, request, user_id):
+        user, referral_summary = self.logic_class().referral_detail(
+            actor=request.user,
+            user_id=user_id,
+        )
+        return render(
+            request,
+            f"{self.template_root}/user_referrals.html",
+            self.base_context(
+                active_section=AdminPanelSectionEnum.USERS,
+                managed_user=user,
+                referral_summary=referral_summary,
+            ),
+        )
+
+
 class AdminUserCreateView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, AdminPanelContextMixin, View):
     logic_class = AdminUserLogic
 

@@ -85,6 +85,7 @@ def build_project_config_initial_data() -> dict[str, str]:
         ProjectConfigFieldNameVO.GITHUB_URL.value: _public_url(_env(ProjectConfigEnvNameVO.GITHUB_URL, ProjectConfigDefaultVO.EMPTY_URL.value)),
         ProjectConfigFieldNameVO.LINKEDIN_URL.value: _public_url(_env(ProjectConfigEnvNameVO.LINKEDIN_URL, ProjectConfigDefaultVO.EMPTY_URL.value)),
         ProjectConfigFieldNameVO.TELEGRAM_URL.value: _public_url(_env(ProjectConfigEnvNameVO.TELEGRAM_URL, ProjectConfigDefaultVO.EMPTY_URL.value)),
+        ProjectConfigFieldNameVO.BALE_URL.value: _public_url(_env(ProjectConfigEnvNameVO.BALE_URL, ProjectConfigDefaultVO.EMPTY_URL.value)),
         ProjectConfigFieldNameVO.INSTAGRAM_URL.value: _public_url(_env(ProjectConfigEnvNameVO.INSTAGRAM_URL, ProjectConfigDefaultVO.EMPTY_URL.value)),
         ProjectConfigFieldNameVO.TELEGRAM_BOT_URL.value: _public_url(_env(ProjectConfigEnvNameVO.TELEGRAM_BOT_URL, ProjectConfigDefaultVO.EMPTY_URL.value)),
         ProjectConfigFieldNameVO.BALE_BOT_URL.value: _public_url(_env(ProjectConfigEnvNameVO.BALE_BOT_URL, ProjectConfigDefaultVO.EMPTY_URL.value)),

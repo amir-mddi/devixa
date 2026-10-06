@@ -20,6 +20,7 @@ class ProjectConfigDTO:
     github_url: str
     linkedin_url: str
     telegram_url: str
+    bale_url: str
     instagram_url: str
     telegram_bot_url: str
     bale_bot_url: str
@@ -54,6 +55,7 @@ class ProjectConfigDTO:
             github_url=instance.github_url,
             linkedin_url=instance.linkedin_url,
             telegram_url=instance.telegram_url,
+            bale_url=instance.bale_url,
             instagram_url=instance.instagram_url,
             telegram_bot_url=instance.telegram_bot_url,
             bale_bot_url=instance.bale_bot_url,

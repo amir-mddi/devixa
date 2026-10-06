@@ -37,7 +37,15 @@ class Command(BaseCommand):
                 timeout=options["timeout"],
                 sleep_seconds=options["sleep"],
                 drop_pending=options["drop_pending"],
-                allowed_updates=["message", "edited_message", "channel_post", "edited_channel_post", "callback_query"],
+                allowed_updates=[
+                    "message",
+                    "edited_message",
+                    "channel_post",
+                    "edited_channel_post",
+                    "callback_query",
+                    "chat_member",
+                    "my_chat_member",
+                ],
             ))
         except KeyboardInterrupt:
             self.stdout.write(self.style.WARNING("Telegram polling stopped."))

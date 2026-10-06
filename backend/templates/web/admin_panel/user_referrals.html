@@ -1,0 +1,49 @@
+{% extends "web/admin_panel/base.html" %}
+{% block admin_title %}گزارش دعوت‌های کاربر{% endblock %}
+{% block admin_content %}
+<header class="admin-page-header admin-page-header--actions">
+    <div>
+        <a class="admin-back-link" href="{% url 'admin_panel:users' %}">بازگشت به کاربران</a>
+        <span class="admin-eyebrow">Referral Audit</span>
+        <h1>دعوت‌های {{ managed_user.get_full_name|default:managed_user.username }}</h1>
+        <p>این آمار فقط برای مدیران قابل مشاهده است و در پنل یا ربات کاربر نمایش داده نمی‌شود.</p>
+    </div>
+</header>
+
+<div class="admin-stat-grid">
+    <article class="admin-stat-card"><i class="fa-solid fa-user-plus"></i><div><strong>{{ referral_summary.website_invited_count }}</strong><small>ثبت‌نام سایت با کد معرف</small></div></article>
+    <article class="admin-stat-card"><i class="fa-brands fa-telegram"></i><div><strong>{{ referral_summary.channel.invited_count }}</strong><small>عضو یکتای جذب‌شده در کانال</small></div></article>
+    <article class="admin-stat-card"><i class="fa-solid fa-circle-check"></i><div><strong>{{ referral_summary.channel.current_member_count }}</strong><small>هنوز عضو کانال</small></div></article>
+</div>
+
+<section class="admin-card">
+    <div class="admin-section-head"><div><span class="admin-eyebrow">لینک اختصاصی</span><h2>{{ referral_summary.channel.channel_username }}</h2></div></div>
+    <div class="admin-referral-detail-grid">
+        <div><span>کد معرفی سایت</span><strong dir="ltr">{{ referral_summary.code }}</strong></div>
+        <div><span>لینک کانال</span>{% if referral_summary.channel.invite_link %}<a dir="ltr" href="{{ referral_summary.channel.invite_link }}" target="_blank" rel="noopener noreferrer">{{ referral_summary.channel.invite_link }}</a>{% else %}<strong>هنوز توسط کاربر ساخته نشده</strong>{% endif %}</div>
+    </div>
+</section>
+
+<section class="admin-card">
+    <div class="admin-section-head"><div><span class="admin-eyebrow">اعضای منتسب‌شده</span><h2>تاریخچه اعضای دعوت‌شده</h2></div><span class="admin-chip">{{ referral_summary.channel.invited_count }} نفر یکتا</span></div>
+    <div class="admin-table-wrap">
+        <table class="admin-table">
+            <thead><tr><th>کاربر تلگرام</th><th>Telegram ID</th><th>اولین عضویت</th><th>آخرین عضویت</th><th>وضعیت فعلی</th><th>آخرین خروج</th></tr></thead>
+            <tbody>
+            {% for member in referral_summary.channel.members %}
+                <tr>
+                    <td><strong>{{ member.full_name|default:"بدون نام" }}</strong><small dir="ltr">{% if member.username %}@{{ member.username }}{% else %}—{% endif %}</small></td>
+                    <td dir="ltr">{{ member.telegram_user_id }}</td>
+                    <td>{{ member.first_joined_at|date:"Y/m/d H:i"|default:"—" }}</td>
+                    <td>{{ member.last_joined_at|date:"Y/m/d H:i"|default:"—" }}</td>
+                    <td><span class="admin-status {% if member.is_current_member %}admin-status--approved{% else %}admin-status--closed{% endif %}">{% if member.is_current_member %}عضو فعلی{% else %}خارج شده{% endif %}</span></td>
+                    <td>{{ member.left_at|date:"Y/m/d H:i"|default:"—" }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="6"><div class="admin-empty">هنوز عضو جدیدی از لینک اختصاصی این کاربر ثبت نشده است.</div></td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

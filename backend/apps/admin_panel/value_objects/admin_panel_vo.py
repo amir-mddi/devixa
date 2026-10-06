@@ -22,6 +22,7 @@ class AdminPanelRouteVO(StrEnum):
     USER_EDIT = "user_edit"
     USER_TOGGLE = "user_toggle"
     USER_DELETE = "user_delete"
+    USER_REFERRALS = "user_referrals"
     COURSES = "courses"
     COURSE_CREATE = "course_create"
     COURSE_EDIT = "course_edit"

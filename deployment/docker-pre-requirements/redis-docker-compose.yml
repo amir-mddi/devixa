@@ -3,16 +3,35 @@ services:
     container_name: redis
     image: docker.arvancloud.ir/library/redis:7
     restart: always
+
     command:
       [
         "redis-server",
         "--appendonly", "yes",
-        "--requirepass", "${REDIS_PASSWORD}"
+        "--requirepass", "MyStrongRedisPassword123!"
       ]
+
+    ports:
+      - "127.0.0.1:6379:6379"
+
     volumes:
       - /mnt/redis:/data
+
     networks:
       - backend
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "redis-cli",
+          "-a",
+          "MyStrongRedisPassword123!",
+          "ping"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 networks:
   backend:

@@ -1,3 +1,17 @@
-from .referral_dtos import ReferralApplyDTO, ReferralSummaryDTO
+from .referral_dtos import (
+    ChannelReferralAdminSummaryDTO,
+    ReferralAdminSummaryDTO,
+    ReferralApplyDTO,
+    ReferralPublicSummaryDTO,
+    ReferralSummaryDTO,
+    TelegramChannelMemberUpdateDTO,
+)
 
-__all__ = ["ReferralApplyDTO", "ReferralSummaryDTO"]
+__all__ = [
+    "ChannelReferralAdminSummaryDTO",
+    "ReferralAdminSummaryDTO",
+    "ReferralApplyDTO",
+    "ReferralPublicSummaryDTO",
+    "ReferralSummaryDTO",
+    "TelegramChannelMemberUpdateDTO",
+]

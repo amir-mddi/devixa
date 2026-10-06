@@ -1,3 +1,11 @@
-from .referral_entities import ReferralInviteEntity
+from .referral_entities import (
+    ReferralInviteEntity,
+    TelegramChannelReferralLinkEntity,
+    TelegramChannelReferralMemberEntity,
+)
 
-__all__ = ["ReferralInviteEntity"]
+__all__ = [
+    "ReferralInviteEntity",
+    "TelegramChannelReferralLinkEntity",
+    "TelegramChannelReferralMemberEntity",
+]

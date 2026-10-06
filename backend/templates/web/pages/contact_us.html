@@ -4,7 +4,7 @@
 {% block title %}{{ seo.title }}{% endblock %}
 {% block meta_description %}{{ seo.description }}{% endblock %}
 {% block page_styles %}
-    <link rel="stylesheet" href="{% project_static 'Styles/contact_us.css' %}">
+    <link rel="stylesheet" href="{% project_static 'Styles/contact_us.css' %}?v=contact-2">
 {% endblock %}
 
 {% block content %}
@@ -75,6 +75,24 @@
             </div>
             <svg class="contact-card__icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6h4"/></svg>
         </article>
+
+        <div class="contact-social-block">
+            <h3 class="contact-social-block__title">کانال‌ها و ارتباط سریع</h3>
+            <div class="contact-social-grid">
+                {% if project.telegram_url and project.telegram_url != '#' %}
+                <a class="contact-social-card" href="{{ project.telegram_url }}" target="_blank" rel="noopener noreferrer" aria-label="کانال تلگرام {{ project.display_name }}">
+                    <span class="contact-social-card__icon contact-social-card__icon--telegram"><i class="fa-brands fa-telegram" aria-hidden="true"></i></span>
+                    <span class="contact-social-card__content"><strong>کانال تلگرام</strong><small>عضویت و دریافت اطلاعیه‌های {{ project.display_name }}</small></span>
+                </a>
+                {% endif %}
+                {% if project.bale_url and project.bale_url != '#' %}
+                <a class="contact-social-card" href="{{ project.bale_url }}" target="_blank" rel="noopener noreferrer" aria-label="ارتباط با {{ project.display_name }} در بله">
+                    <span class="contact-social-card__icon contact-social-card__icon--bale"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i></span>
+                    <span class="contact-social-card__content"><strong>بله</strong><small>ارتباط سریع در پیام‌رسان بله</small></span>
+                </a>
+                {% endif %}
+            </div>
+        </div>
     </div>
 
     <div class="form_contact reveal_left">

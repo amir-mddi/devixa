@@ -1,4 +1,6 @@
 <div class="admin-row-actions">
+    <a class="admin-button admin-button--ghost admin-button--sm" href="{% url 'admin_panel:user_referrals' item.id %}"><i class="fa-solid fa-user-group"></i> دعوت‌ها</a>
+
     <a class="admin-button admin-button--ghost admin-button--sm" href="{% url 'admin_panel:user_edit' item.id %}">ویرایش</a>
     <form method="post" action="{% url 'admin_panel:user_toggle' item.id %}" onsubmit="return confirm('وضعیت این کاربر تغییر کند؟')">
         {% csrf_token %}

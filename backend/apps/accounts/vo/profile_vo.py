@@ -42,6 +42,8 @@ class AccountProfileMessageVO(StrEnum):
     EMAIL_ALREADY_IN_USE = "این ایمیل قبلاً برای حساب دیگری ثبت شده است."
     PHONE_ALREADY_IN_USE = "این شماره موبایل قبلاً برای حساب دیگری ثبت شده است."
     INACTIVE_ACCOUNT = "حساب کاربری شما غیرفعال است."
+    CHANNEL_REFERRAL_LINK_CREATED = "لینک اختصاصی دعوت کانال ساخته شد و آماده اشتراک است."
+    CHANNEL_REFERRAL_LINK_FAILED = "ساخت لینک دعوت کانال انجام نشد. دسترسی ادمین ربات به کانال را بررسی کنید."
 
 
 class AccountProfileFieldVO(StrEnum):

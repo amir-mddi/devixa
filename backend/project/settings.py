@@ -93,6 +93,8 @@ PROJECT_LOGGER_NAME = general_config.project_logger_name
 PROJECT_STATIC_ASSET_ROOT = general_config.static_asset_root
 PROJECT_SERVE_STATIC_FILES = general_config.serve_static_files
 SEO_CANONICAL_ORIGIN = os.environ.get("SEO_CANONICAL_ORIGIN", "").strip()
+TELEGRAM_REFERRAL_CHANNEL_USERNAME = os.environ.get("TELEGRAM_REFERRAL_CHANNEL_USERNAME", "@DevixaTEch").strip()
+TELEGRAM_REFERRAL_CHANNEL_CHAT_ID = os.environ.get("TELEGRAM_REFERRAL_CHANNEL_CHAT_ID", "").strip()
 
 INSTALLED_APPS = [
     # pre-required apps

@@ -16,24 +16,13 @@
 {% endblock %}
 
 {% block page_styles_after %}
-    <link rel="stylesheet" href="{% project_static 'Styles/home-v2.css' %}?v=home-v2-1">
+    <link rel="stylesheet" href="{% project_static 'Styles/home-v2.css' %}?v=home-v2-2">
     <link rel="stylesheet" href="{% project_static 'Styles/home-v3.css' %}?v=home-v3-1">
     <link rel="stylesheet" href="{% project_static 'Styles/home-v4.css' %}?v=home-v4-1">
-    <link rel="stylesheet" href="{% project_static 'Styles/marketplace-home.css' %}">
+    <link rel="stylesheet" href="{% project_static 'Styles/marketplace-home.css' %}?v=marketplace-home-2">
 {% endblock %}
 
 {% block content %}
-<section class="mp-home-links" aria-label="خدمات جدید آموزشی"><div class="mp-home-links__inner">
- <div class="mp-home-links__heading"><span>اکوسیستم آموزشی DEVIXA</span><h2>فقط دوره نیست؛ ارتباط با مدرس، مدرسه و بازار کار</h2></div>
- <div class="mp-home-links__grid">
-  <a href="{% url 'marketplace:mentors' %}"><i class="fa-solid fa-people-group" aria-hidden="true"></i><strong>منتورینگ</strong><span>مدرس و مشاوره خصوصی</span></a>
-  <a href="{% url 'marketplace:academies' %}"><i class="fa-solid fa-school" aria-hidden="true"></i><strong>مدارس</strong><span>معرفی رشته‌ها و امکانات</span></a>
-  <a href="{% url 'marketplace:opportunities' %}"><i class="fa-solid fa-briefcase" aria-hidden="true"></i><strong>فرصت‌های شغلی</strong><span>استخدام مدرس و متخصص</span></a>
-  <a href="{% url 'marketplace:opportunities' %}?kind=technical"><i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i><strong>خدمات فنی</strong><span>تجهیزات و پشتیبانی مدارس</span></a>
-  <a href="{% url 'courses_web:course_list' %}"><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i><strong>آکادمی</strong><span>دوره، وبینار و آزمون</span></a>
-  <a href="{% url 'marketplace:dashboard' %}"><i class="fa-solid fa-video" aria-hidden="true"></i><strong>سرویس‌های آموزشی</strong><span>ثبت جلسه و همکاری تخصصی</span></a>
- </div></div></section>
-
 <section class="home-hero-v2" aria-labelledby="home-hero-title">
     <span class="home-hero-v2__orb home-hero-v2__orb--one" aria-hidden="true"></span>
     <span class="home-hero-v2__orb home-hero-v2__orb--two" aria-hidden="true"></span>
@@ -173,6 +162,34 @@
         </div>
     </div>
 </section>
+
+<section class="home-hero-insights" aria-label="مزیت‌های اصلی Devixa">
+    <div class="home-hero-insights__grid">
+        <article class="home-hero-insight-card">
+            <span class="home-hero-insight-card__icon"><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i></span>
+            <div><strong>۵ دوره تخصصی</strong><p>مسیرهای مرحله‌ای و کاربردی برای ساخت مهارت واقعی و ورود حرفه‌ای به بازار کار.</p></div>
+        </article>
+        <article class="home-hero-insight-card">
+            <span class="home-hero-insight-card__icon"><i class="fa-solid fa-diagram-project" aria-hidden="true"></i></span>
+            <div><strong>۲۰ پروژه عملی</strong><p>تمرین و پروژه‌هایی که به خروجی رزومه‌ای و قابل ارائه تبدیل می‌شوند.</p></div>
+        </article>
+        <article class="home-hero-insight-card">
+            <span class="home-hero-insight-card__icon"><i class="fa-solid fa-comments" aria-hidden="true"></i></span>
+            <div><strong>کلاس تعاملی با مدرس</strong><p>درس، تکلیف، پروژه، بازخورد و پرسش‌وپاسخ برای هنرجویان ثبت‌نام‌شده.</p></div>
+        </article>
+    </div>
+</section>
+
+<section class="mp-home-links" aria-label="خدمات جدید آموزشی"><div class="mp-home-links__inner">
+ <div class="mp-home-links__heading"><span>اکوسیستم آموزشی DEVIXA</span><h2>فقط دوره نیست؛ ارتباط با مدرس، مدرسه و بازار کار</h2></div>
+ <div class="mp-home-links__grid">
+  <a href="{% url 'marketplace:mentors' %}"><i class="fa-solid fa-people-group" aria-hidden="true"></i><strong>منتورینگ</strong><span>مدرس و مشاوره خصوصی</span></a>
+  <a href="{% url 'marketplace:academies' %}"><i class="fa-solid fa-school" aria-hidden="true"></i><strong>مدارس</strong><span>معرفی رشته‌ها و امکانات</span></a>
+  <a href="{% url 'marketplace:opportunities' %}"><i class="fa-solid fa-briefcase" aria-hidden="true"></i><strong>فرصت‌های شغلی</strong><span>استخدام مدرس و متخصص</span></a>
+  <a href="{% url 'marketplace:opportunities' %}?kind=technical"><i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i><strong>خدمات فنی</strong><span>تجهیزات و پشتیبانی مدارس</span></a>
+  <a href="{% url 'courses_web:course_list' %}"><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i><strong>آکادمی</strong><span>دوره، وبینار و آزمون</span></a>
+  <a href="{% url 'marketplace:dashboard' %}"><i class="fa-solid fa-video" aria-hidden="true"></i><strong>سرویس‌های آموزشی</strong><span>ثبت جلسه و همکاری تخصصی</span></a>
+ </div></div></section>
 
 <section class="home-impact-v3" aria-labelledby="home-impact-title">
     <span class="home-impact-v3__glow home-impact-v3__glow--one" aria-hidden="true"></span>

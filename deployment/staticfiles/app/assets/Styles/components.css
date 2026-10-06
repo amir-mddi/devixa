@@ -1078,8 +1078,7 @@ html.reveal-ready .reveal_right.activee{
     transform:translateY(10px) scale(.98);
     transition:180ms ease;
 }
-.navbar .nav_cta .auth-menu:hover .auth-menu__dropdown,
-.navbar .nav_cta .auth-menu:focus-within .auth-menu__dropdown{
+.navbar .nav_cta .auth-menu.is-open .auth-menu__dropdown{
     opacity:1;
     visibility:visible;
     transform:translateY(0) scale(1);

@@ -20,6 +20,21 @@
             }, 1800);
         })();
     </script>
+    <style data-critical-shell>
+        html, body { margin: 0; min-width: 0; }
+        @media (max-width: 980px) {
+            .navbar {
+                min-height: 64px; display: grid;
+                grid-template-columns: minmax(0,1fr) auto auto;
+                align-items: center; gap: 8px; padding-inline: 12px;
+            }
+            .navbar #navmenu, .navbar .starting { display: none !important; }
+            .navbar .site-menu-toggle { display: grid !important; place-items: center; width: 44px; height: 44px; }
+            .navbar .nav_cta { min-width: 0 !important; width: auto !important; gap: 6px !important; }
+            .navbar .nav_cta .auth-menu__dropdown { visibility: hidden; opacity: 0; pointer-events: none; }
+            .navbar .nav_cta .auth-menu.is-open .auth-menu__dropdown { visibility: visible; opacity: 1; pointer-events: auto; }
+        }
+    </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     {# Global foundation: loaded for every public, basket, profile and admin page. #}
     <link rel="stylesheet" href="{% project_static 'Styles/variables.css' %}">
@@ -36,14 +51,14 @@
 
     {% block page_styles_after %}{% endblock %}
     <link rel="stylesheet" href="{% project_static 'Styles/app-ui.css' %}?v=ui-3">
-    <link rel="stylesheet" href="{% project_static 'Styles/mobile-full-menu.css' %}?v=1">
+    <link rel="stylesheet" href="{% project_static 'Styles/mobile-full-menu.css' %}?v=2">
     <link rel="stylesheet" href="{% project_static 'Styles/ajax-forms.css' %}?v=ajax-2">
     <link rel="stylesheet" href="{% project_static 'Styles/learning-luxe.css' %}?v=luxe-1">
     <link rel="stylesheet" href="{% project_static 'Styles/footer.css' %}?v=footer-1">
     {% include "web/shared/_message_styles.html" %}
     <meta data-ajax-style-boundary>
     <script src="{% project_static 'vendor/jquery/jquery-3.7.1.min.js' %}" defer></script>
-    <script src="{% project_static 'js/ajax_forms.js' %}?v=ajax-2" defer></script>
+    <script src="{% project_static 'js/ajax_forms.js' %}?v=ajax-3" defer></script>
 </head>
 <body data-project-name="{{ project.display_name }}" data-project-initial="{{ project.logo_initial }}">
     {% include "web/pages/_navbar.html" %}

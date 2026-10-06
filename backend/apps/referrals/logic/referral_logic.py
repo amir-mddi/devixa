@@ -5,7 +5,12 @@ import secrets
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 
-from backend.apps.referrals.dtos import ReferralApplyDTO, ReferralSummaryDTO
+from backend.apps.referrals.dtos import (
+    ReferralAdminSummaryDTO,
+    ReferralApplyDTO,
+    ReferralPublicSummaryDTO,
+    ReferralSummaryDTO,
+)
 from backend.apps.referrals.entities import ReferralInviteEntity
 from backend.apps.referrals.repositories import ReferralRepository
 from backend.apps.referrals.value_objects import ReferralLimitVO, ReferralMessageVO, ReferralVO
@@ -68,6 +73,7 @@ class ReferralLogic:
         raise RuntimeError("Could not generate a unique referral code.")
 
     def summary(self, user) -> ReferralSummaryDTO:
+        """Admin/internal summary. Never render its counters in user-facing UI."""
         code = self.get_or_create_code(user)
         recent = self.repository.recent_invites(user, limit=ReferralLimitVO.RECENT_INVITEES.value)
         return ReferralSummaryDTO(
@@ -81,4 +87,18 @@ class ReferralLogic:
                 )
                 for item in recent
             ),
+        )
+
+    def public_summary(self, user, *, channel_username: str, channel_invite_link: str = "") -> ReferralPublicSummaryDTO:
+        return ReferralPublicSummaryDTO(
+            code=self.get_or_create_code(user),
+            channel_username=channel_username,
+            channel_invite_link=channel_invite_link,
+        )
+
+    def admin_summary(self, user, *, channel_summary) -> ReferralAdminSummaryDTO:
+        return ReferralAdminSummaryDTO(
+            code=self.get_or_create_code(user),
+            website_invited_count=self.repository.count_invites(user),
+            channel=channel_summary,
         )

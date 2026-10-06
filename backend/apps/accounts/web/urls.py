@@ -10,6 +10,7 @@ from backend.apps.accounts.web.oauth_views import (
 )
 from backend.apps.accounts.web.profile_views import (
     ProfileContactUpdateView,
+    ProfileChannelReferralLinkView,
     ProfileCourseReviewView,
     ProfileDashboardView,
     ProfileEmailVerificationSendView,
@@ -142,5 +143,10 @@ urlpatterns = [
         AccountWebPathVO.PROFILE_COURSE_REVIEW.value,
         ProfileCourseReviewView.as_view(),
         name=AccountWebRouteNameVO.PROFILE_COURSE_REVIEW.value,
+    ),
+    path(
+        AccountWebPathVO.PROFILE_CHANNEL_REFERRAL_LINK.value,
+        ProfileChannelReferralLinkView.as_view(),
+        name=AccountWebRouteNameVO.PROFILE_CHANNEL_REFERRAL_LINK.value,
     ),
 ]

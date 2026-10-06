@@ -48,6 +48,9 @@ class ProjectConfigModel(BaseModel):
     telegram_url = models.URLField(
         max_length=500, blank=True, default=ProjectConfigDefaultVO.EMPTY_URL.value
     )
+    bale_url = models.URLField(
+        max_length=500, blank=True, default=ProjectConfigDefaultVO.EMPTY_URL.value
+    )
     instagram_url = models.URLField(
         max_length=500, blank=True, default=ProjectConfigDefaultVO.EMPTY_URL.value
     )

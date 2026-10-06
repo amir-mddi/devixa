@@ -49,7 +49,34 @@ class AdminPanelRepository:
 
     @staticmethod
     def list_users(*, search: str = "", role_id: str = "", active: str = ""):
-        queryset = User.objects.select_related("role").filter(is_deleted=False)
+        queryset = (
+            User.objects.select_related("role")
+            .filter(is_deleted=False)
+            .annotate(
+                website_referral_count=Count(
+                    "referral_invites_sent",
+                    filter=Q(referral_invites_sent__is_deleted=False),
+                    distinct=True,
+                ),
+                channel_referral_count=Count(
+                    "telegram_channel_referral_links__members",
+                    filter=Q(
+                        telegram_channel_referral_links__is_deleted=False,
+                        telegram_channel_referral_links__members__is_deleted=False,
+                    ),
+                    distinct=True,
+                ),
+                channel_current_referral_count=Count(
+                    "telegram_channel_referral_links__members",
+                    filter=Q(
+                        telegram_channel_referral_links__is_deleted=False,
+                        telegram_channel_referral_links__members__is_deleted=False,
+                        telegram_channel_referral_links__members__is_current_member=True,
+                    ),
+                    distinct=True,
+                ),
+            )
+        )
         normalized_search = (search or "").strip()
         if normalized_search:
             queryset = queryset.filter(

@@ -4,6 +4,7 @@ from asgiref.sync import sync_to_async
 from backend.apps.common.web.async_view import AsyncWebViewMixin
 
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect, render
 from django.urls import reverse
@@ -46,6 +47,7 @@ from backend.apps.billing.repositories.logic import BillingLogicRepository
 from backend.apps.common.helpers.decorators.rate_limit import rate_limit
 from backend.apps.common.utils.common_utils import CommonUtils
 from backend.apps.courses.repositories.logic import CourseLogicRepository
+from backend.apps.referrals.logic import ChannelReferralLogic
 from backend.apps.telegram_bot.dtos.profile_dtos import DisconnectMessengerProfileDTO
 from backend.apps.telegram_bot.logic.profile_logic import MessengerProfileLogic
 from backend.apps.telegram_bot.repositories.logic.bot_support_logic import (
@@ -115,6 +117,26 @@ class ProfileDashboardView(AsyncWebViewMixin, LoginRequiredMixin, ProfilePanelCo
 
     def get_context_data(self, **kwargs):
         return self.build_context(active_section=AccountProfileSectionVO.OVERVIEW.value)
+
+
+@method_decorator(
+    rate_limit(authenticated_limit=4, anonymous_limit=0, period=300), name="post"
+)
+class ProfileChannelReferralLinkView(
+    AsyncWebViewMixin, LoginRequiredMixin, ProfilePanelContextMixin, View
+):
+    channel_referral_logic_class = ChannelReferralLogic
+
+    async def post(self, request, *args, **kwargs):
+        return await sync_to_async(self._sync_post, thread_sensitive=True)(request, *args, **kwargs)
+
+    def _sync_post(self, request, *args, **kwargs):
+        try:
+            self.channel_referral_logic_class().get_or_create_link(request.user)
+            messages.success(request, AccountProfileMessageVO.CHANNEL_REFERRAL_LINK_CREATED.value)
+        except (ValidationError, RuntimeError):
+            messages.error(request, AccountProfileMessageVO.CHANNEL_REFERRAL_LINK_FAILED.value)
+        return self.profile_redirect(AccountProfileSectionVO.REFERRALS)
 
 
 @method_decorator(

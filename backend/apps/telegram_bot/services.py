@@ -45,6 +45,7 @@ from backend.apps.telegram_bot.logic.profile_logic import MessengerProfileLogic
 from backend.apps.telegram_bot.controllers.marketplace_controller import MarketplaceBotController
 from backend.apps.telegram_bot.controllers.lms_controller import LMSBotController
 from backend.apps.telegram_bot.controllers.referral_controller import ReferralBotController
+from backend.apps.telegram_bot.vo.referral_bot_vo import ReferralBotCallbackVO
 from backend.apps.telegram_bot.vo.marketplace_vo import (
     MarketplaceBotCallbackVO, MarketplaceBotSection,
 )
@@ -276,6 +277,11 @@ class TelegramBotService:
         )
 
     def handle_update(self, update: dict[str, Any]) -> None:
+        chat_member = update.get("chat_member")
+        if chat_member:
+            self.referral_controller.handle_chat_member_update(chat_member)
+            return
+
         channel_post = update.get("channel_post")
         if channel_post:
             self.channel_sync_logic.handle_telegram_channel_post(channel_post, is_edit=False)
@@ -431,6 +437,12 @@ class TelegramBotService:
 
         if data.startswith(MarketplaceBotCallbackVO.PREFIX):
             self.marketplace_controller.handle_callback(
+                profile, data, message_id=message.get("message_id"),
+            )
+            return
+
+        if data.startswith(ReferralBotCallbackVO.PREFIX):
+            self.referral_controller.handle_callback(
                 profile, data, message_id=message.get("message_id"),
             )
             return
