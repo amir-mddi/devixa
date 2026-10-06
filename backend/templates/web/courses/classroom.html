@@ -1,0 +1,163 @@
+{% extends "web/pages/base.html" %}
+{% load project_tags lms_tags %}
+
+{% block title %}کلاس {{ course.title }} | {{ project.display_name }}{% endblock %}
+{% block page_styles_after %}<link rel="stylesheet" href="{% project_static 'Styles/classroom.css' %}?v=classroom-1">{% endblock %}
+
+{% block content %}
+<main class="classroom-page">
+    <section class="classroom-hero">
+        <div class="classroom-hero__copy">
+            <span class="classroom-eyebrow"><i class="fa-solid fa-lock-open" aria-hidden="true"></i> فضای اختصاصی هنرجویان</span>
+            <h1>{{ course.title }}</h1>
+            <p>{{ course.short_description|default:course.description|truncatechars:190 }}</p>
+            <div class="classroom-hero__meta">
+                <span><i class="fa-solid fa-user-tie"></i>{{ course.instructor.get_full_name|default:course.instructor.username }}</span>
+                <span><i class="fa-solid fa-book-open"></i>{{ classroom.total_lessons }} درس</span>
+                <span><i class="fa-solid fa-chart-line"></i>{{ classroom.progress_percentage }}٪ پیشرفت</span>
+            </div>
+        </div>
+        <div class="classroom-progress-card">
+            <div class="classroom-progress-card__ring" style="--progress: {{ classroom.progress_percentage }}%"><strong>{{ classroom.progress_percentage }}٪</strong></div>
+            <div><strong>{{ classroom.completed_lessons }} از {{ classroom.total_lessons }}</strong><span>درس تکمیل شده</span></div>
+        </div>
+    </section>
+
+    {% if classroom.is_instructor %}
+    <div class="classroom-instructor-switch"><a href="{% url 'courses_web:instructor_panel' slug=course.slug %}"><i class="fa-solid fa-chalkboard-user"></i> ورود به پنل مدرس</a></div>
+    {% endif %}
+
+    <nav class="classroom-tabs" aria-label="بخش‌های کلاس">
+        <a href="#lessons"><i class="fa-solid fa-layer-group"></i> درس‌ها</a>
+        <a href="#resources"><i class="fa-solid fa-folder-open"></i> فایل‌ها</a>
+        <a href="#assignments"><i class="fa-solid fa-list-check"></i> تمرین و پروژه</a>
+        <a href="#grades"><i class="fa-solid fa-ranking-star"></i> نمرات</a>
+        <a href="#questions"><i class="fa-solid fa-comments"></i> سؤال از مدرس</a>
+    </nav>
+
+    {% if classroom.announcements %}
+    <section class="classroom-section" id="announcements">
+        <div class="classroom-section__heading"><div><span>اطلاع‌رسانی کلاس</span><h2>اعلان‌های مدرس</h2></div></div>
+        <div class="classroom-announcement-list">
+            {% for announcement in classroom.announcements %}
+            <article class="classroom-announcement {% if announcement.is_pinned %}is-pinned{% endif %}">
+                <div class="classroom-announcement__icon"><i class="fa-solid {% if announcement.is_pinned %}fa-thumbtack{% else %}fa-bullhorn{% endif %}"></i></div>
+                <div><h3>{{ announcement.title }}</h3><p>{{ announcement.message|linebreaksbr }}</p><small>{{ announcement.published_at|date:"Y/m/d H:i" }}</small></div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <section class="classroom-section" id="lessons">
+        <div class="classroom-section__heading"><div><span>مسیر یادگیری</span><h2>فهرست درس‌ها</h2></div><p>{{ classroom.completed_lessons }} درس از {{ classroom.total_lessons }} تکمیل شده</p></div>
+        <div class="classroom-lesson-list">
+            {% for lesson in classroom.lessons %}
+            <article class="classroom-lesson-card {% if lesson.id in classroom.completed_lesson_ids %}is-complete{% endif %}">
+                <div class="classroom-lesson-card__index">{{ forloop.counter|stringformat:"02d" }}</div>
+                <div class="classroom-lesson-card__content">
+                    <div class="classroom-lesson-card__top"><div><h3>{{ lesson.title }}</h3>{% if lesson.section %}<span>{{ lesson.section.title }}</span>{% endif %}</div><span>{{ lesson.duration_minutes }} دقیقه</span></div>
+                    <p>{{ lesson.description|default:"توضیحی برای این درس ثبت نشده است." }}</p>
+                    {% if lesson.video_url %}<a class="classroom-inline-link" href="{{ lesson.video_url }}" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-circle-play"></i> مشاهده ویدئو</a>{% endif %}
+                    {% if lesson.content %}<div class="classroom-rich-text">{{ lesson.content|linebreaks }}</div>{% endif %}
+                </div>
+                {% if classroom.is_student %}
+                <form method="post" action="{% url 'courses_web:lesson_progress' slug=course.slug lesson_id=lesson.id %}" class="classroom-complete-form">
+                    {% csrf_token %}
+                    {% if lesson.id in classroom.completed_lesson_ids %}
+                        <input type="hidden" name="completed" value="0"><button type="submit" class="classroom-button classroom-button--success"><i class="fa-solid fa-circle-check"></i> تکمیل شد</button>
+                    {% else %}
+                        <input type="hidden" name="completed" value="1"><button type="submit" class="classroom-button classroom-button--ghost"><i class="fa-regular fa-circle-check"></i> علامت تکمیل</button>
+                    {% endif %}
+                </form>
+                {% endif %}
+            </article>
+            {% empty %}<div class="classroom-empty"><i class="fa-solid fa-book-open"></i><h3>هنوز درسی منتشر نشده است</h3><p>پس از انتشار اولین درس توسط مدرس، اینجا نمایش داده می‌شود.</p></div>{% endfor %}
+        </div>
+    </section>
+
+    <section class="classroom-section" id="resources">
+        <div class="classroom-section__heading"><div><span>کتابخانه کلاس</span><h2>فایل‌ها و منابع آموزشی</h2></div></div>
+        <div class="classroom-resource-grid">
+            {% for resource in classroom.resources %}
+            <article class="classroom-resource-card">
+                <span class="classroom-resource-card__icon"><i class="fa-solid {% if resource.resource_type == 'link' %}fa-link{% elif resource.resource_type == 'note' %}fa-note-sticky{% else %}fa-file-arrow-down{% endif %}"></i></span>
+                <div><h3>{{ resource.title }}</h3><p>{{ resource.description|default:"منبع آموزشی دوره" }}</p></div>
+                {% if resource.resource_type == 'file' and resource.file %}<a href="{% url 'courses_web:resource_download' object_id=resource.id %}">دانلود امن</a>{% elif resource.resource_type == 'link' %}<a href="{{ resource.external_url }}" target="_blank" rel="noopener noreferrer">باز کردن لینک</a>{% else %}<details><summary>مشاهده یادداشت</summary><div>{{ resource.text_content|linebreaks }}</div></details>{% endif %}
+            </article>
+            {% empty %}<div class="classroom-empty classroom-empty--compact"><i class="fa-regular fa-folder-open"></i><p>هنوز منبعی برای این کلاس اضافه نشده است.</p></div>{% endfor %}
+        </div>
+    </section>
+
+    <section class="classroom-section" id="assignments">
+        <div class="classroom-section__heading"><div><span>کار عملی</span><h2>تمرین‌ها و پروژه‌ها</h2></div><p>تحویل‌ها بعد از پایان مهلت، در صورت غیرفعال بودن تحویل دیرهنگام، بسته می‌شوند.</p></div>
+        <div class="classroom-assignment-list">
+            {% for assignment in classroom.assignments %}
+            {% with submission=classroom.submissions_by_assignment|lms_dict_get:assignment.id %}
+            <article class="classroom-assignment-card {% if assignment|lms_is_overdue %}is-overdue{% endif %}">
+                <header><div><span class="classroom-badge">{{ assignment.assignment_type|lms_assignment_type }}</span><h3>{{ assignment.title }}</h3></div><strong>{{ assignment.max_score }} نمره</strong></header>
+                <p>{{ assignment.instructions|linebreaksbr }}</p>
+                <div class="classroom-assignment-card__meta">
+                    <span><i class="fa-regular fa-calendar"></i> مهلت: {% if assignment.due_at %}{{ assignment.due_at|date:"Y/m/d H:i" }}{% else %}بدون محدودیت{% endif %}</span>
+                    {% if assignment.allow_late_submission %}<span><i class="fa-solid fa-clock-rotate-left"></i> تحویل دیرهنگام مجاز</span>{% endif %}
+                    {% if assignment.attachment %}<a href="{% url 'courses_web:assignment_download' object_id=assignment.id %}"><i class="fa-solid fa-paperclip"></i> فایل تمرین</a>{% endif %}
+                </div>
+                {% if submission %}
+                    <div class="classroom-submission-state">
+                        <div><span>وضعیت تحویل</span><strong>{{ submission.status|lms_submission_status }}</strong></div>
+                        <div><span>زمان تحویل</span><strong>{{ submission.submitted_at|date:"Y/m/d H:i" }}</strong></div>
+                        {% if submission.file %}<a href="{% url 'courses_web:submission_download' object_id=submission.id %}">فایل تحویلی</a>{% endif %}
+                        {% if submission.score != None %}<div class="classroom-score"><span>نمره</span><strong>{{ submission.score }} / {{ assignment.max_score }}</strong>{% if submission.feedback %}<small>{{ submission.feedback }}</small>{% endif %}</div>{% endif %}
+                    </div>
+                {% endif %}
+                {% if classroom.is_student and assignment|lms_can_submit %}
+                <details class="classroom-form-disclosure" {% if not submission %}open{% endif %}>
+                    <summary>{% if submission %}ویرایش و ارسال مجدد{% else %}ارسال پاسخ{% endif %}</summary>
+                    <form method="post" enctype="multipart/form-data" action="{% url 'courses_web:submission_create' slug=course.slug assignment_id=assignment.id %}" class="classroom-form">
+                        {% csrf_token %}
+                        <label>پاسخ متنی<textarea name="text_answer" rows="5">{% if submission %}{{ submission.text_answer }}{% endif %}</textarea></label>
+                        <label>فایل<input type="file" name="file"></label>
+                        <label>لینک<input type="url" name="link_url" value="{% if submission %}{{ submission.link_url }}{% endif %}" dir="ltr"></label>
+                        <button class="classroom-button classroom-button--primary" type="submit"><i class="fa-solid fa-cloud-arrow-up"></i> ثبت تحویل</button>
+                    </form>
+                </details>
+                {% elif classroom.is_student %}<div class="classroom-closed-state"><i class="fa-solid fa-lock"></i> مهلت تحویل بسته شده است.</div>{% endif %}
+            </article>
+            {% endwith %}
+            {% empty %}<div class="classroom-empty"><i class="fa-solid fa-list-check"></i><h3>تمرین فعالی ندارید</h3><p>تمرین‌ها و پروژه‌های جدید اینجا قرار می‌گیرند.</p></div>{% endfor %}
+        </div>
+    </section>
+
+    <section class="classroom-section" id="grades">
+        <div class="classroom-section__heading"><div><span>ارزیابی</span><h2>نمرات و بازخوردها</h2></div></div>
+        <div class="classroom-grade-summary">
+            <article><span>نمره کسب‌شده</span><strong>{{ classroom.grade_summary.earned }}</strong></article>
+            <article><span>از مجموع</span><strong>{{ classroom.grade_summary.possible }}</strong></article>
+            <article><span>میانگین فعلی</span><strong>{% if classroom.grade_summary.percentage != None %}{{ classroom.grade_summary.percentage }}٪{% else %}—{% endif %}</strong></article>
+        </div>
+        <div class="classroom-grade-list">
+            {% for item in classroom.grade_items %}<div><span><strong>{{ item.title }}</strong><small>{{ item.note|default:"" }}</small></span><b>{{ item.score }} / {{ item.max_score }}</b></div>{% empty %}<div class="classroom-empty classroom-empty--compact"><p>هنوز نمره مستقلی منتشر نشده است. نمرات تمرین‌ها بعد از تصحیح در همان کارت تمرین هم نمایش داده می‌شوند.</p></div>{% endfor %}
+        </div>
+    </section>
+
+    <section class="classroom-section" id="questions">
+        <div class="classroom-section__heading"><div><span>ارتباط مستقیم</span><h2>سؤال از مدرس</h2></div><p>برای هر موضوع یک گفت‌وگوی جدا ایجاد کنید تا پیگیری پاسخ‌ها ساده بماند.</p></div>
+        <div class="classroom-question-layout">
+            <div class="classroom-question-list">
+                {% for question in classroom.questions %}<a href="{% url 'courses_web:question_detail' slug=course.slug question_id=question.id %}"><span><strong>{{ question.subject }}</strong><small>{{ question.last_message_at|date:"Y/m/d H:i" }}</small></span><em>{{ question.status|lms_question_status }}</em></a>{% empty %}<div class="classroom-empty classroom-empty--compact"><p>هنوز سؤالی مطرح نکرده‌اید.</p></div>{% endfor %}
+            </div>
+            {% if classroom.is_student %}
+            <form method="post" enctype="multipart/form-data" action="{% url 'courses_web:question_create' slug=course.slug %}" class="classroom-form classroom-question-form">
+                {% csrf_token %}<h3>گفت‌وگوی جدید</h3>
+                <label>موضوع<input type="text" name="subject" maxlength="180" required></label>
+                <label>متن سؤال<textarea name="body" rows="5" required></textarea></label>
+                <label>پیوست (اختیاری)<input type="file" name="attachment"></label>
+                <button class="classroom-button classroom-button--primary" type="submit"><i class="fa-regular fa-paper-plane"></i> ارسال برای مدرس</button>
+            </form>
+            {% else %}
+            <div class="classroom-empty classroom-empty--compact"><p>برای پاسخ‌گویی و مدیریت گفت‌وگوها از پنل مدرس استفاده کنید.</p></div>
+            {% endif %}
+        </div>
+    </section>
+</main>
+{% endblock %}

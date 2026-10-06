@@ -1,0 +1,15 @@
+{% extends "web/pages/base.html" %}
+{% load project_tags lms_tags %}
+{% block title %}{{ question.subject }} | {{ course.title }}{% endblock %}
+{% block page_styles_after %}<link rel="stylesheet" href="{% project_static 'Styles/classroom.css' %}?v=classroom-1">{% endblock %}
+{% block content %}
+<main class="classroom-page classroom-chat-page">
+    <header class="classroom-chat-header"><a href="{% url 'courses_web:classroom' slug=course.slug %}"><i class="fa-solid fa-arrow-right"></i> بازگشت به کلاس</a><div><span>{{ course.title }}</span><h1>{{ question.subject }}</h1></div><em>{{ question.status|lms_question_status }}</em></header>
+    <section class="classroom-chat-thread">
+        {% for message in question.messages.all %}
+        <article class="classroom-chat-message {% if message.sender_id == request.user.id %}is-mine{% else %}is-other{% endif %}"><header><strong>{{ message.sender.get_full_name|default:message.sender.username }}</strong><time>{{ message.sent_at|date:"Y/m/d H:i" }}</time></header><div>{{ message.body|linebreaks }}</div>{% if message.attachment %}<a href="{% url 'courses_web:question_attachment_download' object_id=message.id %}"><i class="fa-solid fa-paperclip"></i> دریافت پیوست</a>{% endif %}</article>
+        {% endfor %}
+    </section>
+    {% if question.status != 'closed' %}<form method="post" enctype="multipart/form-data" action="{% url 'courses_web:question_reply' slug=course.slug question_id=question.id %}" class="classroom-chat-compose">{% csrf_token %}<label><span class="sr-only">پیام</span><textarea name="body" rows="3" placeholder="پیام خود را بنویسید..." required></textarea></label><label class="classroom-chat-file"><i class="fa-solid fa-paperclip"></i><input type="file" name="attachment"><span>پیوست</span></label><button class="classroom-button classroom-button--primary"><i class="fa-regular fa-paper-plane"></i> ارسال</button></form>{% else %}<div class="classroom-closed-state">این گفت‌وگو بسته شده است.</div>{% endif %}
+</main>
+{% endblock %}

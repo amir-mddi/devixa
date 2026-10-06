@@ -1,0 +1,67 @@
+{% extends "web/pages/base.html" %}
+{% load project_tags lms_tags %}
+
+{% block title %}مدیریت کلاس {{ course.title }} | {{ project.display_name }}{% endblock %}
+{% block page_styles_after %}<link rel="stylesheet" href="{% project_static 'Styles/classroom.css' %}?v=classroom-1">{% endblock %}
+
+{% block content %}
+<main class="classroom-page classroom-page--instructor">
+    <section class="classroom-hero classroom-hero--instructor">
+        <div class="classroom-hero__copy"><span class="classroom-eyebrow"><i class="fa-solid fa-chalkboard-user"></i> پنل مدرس</span><h1>{{ course.title }}</h1><p>درس، فایل، تمرین، پروژه، نمره و ارتباط با هنرجوها را از یک فضای یکپارچه مدیریت کنید.</p><div class="classroom-hero__actions"><a href="{% url 'courses_web:classroom' slug=course.slug %}" class="classroom-button classroom-button--ghost">نمای هنرجو</a><a href="{% url 'courses_web:course_detail' slug=course.slug %}" class="classroom-button classroom-button--ghost">صفحه عمومی دوره</a></div></div>
+        <div class="classroom-instructor-stats"><article><strong>{{ classroom.students|length }}</strong><span>هنرجوی فعال</span></article><article><strong>{{ classroom.lessons|length }}</strong><span>درس</span></article><article><strong>{{ classroom.assignments|length }}</strong><span>تمرین/پروژه</span></article><article><strong>{{ classroom.questions|length }}</strong><span>گفت‌وگو</span></article></div>
+    </section>
+
+    <nav class="classroom-tabs"><a href="#content">محتوای کلاس</a><a href="#assignments">تمرین‌ها و تحویل‌ها</a><a href="#students">هنرجوها و نمرات</a><a href="#questions">گفت‌وگوها</a><a href="#announcements">اعلان‌ها</a></nav>
+
+    <section class="classroom-section" id="content">
+        <div class="classroom-section__heading"><div><span>سازنده کلاس</span><h2>درس‌ها و منابع</h2></div></div>
+        <div class="classroom-admin-grid">
+            <details class="classroom-admin-card" open><summary><i class="fa-solid fa-folder-plus"></i><span>ساخت بخش</span></summary><form method="post" action="{% url 'courses_web:section_create' slug=course.slug %}" class="classroom-form">{% csrf_token %}{{ section_form.as_div }}<button class="classroom-button classroom-button--primary">ساخت بخش</button></form></details>
+            <details class="classroom-admin-card" open><summary><i class="fa-solid fa-book-medical"></i><span>افزودن درس</span></summary><form method="post" action="{% url 'courses_web:lesson_create' slug=course.slug %}" class="classroom-form">{% csrf_token %}{{ lesson_form.as_div }}<button class="classroom-button classroom-button--primary">ذخیره درس</button></form></details>
+            <details class="classroom-admin-card"><summary><i class="fa-solid fa-file-circle-plus"></i><span>افزودن فایل یا منبع</span></summary><form method="post" enctype="multipart/form-data" action="{% url 'courses_web:resource_create' slug=course.slug %}" class="classroom-form">{% csrf_token %}{{ resource_form.as_div }}<button class="classroom-button classroom-button--primary">افزودن منبع</button></form></details>
+        </div>
+        <div class="classroom-instructor-lessons">
+            {% for lesson in classroom.lessons %}<article><div><span>{{ lesson.position }}</span><h3>{{ lesson.title }}</h3><small>{% if lesson.section %}{{ lesson.section.title }} · {% endif %}{{ lesson.duration_minutes }} دقیقه</small></div><details><summary>ویرایش سریع</summary><form method="post" action="{% url 'courses_web:lesson_edit' slug=course.slug lesson_id=lesson.id %}" class="classroom-form classroom-form--compact">{% csrf_token %}<label>عنوان<input name="title" value="{{ lesson.title }}" required></label><label>خلاصه<textarea name="description" rows="2">{{ lesson.description }}</textarea></label><label>محتوا<textarea name="content" rows="5">{{ lesson.content }}</textarea></label><label>لینک ویدئو<input name="video_url" type="url" value="{{ lesson.video_url }}" dir="ltr"></label><label>مدت<input name="duration_minutes" type="number" min="0" value="{{ lesson.duration_minutes }}"></label><label>ترتیب<input name="position" type="number" min="1" value="{{ lesson.position }}"></label><label class="classroom-check"><input name="is_preview" type="checkbox" {% if lesson.is_preview %}checked{% endif %}> پیش‌نمایش عمومی</label><label class="classroom-check"><input name="require_completion" type="checkbox" {% if lesson.require_completion %}checked{% endif %}> نیازمند تکمیل</label><button class="classroom-button classroom-button--primary">ذخیره تغییرات</button></form></details></article>{% empty %}<div class="classroom-empty classroom-empty--compact">هنوز درسی ساخته نشده است.</div>{% endfor %}
+        </div>
+        <div class="classroom-section__subheading"><h3>منابع اضافه‌شده</h3><span>{{ classroom.resources|length }} منبع</span></div>
+        <div class="classroom-resource-grid">
+            {% for resource in classroom.resources %}
+            <article class="classroom-resource-card">
+                <span class="classroom-resource-card__icon"><i class="fa-solid {% if resource.resource_type == 'link' %}fa-link{% elif resource.resource_type == 'note' %}fa-note-sticky{% else %}fa-file-arrow-down{% endif %}"></i></span>
+                <div><h3>{{ resource.title }}</h3><p>{% if resource.lesson %}{{ resource.lesson.title }} · {% endif %}{{ resource.description|default:"منبع آموزشی دوره" }}</p></div>
+                {% if resource.resource_type == 'file' and resource.file %}<a href="{% url 'courses_web:resource_download' object_id=resource.id %}">دانلود امن</a>{% elif resource.resource_type == 'link' %}<a href="{{ resource.external_url }}" target="_blank" rel="noopener noreferrer">باز کردن لینک</a>{% else %}<details><summary>مشاهده یادداشت</summary><div>{{ resource.text_content|linebreaks }}</div></details>{% endif %}
+            </article>
+            {% empty %}<div class="classroom-empty classroom-empty--compact"><p>هنوز فایلی یا منبعی اضافه نشده است.</p></div>{% endfor %}
+        </div>
+    </section>
+
+    <section class="classroom-section" id="assignments">
+        <div class="classroom-section__heading"><div><span>ارزیابی عملی</span><h2>تمرین، پروژه و تحویل‌ها</h2></div></div>
+        <details class="classroom-admin-card classroom-admin-card--wide" open><summary><i class="fa-solid fa-list-check"></i><span>ساخت تمرین یا پروژه</span></summary><form method="post" enctype="multipart/form-data" action="{% url 'courses_web:assignment_create' slug=course.slug %}" class="classroom-form classroom-form--columns">{% csrf_token %}{{ assignment_form.as_div }}<button class="classroom-button classroom-button--primary">انتشار فعالیت</button></form></details>
+        <div class="classroom-assignment-list">
+            {% for assignment in classroom.assignments %}
+            <article class="classroom-assignment-card"><header><div><span class="classroom-badge">{{ assignment.assignment_type|lms_assignment_type }}</span><h3>{{ assignment.title }}</h3></div><strong>{{ assignment.max_score }} نمره</strong></header><p>{{ assignment.instructions|truncatechars:260 }}</p><div class="classroom-assignment-card__meta"><span>مهلت: {% if assignment.due_at %}{{ assignment.due_at|date:"Y/m/d H:i" }}{% else %}بدون محدودیت{% endif %}</span><span>وضعیت: {{ assignment.status }}</span></div>
+                {% with submissions=classroom.submissions_by_assignment|lms_dict_get:assignment.id %}
+                <div class="classroom-submission-table"><div class="classroom-submission-table__head"><span>هنرجو</span><span>تحویل</span><span>نمره</span><span>عملیات</span></div>{% for submission in submissions %}<div class="classroom-submission-table__row"><span>{{ submission.student.get_full_name|default:submission.student.username }}</span><span>{{ submission.submitted_at|date:"Y/m/d H:i" }} · {{ submission.status|lms_submission_status }}</span><span>{% if submission.score != None %}{{ submission.score }}{% else %}—{% endif %}</span><span>{% if submission.file %}<a href="{% url 'courses_web:submission_download' object_id=submission.id %}">فایل</a>{% endif %}<details><summary>نمره‌دهی</summary><form method="post" action="{% url 'courses_web:submission_grade' slug=course.slug submission_id=submission.id %}" class="classroom-form classroom-form--inline">{% csrf_token %}<input name="score" type="number" step="0.01" min="0" max="{{ assignment.max_score }}" value="{{ submission.score|default:'' }}" placeholder="نمره" required><input name="feedback" value="{{ submission.feedback }}" placeholder="بازخورد"><button class="classroom-button classroom-button--primary">ثبت</button></form></details></span></div>{% empty %}<div class="classroom-empty classroom-empty--compact">هنوز تحویلی ثبت نشده است.</div>{% endfor %}</div>
+                {% endwith %}
+            </article>{% empty %}<div class="classroom-empty">هنوز تمرین یا پروژه‌ای ایجاد نشده است.</div>{% endfor %}
+        </div>
+    </section>
+
+    <section class="classroom-section" id="students">
+        <div class="classroom-section__heading"><div><span>مدیریت کلاس</span><h2>هنرجوها و نمرات</h2></div></div>
+        <div class="classroom-student-grid">{% for enrollment in classroom.students %}<article><span class="classroom-student-avatar">{{ enrollment.user.first_name|first|default:enrollment.user.username|first }}</span><div><strong>{{ enrollment.user.get_full_name|default:enrollment.user.username }}</strong><small dir="ltr">@{{ enrollment.user.username }}</small></div><time>{{ enrollment.enrolled_at|date:"Y/m/d" }}</time></article>{% empty %}<div class="classroom-empty classroom-empty--compact">هنرجوی فعالی در این کلاس نیست.</div>{% endfor %}</div>
+        {% if classroom.students %}<details class="classroom-admin-card classroom-admin-card--wide"><summary><i class="fa-solid fa-ranking-star"></i><span>ثبت نمره مستقل</span></summary><form method="post" action="{% url 'courses_web:grade_create' slug=course.slug %}" class="classroom-form classroom-form--columns">{% csrf_token %}{{ grade_item_form.as_div }}<button class="classroom-button classroom-button--primary">ثبت نمره</button></form></details>{% endif %}
+    </section>
+
+    <section class="classroom-section" id="questions">
+        <div class="classroom-section__heading"><div><span>پشتیبانی آموزشی</span><h2>سؤال‌های هنرجوها</h2></div></div>
+        <div class="classroom-question-list">{% for question in classroom.questions %}<a href="{% url 'courses_web:question_detail' slug=course.slug question_id=question.id %}"><span><strong>{{ question.subject }}</strong><small>{{ question.student.get_full_name|default:question.student.username }} · {{ question.last_message_at|date:"Y/m/d H:i" }}</small></span><em>{{ question.status|lms_question_status }}</em></a>{% empty %}<div class="classroom-empty classroom-empty--compact">سؤال بازی وجود ندارد.</div>{% endfor %}</div>
+    </section>
+
+    <section class="classroom-section" id="announcements">
+        <div class="classroom-section__heading"><div><span>اطلاع‌رسانی</span><h2>اعلان کلاس</h2></div></div>
+        <div class="classroom-admin-grid"><details class="classroom-admin-card" open><summary><i class="fa-solid fa-bullhorn"></i><span>انتشار اعلان جدید</span></summary><form method="post" action="{% url 'courses_web:announcement_create' slug=course.slug %}" class="classroom-form">{% csrf_token %}{{ announcement_form.as_div }}<button class="classroom-button classroom-button--primary">انتشار اعلان</button></form></details><div class="classroom-announcement-list">{% for announcement in classroom.announcements %}<article class="classroom-announcement"><div class="classroom-announcement__icon"><i class="fa-solid fa-bullhorn"></i></div><div><h3>{{ announcement.title }}</h3><p>{{ announcement.message|linebreaksbr }}</p><small>{{ announcement.published_at|date:"Y/m/d H:i" }}</small></div></article>{% empty %}<div class="classroom-empty classroom-empty--compact">اعلانی منتشر نشده است.</div>{% endfor %}</div></div>
+    </section>
+</main>
+{% endblock %}
