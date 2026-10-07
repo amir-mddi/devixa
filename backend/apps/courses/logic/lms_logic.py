@@ -27,6 +27,10 @@ from backend.apps.courses.enums import (
 )
 from backend.apps.courses.repositories.lms_repository import CourseLMSRepository
 from backend.apps.courses.vo.lms_vo import CourseLMSFileVO, CourseLMSLimitVO, CourseLMSMessageVO
+from backend.apps.common.utils.network_security import (
+    UnsafeOutboundUrlError,
+    normalize_public_https_url,
+)
 
 
 class CourseLMSLogic:
@@ -49,6 +53,15 @@ class CourseLMSLogic:
         if not (is_instructor or is_student):
             raise PermissionDenied(CourseLMSMessageVO.CLASSROOM_ACCESS_REQUIRED.value)
         return is_instructor, is_student
+
+    @staticmethod
+    def _normalize_public_url(value: str) -> str:
+        if not str(value or "").strip():
+            return ""
+        try:
+            return normalize_public_https_url(value, resolve_dns=False)
+        except UnsafeOutboundUrlError as exc:
+            raise ValidationError(CourseLMSMessageVO.HTTPS_LINK_REQUIRED.value) from exc
 
     def classroom(self, *, user, course_id_or_slug) -> CourseClassroomEntity:
         course = self.repository.get_course(course_id_or_slug)
@@ -112,6 +125,7 @@ class CourseLMSLogic:
     def save_lesson(self, *, actor, dto: CourseLessonManageDTO):
         course = self.repository.get_course(dto.course_id)
         self.require_instructor(actor, course)
+        dto = dto.model_copy(update={"video_url": self._normalize_public_url(dto.video_url)})
         return self.repository.save_lesson(actor=actor, course=course, dto=dto)
 
     @staticmethod
@@ -134,6 +148,8 @@ class CourseLMSLogic:
         self._validate_upload(dto.file)
         if dto.resource_type == CourseResourceTypeEnum.LINK.value and not dto.external_url:
             raise ValidationError(CourseLMSMessageVO.RESOURCE_LINK_REQUIRED.value)
+        if dto.resource_type == CourseResourceTypeEnum.LINK.value:
+            dto = dto.model_copy(update={"external_url": self._normalize_public_url(dto.external_url)})
         if dto.resource_type == CourseResourceTypeEnum.NOTE.value and not dto.text_content.strip():
             raise ValidationError(CourseLMSMessageVO.RESOURCE_TEXT_REQUIRED.value)
         return self.repository.create_resource(actor=actor, course=course, dto=dto)
@@ -161,6 +177,8 @@ class CourseLMSLogic:
         is_late = bool(assignment.due_at and current > assignment.due_at)
         if is_late and not assignment.allow_late_submission:
             raise ValidationError(CourseLMSMessageVO.ASSIGNMENT_DEADLINE_PASSED.value)
+        if dto.link_url.strip():
+            dto = dto.model_copy(update={"link_url": self._normalize_public_url(dto.link_url)})
         self._validate_submission_payload(assignment.submission_type, dto)
         self._validate_upload(dto.file)
         status = SubmissionStatusEnum.LATE.value if is_late else SubmissionStatusEnum.SUBMITTED.value

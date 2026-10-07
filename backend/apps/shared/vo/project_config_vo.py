@@ -75,3 +75,4 @@ class ProjectConfigDefaultVO(StrEnum):
 
 class ProjectConfigSerializerMessageVO(StrEnum):
     SLUG_INVALID = "اسلاگ فقط می‌تواند شامل حروف انگلیسی، عدد، خط تیره و خط زیر باشد."
+    HTTPS_URL_INVALID = "لینک باید یک آدرس عمومی امن با HTTPS باشد."

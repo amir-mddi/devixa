@@ -1,11 +1,6 @@
 <nav id="menubar" class="navbar flex-around">
-    <section class="logo">
-        <a href="{% url 'pages_web:home' %}" class="flex-center" aria-label="{{ project.display_name }}">
-            <div class="x flex-center">
-                <div class="hole"></div>
-            </div>
-            <span class="project-name brand-text brand-text--glow">{{ project.display_name }}</span>
-        </a>
+    <section class="logo site-brand-shell">
+        {% include "web/shared/_site_brand.html" %}
     </section>
     <nav id="navmenu" class="menu desktop-menu flex-around" aria-label="منوی اصلی دسکتاپ">
         <a class="nav-link" href="{% url 'pages_web:home' %}"><span>خانه</span></a>

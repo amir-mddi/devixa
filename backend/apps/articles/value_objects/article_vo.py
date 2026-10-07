@@ -74,6 +74,7 @@ class ArticleMessageVO(StrEnum):
     CONTENT_REQUIRED = "محتوای مطلب الزامی است."
     TYPE_INVALID = "نوع مطلب معتبر نیست."
     STATUS_INVALID = "وضعیت مطلب معتبر نیست."
+    SOURCE_URL_INVALID = "لینک منبع باید یک آدرس عمومی امن با HTTPS باشد."
 
 
 class ArticleLimitVO(IntEnum):

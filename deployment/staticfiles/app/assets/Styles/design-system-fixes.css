@@ -36,7 +36,7 @@ body{
 }
 
 .hero-title{
-    font-size:clamp(32px,4.2vw,60px) !important;
+    font-size:clamp(31px,3.8vw,54px) !important;
     line-height:1.45 !important;
     font-weight:800 !important;
     max-width:740px !important;
@@ -66,7 +66,7 @@ body{
 }
 
 .nav-link{
-    font-size:clamp(14px,1vw,15px) !important;
+    font-size:clamp(13px,.82vw,14px) !important;
     line-height:1.7 !important;
     font-weight:600 !important;
 }

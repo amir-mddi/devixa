@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 
 from backend.apps.shared.vo.project_config_vo import ProjectConfigDefaultVO
+from backend.apps.common.utils.network_security import force_https_scheme
 
 
 @dataclass(frozen=True)
@@ -34,9 +35,20 @@ class ProjectConfigDTO:
         source = self.display_name or self.name or ProjectConfigDefaultVO.NAME.value
         return source[:1].upper()
 
+    @property
+    def business_email(self) -> str:
+        """Return the single public business email with backward-compatible fallbacks."""
+        return (
+            self.contact_email
+            or self.support_email
+            or self.sales_email
+            or self.partnership_email
+        )
+
     def as_context(self) -> dict[str, str]:
         data = asdict(self)
         data["logo_initial"] = self.logo_initial
+        data["business_email"] = self.business_email
         return data
 
     @classmethod
@@ -52,14 +64,14 @@ class ProjectConfigDTO:
             support_email=instance.support_email,
             sales_email=instance.sales_email,
             partnership_email=instance.partnership_email,
-            github_url=instance.github_url,
-            linkedin_url=instance.linkedin_url,
-            telegram_url=instance.telegram_url,
-            bale_url=instance.bale_url,
-            instagram_url=instance.instagram_url,
-            telegram_bot_url=instance.telegram_bot_url,
-            bale_bot_url=instance.bale_bot_url,
-            rubika_bot_url=instance.rubika_bot_url,
+            github_url=force_https_scheme(instance.github_url),
+            linkedin_url=force_https_scheme(instance.linkedin_url),
+            telegram_url=force_https_scheme(instance.telegram_url),
+            bale_url=force_https_scheme(instance.bale_url),
+            instagram_url=force_https_scheme(instance.instagram_url),
+            telegram_bot_url=force_https_scheme(instance.telegram_bot_url),
+            bale_bot_url=force_https_scheme(instance.bale_bot_url),
+            rubika_bot_url=force_https_scheme(instance.rubika_bot_url),
             phone=instance.phone,
             address=instance.address,
             working_hours=instance.working_hours,

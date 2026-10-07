@@ -8,6 +8,7 @@ from django.db import IntegrityError, transaction
 from django.utils.timezone import now
 
 from backend.apps.referrals.adapters import TelegramChannelInviteAdapter
+from backend.apps.common.utils.network_security import force_https_scheme
 from backend.apps.referrals.dtos import (
     ChannelReferralAdminSummaryDTO,
     TelegramChannelMemberUpdateDTO,
@@ -72,7 +73,7 @@ class ChannelReferralLogic:
             return None
         return TelegramChannelReferralLinkEntity(
             channel_username=self.display_channel() or record.channel_username,
-            invite_link=record.invite_link,
+            invite_link=force_https_scheme(record.invite_link),
         )
 
     def get_or_create_link(self, user) -> TelegramChannelReferralLinkEntity:
@@ -85,7 +86,7 @@ class ChannelReferralLogic:
         if existing:
             return TelegramChannelReferralLinkEntity(
                 channel_username=channel_display or existing.channel_username,
-                invite_link=existing.invite_link,
+                invite_link=force_https_scheme(existing.invite_link),
             )
 
         invite_name = (
@@ -114,7 +115,7 @@ class ChannelReferralLogic:
 
         return TelegramChannelReferralLinkEntity(
             channel_username=channel_display or record.channel_username,
-            invite_link=record.invite_link,
+            invite_link=force_https_scheme(record.invite_link),
         )
 
     def matches_target_channel(self, *, chat_username: str, chat_id: str) -> bool:
@@ -284,7 +285,7 @@ class ChannelReferralLogic:
         ) if channel else []
         return ChannelReferralAdminSummaryDTO(
             channel_username=self.display_channel(),
-            invite_link=link.invite_link if link else "",
+            invite_link=force_https_scheme(link.invite_link) if link else "",
             invited_count=self.repository.count_channel_referrals(
                 owner=user,
                 channel_username=channel,

@@ -4,7 +4,7 @@
 {% block title %}پنل کاربری | {{ project.display_name }}{% endblock %}
 
 {% block page_styles_after %}
-    <link rel="stylesheet" href="{% project_static 'Styles/profile.css' %}">
+    <link rel="stylesheet" href="{% project_static 'Styles/profile.css' %}?v=profile-4">
 {% endblock %}
 
 {% block content %}
@@ -324,73 +324,130 @@
                 </section>
 
                 <section id="referrals" class="profile-panel" data-profile-panel="referrals" tabindex="-1">
-                    <div class="profile-panel__header">
-                        <div><p class="profile-eyebrow">دعوت دوستان</p><h2>لینک‌ها و کدهای دعوت</h2></div>
-                        <p>کد معرفی سایت و لینک اختصاصی کانال خود را بسازید و برای دوستانتان ارسال کنید.</p>
+                    <div class="profile-panel__header profile-panel__header--referrals">
+                        <div>
+                            <p class="profile-eyebrow">دعوت دوستان</p>
+                            <h2>لینک‌ها و کدهای دعوت</h2>
+                        </div>
+                        <p>کد معرفی سایت و لینک اختصاصی کانال را با دوستانتان به‌اشتراک بگذارید. هر لینک کانال پس از ایجاد برای حساب شما ثابت می‌ماند.</p>
                     </div>
 
-                    <div class="profile-referral-grid">
-                        <article class="profile-surface profile-referral-card profile-referral-card--primary">
-                            <div class="profile-referral-card__icon"><i class="fa-solid fa-gift" aria-hidden="true"></i></div>
-                            <div>
-                                <span>کد معرف سایت</span>
-                                <strong dir="ltr">{{ dashboard.referral_summary.code }}</strong>
+                    <div class="profile-referral-overview" aria-label="خلاصه دعوت دوستان">
+                        <article class="profile-surface profile-referral-summary-card profile-referral-summary-card--accent">
+                            <span class="profile-referral-summary-card__icon" aria-hidden="true"><i class="fa-solid fa-gift"></i></span>
+                            <div class="profile-referral-summary-card__content">
+                                <span class="profile-referral-summary-card__label">کد معرف سایت</span>
+                                <strong class="profile-referral-summary-card__value" dir="ltr">{{ dashboard.referral_summary.code }}</strong>
+                                <p>برای ثبت‌نام در سایت قابل استفاده است.</p>
                             </div>
-                            <button type="button" class="profile-button profile-button--secondary profile-button--compact" data-copy-value="{{ dashboard.referral_summary.code }}">
-                                <i class="fa-regular fa-copy" aria-hidden="true"></i> کپی کد
+                            <button
+                                type="button"
+                                class="profile-button profile-button--secondary profile-button--compact profile-copy-button"
+                                data-copy-value="{{ dashboard.referral_summary.code }}"
+                                data-copy-success-label="کپی شد"
+                                aria-label="کپی کد معرف سایت"
+                            >
+                                <i class="fa-regular fa-copy" aria-hidden="true"></i>
+                                <span data-copy-label>کپی کد</span>
                             </button>
                         </article>
 
-                        <article class="profile-surface profile-referral-card">
-                            <div class="profile-referral-card__icon"><i class="fa-brands fa-telegram" aria-hidden="true"></i></div>
-                            <div>
-                                <span>کانال هدف</span>
-                                <strong dir="ltr">{{ dashboard.referral_summary.channel_username }}</strong>
+                        <article class="profile-surface profile-referral-summary-card">
+                            <span class="profile-referral-summary-card__icon" aria-hidden="true"><i class="fa-brands fa-telegram"></i></span>
+                            <div class="profile-referral-summary-card__content">
+                                <span class="profile-referral-summary-card__label">کانال هدف</span>
+                                <strong class="profile-referral-summary-card__value profile-referral-summary-card__value--channel" dir="ltr">{{ dashboard.referral_summary.channel_username }}</strong>
+                                <p>دعوت‌های این لینک فقط برای همین کانال ثبت می‌شوند.</p>
                             </div>
                             <span class="profile-mini-state {% if dashboard.referral_summary.channel_invite_link %}is-success{% else %}is-warning{% endif %}">
-                                {% if dashboard.referral_summary.channel_invite_link %}لینک ساخته شده{% else %}هنوز ساخته نشده{% endif %}
+                                {% if dashboard.referral_summary.channel_invite_link %}لینک آماده است{% else %}نیاز به ایجاد لینک{% endif %}
                             </span>
                         </article>
                     </div>
 
-                    <article class="profile-surface profile-referral-link-card">
-                        <div class="profile-card-heading">
-                            <div><p class="profile-eyebrow">ثبت‌نام سایت</p><h3>لینک معرفی سایت</h3></div>
-                        </div>
-                        <div class="profile-referral-link" dir="ltr">
-                            <input type="text" readonly value="{{ request.scheme }}://{{ request.get_host }}{% url 'accounts_web:register' %}?ref={{ dashboard.referral_summary.code }}" aria-label="لینک معرفی سایت">
-                            <button type="button" class="profile-button profile-button--primary" data-copy-value="{{ request.scheme }}://{{ request.get_host }}{% url 'accounts_web:register' %}?ref={{ dashboard.referral_summary.code }}">
-                                <i class="fa-solid fa-link" aria-hidden="true"></i> کپی لینک
-                            </button>
-                        </div>
-                        <p class="profile-referral-note"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> وارد کردن کد معرف هنگام ثبت‌نام اختیاری است.</p>
-                    </article>
-
-                    <article class="profile-surface profile-referral-link-card">
-                        <div class="profile-card-heading">
-                            <div><p class="profile-eyebrow">Telegram Channel</p><h3>لینک اختصاصی دعوت به {{ dashboard.referral_summary.channel_username }}</h3></div>
-                        </div>
-                        {% if dashboard.referral_summary.channel_invite_link %}
+                    <div class="profile-referral-links-grid">
+                        <article class="profile-surface profile-referral-link-card">
+                            <header class="profile-referral-link-card__header">
+                                <span class="profile-referral-link-card__icon" aria-hidden="true"><i class="fa-solid fa-user-plus"></i></span>
+                                <div>
+                                    <p class="profile-eyebrow">ثبت‌نام سایت</p>
+                                    <h3>لینک معرفی سایت</h3>
+                                    <p>این لینک کد معرف شما را هنگام ورود به صفحه ثبت‌نام همراه خود دارد.</p>
+                                </div>
+                            </header>
                             <div class="profile-referral-link" dir="ltr">
-                                <input type="text" readonly value="{{ dashboard.referral_summary.channel_invite_link }}" aria-label="لینک اختصاصی دعوت کانال تلگرام">
-                                <button type="button" class="profile-button profile-button--primary" data-copy-value="{{ dashboard.referral_summary.channel_invite_link }}">
-                                    <i class="fa-regular fa-copy" aria-hidden="true"></i> کپی لینک
+                                <input type="text" readonly value="https://{{ request.get_host }}{% url 'accounts_web:register' %}?ref={{ dashboard.referral_summary.code }}" aria-label="لینک معرفی سایت">
+                                <button
+                                    type="button"
+                                    class="profile-button profile-button--primary profile-copy-button"
+                                    data-copy-value="https://{{ request.get_host }}{% url 'accounts_web:register' %}?ref={{ dashboard.referral_summary.code }}"
+                                    data-copy-success-label="کپی شد"
+                                    aria-label="کپی لینک معرفی سایت"
+                                >
+                                    <i class="fa-solid fa-link" aria-hidden="true"></i>
+                                    <span data-copy-label>کپی لینک</span>
                                 </button>
                             </div>
-                            <a class="profile-button profile-button--secondary" href="{{ dashboard.referral_summary.channel_invite_link }}" target="_blank" rel="noopener noreferrer">
-                                <i class="fa-brands fa-telegram" aria-hidden="true"></i> باز کردن لینک در تلگرام
-                            </a>
-                        {% else %}
-                            <p class="profile-referral-note"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> این لینک توسط ربات ادمین کانال ساخته می‌شود و برای حساب شما ثابت می‌ماند.</p>
-                            <form method="post" action="{% url 'accounts_web:profile_channel_referral_link' %}">
-                                {% csrf_token %}
-                                <button type="submit" class="profile-button profile-button--primary">
-                                    <i class="fa-solid fa-link" aria-hidden="true"></i> ساخت لینک اختصاصی کانال
-                                </button>
-                            </form>
-                        {% endif %}
-                        <p class="profile-referral-note"><i class="fa-solid fa-eye-slash" aria-hidden="true"></i> آمار تعداد اعضای دعوت‌شده فقط برای مدیران سامانه نمایش داده می‌شود.</p>
-                    </article>
+                            <p class="profile-referral-note"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>وارد کردن کد معرف هنگام ثبت‌نام اختیاری است.</span></p>
+                        </article>
+
+                        <article class="profile-surface profile-referral-link-card profile-referral-link-card--telegram">
+                            <header class="profile-referral-link-card__header">
+                                <span class="profile-referral-link-card__icon" aria-hidden="true"><i class="fa-brands fa-telegram"></i></span>
+                                <div>
+                                    <p class="profile-eyebrow">کانال تلگرام</p>
+                                    <h3>لینک اختصاصی {{ dashboard.referral_summary.channel_username }}</h3>
+                                    <p>اگر کاربری سابقه عضویت در کانال نداشته باشد و با این لینک وارد شود، دعوت به حساب شما نسبت داده می‌شود.</p>
+                                </div>
+                            </header>
+
+                            {% if dashboard.referral_summary.channel_invite_link %}
+                                <div class="profile-referral-link" dir="ltr">
+                                    <input type="text" readonly value="{{ dashboard.referral_summary.channel_invite_link|https_url }}" aria-label="لینک اختصاصی دعوت کانال تلگرام">
+                                    <button
+                                        type="button"
+                                        class="profile-button profile-button--primary profile-copy-button"
+                                        data-copy-value="{{ dashboard.referral_summary.channel_invite_link|https_url }}"
+                                        data-copy-success-label="کپی شد"
+                                        aria-label="کپی لینک اختصاصی کانال تلگرام"
+                                    >
+                                        <i class="fa-regular fa-copy" aria-hidden="true"></i>
+                                        <span data-copy-label>کپی لینک</span>
+                                    </button>
+                                </div>
+                                <div class="profile-referral-link-card__actions">
+                                    <a class="profile-button profile-button--secondary" href="{{ dashboard.referral_summary.channel_invite_link|https_url }}" target="_blank" rel="noopener noreferrer">
+                                        <i class="fa-brands fa-telegram" aria-hidden="true"></i>
+                                        <span>باز کردن در تلگرام</span>
+                                    </a>
+                                </div>
+                            {% else %}
+                                <div class="profile-referral-empty">
+                                    <span class="profile-referral-empty__icon" aria-hidden="true"><i class="fa-solid fa-link"></i></span>
+                                    <div>
+                                        <strong>لینک اختصاصی هنوز ایجاد نشده است</strong>
+                                        <p>ربات ادمین کانال لینک یکتای حساب شما را ایجاد و در سامانه ذخیره می‌کند.</p>
+                                    </div>
+                                    <form method="post" action="{% url 'accounts_web:profile_channel_referral_link' %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="profile-button profile-button--primary">
+                                            <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+                                            <span>ایجاد لینک اختصاصی</span>
+                                        </button>
+                                    </form>
+                                </div>
+                            {% endif %}
+                            <p class="profile-referral-note"><i class="fa-solid fa-eye-slash" aria-hidden="true"></i><span>آمار تعداد اعضای دعوت‌شده فقط برای مدیران سامانه نمایش داده می‌شود.</span></p>
+                        </article>
+                    </div>
+
+                    <aside class="profile-surface profile-referral-guide" aria-labelledby="profile-referral-guide-title">
+                        <span class="profile-referral-guide__icon" aria-hidden="true"><i class="fa-solid fa-shield-heart"></i></span>
+                        <div>
+                            <h3 id="profile-referral-guide-title">لینک اختصاصی چگونه کار می‌کند؟</h3>
+                            <p>برای هر حساب و این کانال یک لینک فعال نگهداری می‌شود. لینک را کپی کنید و مستقیم برای دوستانتان بفرستید؛ تا وقتی لینک فعال است همان لینک برای حساب شما دوباره استفاده می‌شود.</p>
+                        </div>
+                    </aside>
                 </section>
 
                 <section id="billing" class="profile-panel" data-profile-panel="billing" tabindex="-1">
@@ -460,7 +517,7 @@
                                                                                 {% if receipt.receipt_file %}
                                                                                     <a href="{{ receipt.receipt_file.url }}" target="_blank" rel="noopener" class="profile-text-link">مشاهده فایل رسید</a>
                                                                                 {% elif receipt.receipt_file_url %}
-                                                                                    <a href="{{ receipt.receipt_file_url }}" target="_blank" rel="noopener noreferrer" class="profile-text-link">مشاهده رسید</a>
+                                                                                    <a href="{{ receipt.receipt_file_url|https_url }}" target="_blank" rel="noopener noreferrer" class="profile-text-link">مشاهده رسید</a>
                                                                                 {% endif %}
                                                                             </article>
                                                                         {% endfor %}
@@ -548,5 +605,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-    <script type="application/x-devixa-ajax-module" data-ajax-module="profile" src="{% project_static 'js/profile.js' %}?v=ajax-1"></script>
+    <script type="application/x-devixa-ajax-module" data-ajax-module="profile" src="{% project_static 'js/profile.js' %}?v=profile-2"></script>
 {% endblock %}

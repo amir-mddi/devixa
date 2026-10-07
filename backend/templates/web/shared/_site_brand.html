@@ -1,0 +1,15 @@
+<a href="{% url 'pages_web:home' %}"
+   class="site-brand{% if brand_variant == 'auth' %} site-brand--auth{% elif brand_variant == 'footer' %} site-brand--footer{% endif %}"
+   aria-label="صفحه اصلی {{ project.display_name }}">
+    <i class="site-brand__mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" focusable="false">
+            <path class="site-brand__mark-ring" d="M16 3.5a12.5 12.5 0 1 0 0 25 12.5 12.5 0 0 0 0-25Z"/>
+            <path class="site-brand__mark-letter" d="M10.25 9.2h5.9c4.55 0 7.35 2.58 7.35 6.8s-2.8 6.8-7.35 6.8h-5.9V9.2Zm5.65 9.75c2.13 0 3.43-1.03 3.43-2.95s-1.3-2.95-3.43-2.95h-1.55v5.9h1.55Z"/>
+            <circle class="site-brand__mark-dot" cx="25.7" cy="6.2" r="2.1"/>
+        </svg>
+    </i>
+    <span class="site-brand__identity">
+        <b class="site-brand__name" dir="ltr">{{ project.display_name }}</b>
+        <small class="site-brand__descriptor" aria-hidden="true">ACADEMY</small>
+    </span>
+</a>

@@ -1,35 +1,36 @@
+{% load project_tags %}
 <footer class="site-footer" aria-labelledby="site-footer-title">
     <div class="site-footer__decor site-footer__decor--one" aria-hidden="true"></div>
     <div class="site-footer__decor site-footer__decor--two" aria-hidden="true"></div>
 
     <div class="site-footer__container">
         <div class="site-footer__main">
-            <section class="site-footer__brand" aria-labelledby="site-footer-title">
-                <a href="{% url 'pages_web:home' %}" class="site-footer__brand-link" aria-label="صفحه اصلی {{ project.display_name }}">
-                    <span class="site-footer__brand-mark" aria-hidden="true">{{ project.logo_initial }}</span>
-                    <span id="site-footer-title" class="site-footer__brand-name brand-text">{{ project.display_name }}</span>
-                </a>
+            <section class="site-footer__brand" aria-label="{{ project.display_name }}">
+                <div class="site-footer__brand-lockup">
+                    {% include "web/shared/_site_brand.html" with brand_variant="footer" %}
+                    <span class="site-footer__brand-badge">آموزش پروژه‌محور</span>
+                </div>
 
                 <p class="site-footer__tagline">{{ project.tagline }}</p>
 
                 <div class="site-footer__socials" aria-label="شبکه‌های اجتماعی {{ project.display_name }}">
                     {% if project.github_url and project.github_url != '#' %}
-                        <a class="site-footer__social-link" href="{{ project.github_url }}" target="_blank" rel="noopener noreferrer" aria-label="گیت‌هاب {{ project.display_name }}">
+                        <a class="site-footer__social-link" href="{{ project.github_url|https_url }}" target="_blank" rel="noopener noreferrer" aria-label="گیت‌هاب {{ project.display_name }}">
                             <i class="fa-brands fa-github" aria-hidden="true"></i>
                         </a>
                     {% endif %}
                     {% if project.linkedin_url and project.linkedin_url != '#' %}
-                        <a class="site-footer__social-link" href="{{ project.linkedin_url }}" target="_blank" rel="noopener noreferrer" aria-label="لینکدین {{ project.display_name }}">
+                        <a class="site-footer__social-link" href="{{ project.linkedin_url|https_url }}" target="_blank" rel="noopener noreferrer" aria-label="لینکدین {{ project.display_name }}">
                             <i class="fa-brands fa-linkedin-in" aria-hidden="true"></i>
                         </a>
                     {% endif %}
                     {% if project.telegram_url and project.telegram_url != '#' %}
-                        <a class="site-footer__social-link" href="{{ project.telegram_url }}" target="_blank" rel="noopener noreferrer" aria-label="تلگرام {{ project.display_name }}">
+                        <a class="site-footer__social-link" href="{{ project.telegram_url|https_url }}" target="_blank" rel="noopener noreferrer" aria-label="تلگرام {{ project.display_name }}">
                             <i class="fa-brands fa-telegram" aria-hidden="true"></i>
                         </a>
                     {% endif %}
                     {% if project.instagram_url and project.instagram_url != '#' %}
-                        <a class="site-footer__social-link" href="{{ project.instagram_url }}" target="_blank" rel="noopener noreferrer" aria-label="اینستاگرام {{ project.display_name }}">
+                        <a class="site-footer__social-link" href="{{ project.instagram_url|https_url }}" target="_blank" rel="noopener noreferrer" aria-label="اینستاگرام {{ project.display_name }}">
                             <i class="fa-brands fa-instagram" aria-hidden="true"></i>
                         </a>
                     {% endif %}
@@ -67,12 +68,12 @@
             <section class="site-footer__section site-footer__contact" aria-labelledby="footer-contact-title">
                 <h2 id="footer-contact-title" class="site-footer__heading">ارتباط با ما</h2>
                 <div class="site-footer__contact-list">
-                    {% if project.support_email %}
-                        <a class="site-footer__contact-item" href="mailto:{{ project.support_email }}">
+                    {% if project.business_email %}
+                        <a class="site-footer__contact-item" href="mailto:{{ project.business_email }}">
                             <span class="site-footer__contact-icon" aria-hidden="true"><i class="fa-regular fa-envelope"></i></span>
                             <span class="site-footer__contact-copy">
-                                <span class="site-footer__contact-label">ایمیل پشتیبانی</span>
-                                <b dir="ltr">{{ project.support_email }}</b>
+                                <span class="site-footer__contact-label">ایمیل {{ project.display_name }}</span>
+                                <b dir="ltr">{{ project.business_email }}</b>
                             </span>
                         </a>
                     {% endif %}

@@ -5,7 +5,7 @@
    ========================================================== */
 
 :root{
-    --app-header-height:64px;
+    --app-header-height:68px;
     --app-container:1280px;
     --tap-size:44px;
     --card-radius:24px;
@@ -145,7 +145,7 @@ body:not(.light-theme){
         max-width:100% !important;
     }
 
-    .navbar .logo a{
+    .navbar .logo a:not(.site-brand){
         min-width:0 !important;
         gap:7px !important;
     }
@@ -155,7 +155,7 @@ body:not(.light-theme){
         height:30px !important;
     }
 
-    .navbar .logo span{
+    .navbar .logo > a > .project-name{
         font-size:clamp(19px,6vw,28px) !important;
         max-width:clamp(96px,38vw,210px) !important;
     }
@@ -268,6 +268,8 @@ body:not(.light-theme){
     }
 }
 
+@media (max-width:430px){:root{--app-header-height:60px;}}
+
 @media (max-width:360px){
     .navbar{
         --nav-action:40px;
@@ -276,7 +278,7 @@ body:not(.light-theme){
     }
 
     .navbar .logo .x{width:27px !important;height:27px !important;}
-    .navbar .logo span{font-size:clamp(18px,6.4vw,22px) !important;max-width:112px !important;}
+    .navbar .logo > a > .project-name{font-size:clamp(18px,6.4vw,22px) !important;max-width:112px !important;}
 
     .navbar .menu.mobile-menu,
     .navbar .menu{
@@ -299,7 +301,7 @@ body:not(.light-theme){
 
 @media (max-width:300px){
     .navbar{--nav-action:38px;}
-    .navbar .logo span{font-size:17px !important;max-width:92px !important;}
+    .navbar .logo > a > .project-name{font-size:17px !important;max-width:92px !important;}
 }
 
 /* Tabs / filter chips: equal height, readable, horizontal on small screens. */
@@ -419,7 +421,7 @@ body:not(.light-theme){
     text-shadow:none !important;
 }
 
-:where(.course-card__title,.course-card-title,.roadmap-card__title,.roadmap-card-title,.feature-card__title,.feature-card-title,.contact-card__title,.contact-card-title,.stats .stat_card .card_info h4,.channel_card h2,.faq_question p){
+:where(.course-card__title,.course-card-title,.roadmap-card__title,.roadmap-card-title,.feature-card__title,.feature-card-title,.contact-card__title,.contact-card-title,.stats .stat_card .card_info h4,.channel_card h4,.faq_question p){
     color:var(--text-primary) !important;
 }
 
@@ -745,7 +747,7 @@ body:not(.light-theme){
     border-color:var(--border-soft) !important;
 }
 
-.footer .footer_top h2,
+.footer .footer_top h4,
 .footer .logo span{
     color:var(--text-primary) !important;
 }
@@ -836,7 +838,7 @@ body:not(.light-theme){
 .contact-card :where(h1,h2,h3,h4,.title),
 .stats .stat_card .card_info h4,
 .why_us.stats .stat_card .card_info h4,
-.channel_card h2,
+.channel_card h4,
 .faq_question p{
     color:var(--text-primary) !important;
 }
@@ -890,12 +892,14 @@ body:not(.light-theme){
     display:inline-block;
 }
 
-:where(.brand-text,.project-name,.brand-highlight){
-    background:none;
-    color:var(--accent);
-    -webkit-text-fill-color:currentColor;
+@supports (-webkit-background-clip:text){
+    :where(.brand-text,.project-name,.brand-highlight){
+        background:linear-gradient(135deg,var(--accent),var(--brand-accent-2,var(--secondary)));
+        -webkit-background-clip:text;
+        background-clip:text;
+        color:transparent;
+    }
 }
-
 
 .brand-text--glow{
     text-shadow:0 8px 28px color-mix(in srgb, var(--accent) 22%, transparent);

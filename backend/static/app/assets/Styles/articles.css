@@ -83,7 +83,7 @@
 .articles-hero h1{
     max-width:850px;
     margin:18px 0 0;
-    font-size:clamp(30px,4.2vw,58px);
+    font-size:clamp(30px,3.7vw,50px);
     line-height:1.45;
     font-weight:900;
     text-wrap:balance;
@@ -629,7 +629,7 @@
 .article-detail__header h1{
     margin:18px 0 0;
     color:var(--text-primary);
-    font-size:clamp(30px,4.5vw,58px);
+    font-size:clamp(29px,3.8vw,50px);
     line-height:1.48;
     font-weight:900;
     text-wrap:balance;

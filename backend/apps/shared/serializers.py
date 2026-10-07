@@ -6,7 +6,8 @@ from backend.apps.shared.models import ApiKeyManagerModel, ProjectConfigModel
 from backend.apps.shared.vo.project_config_vo import ProjectConfigSerializerMessageVO
 from backend.apps.common.utils.network_security import (
     UnsafeOutboundUrlError,
-    validate_public_https_url,
+    force_https_scheme,
+    normalize_public_https_url,
 )
 
 
@@ -193,7 +194,24 @@ class ProjectConfigSerializer(BaseSerializerModel):
             if not value:
                 continue
             try:
-                attrs[field_name] = validate_public_https_url(value, resolve_dns=False)
+                attrs[field_name] = normalize_public_https_url(value, resolve_dns=False)
             except UnsafeOutboundUrlError as exc:
-                raise serializers.ValidationError({field_name: str(exc)}) from exc
+                raise serializers.ValidationError(
+                    {field_name: ProjectConfigSerializerMessageVO.HTTPS_URL_INVALID.value}
+                ) from exc
         return attrs
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        for field_name in (
+            "github_url",
+            "linkedin_url",
+            "telegram_url",
+            "bale_url",
+            "instagram_url",
+            "telegram_bot_url",
+            "bale_bot_url",
+            "rubika_bot_url",
+        ):
+            data[field_name] = force_https_scheme(data.get(field_name))
+        return data

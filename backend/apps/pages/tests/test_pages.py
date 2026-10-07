@@ -8,7 +8,52 @@ from backend.apps.pages.dtos.home_content_dto import ChannelLinkDTO
 from backend.apps.pages.repositories.logic import PageLogicRepository
 from backend.apps.pages.vo.page_vo import PageAndroidAppVO, PageErrorCodeVO
 from backend.apps.pages.web.forms import ContactMessageTemplateForm
+from backend.apps.shared.dtos.project_config_dto import ProjectConfigDTO
 from backend.tests.mixins import IsolatedServiceTestMixin
+
+
+class ProjectConfigPublicEmailTests(SimpleTestCase):
+    @staticmethod
+    def _config(**overrides):
+        values = {
+            "name": "devixa",
+            "display_name": "Devixa",
+            "slug": "devixa",
+            "description": "",
+            "tagline": "",
+            "email_domain": "acdevixa.ir",
+            "contact_email": "",
+            "support_email": "",
+            "sales_email": "",
+            "partnership_email": "",
+            "github_url": "#",
+            "linkedin_url": "#",
+            "telegram_url": "#",
+            "bale_url": "#",
+            "instagram_url": "#",
+            "telegram_bot_url": "#",
+            "bale_bot_url": "#",
+            "rubika_bot_url": "#",
+            "phone": "",
+            "address": "",
+            "working_hours": "",
+        }
+        values.update(overrides)
+        return ProjectConfigDTO(**values)
+
+    def test_business_email_prefers_contact_email(self):
+        config = self._config(
+            contact_email="hello@acdevixa.ir",
+            support_email="legacy-support@acdevixa.ir",
+        )
+
+        self.assertEqual(config.business_email, "hello@acdevixa.ir")
+        self.assertEqual(config.as_context()["business_email"], "hello@acdevixa.ir")
+
+    def test_business_email_uses_legacy_email_as_fallback(self):
+        config = self._config(support_email="legacy-support@acdevixa.ir")
+
+        self.assertEqual(config.business_email, "legacy-support@acdevixa.ir")
 
 
 class PageDTOAndFormTests(SimpleTestCase):
@@ -37,6 +82,16 @@ class PageDTOAndFormTests(SimpleTestCase):
 
 
 class PageLogicRepositoryTests(IsolatedServiceTestMixin, TestCase):
+    @patch("backend.apps.pages.repositories.logic.get_project_public_config")
+    def test_static_home_testimonials_use_casual_copy(self, config_mock):
+        config_mock.return_value = MagicMock(display_name="Devixa")
+
+        items = PageLogicRepository().list_home_testimonials()
+
+        self.assertEqual(len(items), 4)
+        self.assertIn("هی بین آموزش‌ها می‌پریدم", items[0].comment)
+        self.assertIn("یه نمونه‌کار واقعی", items[-1].comment)
+
     @patch(
         "backend.apps.pages.repositories.logic.PageLogicRepository._contact_recipient_email",
         return_value="",

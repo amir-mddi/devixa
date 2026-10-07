@@ -92,7 +92,7 @@ body { font-family: var(--font-ui); line-height: 1.75; }
     line-height: 1.48;
     text-wrap: balance;
 }
-:where(.navbar .project-name,.auth-brand .brand-text,.learning-os-v2__brand strong) {
+:where(.navbar .project-name,.learning-os-v2__brand strong) {
     font-family: var(--font-display);
     letter-spacing: -.045em;
 }
@@ -235,7 +235,7 @@ body:not(.auth-page) {
        var(--bg-page);
 }
 .auth-card { background: var(--glass-bg); border: 1px solid var(--border-soft); }
-.auth-brand__mark,.auth-card__icon { background: var(--luxe-gradient); }
+.auth-card__icon { background: var(--luxe-gradient); }
 .auth-card__title { color: var(--text-primary); }
 
 @media (hover:hover) and (prefers-reduced-motion:no-preference) {
@@ -265,6 +265,102 @@ body:not(.auth-page) {
 }
 
 
+
+/* Header brand lockup: one compact identity shared by public and auth pages. */
+.site-brand{
+    min-width:0;
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    color:var(--text-primary);
+    text-decoration:none;
+    direction:ltr;
+    isolation:isolate;
+}
+.site-brand__mark{
+    position:relative;
+    width:34px;
+    height:34px;
+    flex:0 0 34px;
+    display:grid;
+    place-items:center;
+    border:1px solid color-mix(in srgb,var(--accent) 38%,var(--border-soft));
+    border-radius:11px;
+    background:
+        radial-gradient(circle at 26% 18%,rgba(255,255,255,.48),transparent 27%),
+        linear-gradient(145deg,color-mix(in srgb,var(--accent) 92%,#fff 8%),color-mix(in srgb,var(--brand-accent-2) 82%,#11182f 18%));
+    box-shadow:0 8px 22px color-mix(in srgb,var(--accent) 24%,transparent),inset 0 1px 0 rgba(255,255,255,.22);
+    overflow:visible;
+    transform:rotate(-3deg);
+    transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;
+}
+.site-brand__mark svg{width:27px;height:27px;overflow:visible}
+.site-brand__mark-ring{fill:none;stroke:rgba(255,255,255,.28);stroke-width:1}
+.site-brand__mark-letter{fill:#fff}
+.site-brand__mark-dot{fill:#65e6ff;stroke:rgba(255,255,255,.75);stroke-width:.55}
+.site-brand__identity{
+    min-width:0;
+    display:grid;
+    align-content:center;
+    gap:1px;
+    text-align:left;
+    line-height:1;
+}
+.site-brand__name{
+    min-width:0;
+    max-width:190px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    font-family:var(--font-display,var(--font-ui));
+    font-size:21px;
+    font-weight:850;
+    letter-spacing:-.035em;
+    line-height:1.05;
+    color:var(--text-primary);
+}
+.site-brand__descriptor{
+    font-family:var(--font-ui);
+    font-size:8px;
+    font-weight:800;
+    letter-spacing:.18em;
+    line-height:1.1;
+    color:var(--text-muted);
+    opacity:.9;
+}
+.site-brand:hover .site-brand__mark,
+.site-brand:focus-visible .site-brand__mark{
+    transform:rotate(0deg) translateY(-1px);
+    border-color:color-mix(in srgb,var(--accent) 62%,var(--border-soft));
+    box-shadow:0 11px 28px color-mix(in srgb,var(--accent) 30%,transparent),inset 0 1px 0 rgba(255,255,255,.24);
+}
+.site-brand:focus-visible{outline:2px solid var(--accent);outline-offset:5px;border-radius:13px}
+.site-brand--auth .site-brand__mark{width:36px;height:36px;flex-basis:36px}
+.site-brand--auth .site-brand__name{font-size:20px}
+.site-brand--auth .site-brand__descriptor{font-size:7.5px}
+
+@media (max-width:980px){
+    .site-brand{gap:8px}
+    .site-brand__mark{width:31px;height:31px;flex-basis:31px;border-radius:10px}
+    .site-brand__mark svg{width:24px;height:24px}
+    .site-brand__name{max-width:150px;font-size:19px}
+    .site-brand__descriptor{font-size:7px;letter-spacing:.15em}
+}
+@media (max-width:430px){
+    .site-brand__mark{width:29px;height:29px;flex-basis:29px;border-radius:9px}
+    .site-brand__mark svg{width:22px;height:22px}
+    .site-brand__name{max-width:112px;font-size:18px}
+    .site-brand__descriptor{display:none}
+}
+@media (max-width:340px){
+    .site-brand{gap:6px}
+    .site-brand__mark{width:27px;height:27px;flex-basis:27px}
+    .site-brand__name{max-width:88px;font-size:16.5px}
+}
+@media (prefers-reduced-motion:reduce){
+    .site-brand__mark{transition:none}
+}
+
 /* --------------------------------------------------------------------------
    Premium rebrand refresh — animated brand text, richer footer/contact/about
    surfaces, and a cleaner abstract mark for auth/header contexts.
@@ -288,8 +384,7 @@ body:not(.auth-page) {
 }
 
 .navbar .logo .x,
-.footer .logo .x,
-.auth-brand__mark {
+.footer .logo .x {
     position: relative;
     isolation: isolate;
     overflow: hidden;
@@ -298,8 +393,7 @@ body:not(.auth-page) {
     box-shadow: 0 18px 40px rgba(70,86,220,.24);
 }
 .navbar .logo .x::before,
-.footer .logo .x::before,
-.auth-brand__mark::before {
+.footer .logo .x::before {
     content: "";
     position: absolute;
     inset: 0;
@@ -311,8 +405,7 @@ body:not(.auth-page) {
 }
 
 .navbar .logo .x::after,
-.footer .logo .x::after,
-.auth-brand__mark::after {
+.footer .logo .x::after {
     content: "";
     position: absolute;
     inset-inline-end: 10%;
@@ -321,12 +414,6 @@ body:not(.auth-page) {
     border-radius: 999px;
     background: rgba(255,255,255,.82);
     filter: blur(.2px);
-}
-.auth-brand__mark {
-    width: 40px;
-    height: 40px;
-    display: inline-block;
-    flex: none;
 }
 .auth-brand {
     gap: 12px;

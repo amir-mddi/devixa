@@ -696,7 +696,7 @@ input[type="button"]{
 .hero_section .right_hero h1{
     max-width: 780px;
     margin: 0 !important;
-    font-size: clamp(34px, 4.4vw, 64px);
+    font-size: clamp(32px, 3.8vw, 52px);
     line-height: 1.55;
 }
 
@@ -1803,7 +1803,7 @@ body :where(h1,h2,h3,h4,h5,h6){line-height:1.45;letter-spacing:-.02em;overflow-w
 
 /* ---------------- Header / Navbar ---------------- */
 .navbar{
-    --nav-action:48px;
+    --nav-action:44px;
     position:sticky !important;
     inset-block-start:0 !important;
     z-index:5000 !important;
@@ -1815,8 +1815,8 @@ body :where(h1,h2,h3,h4,h5,h6){line-height:1.45;letter-spacing:-.02em;overflow-w
     grid-template-columns:auto minmax(0,1fr) auto !important;
     align-items:center !important;
     justify-content:normal !important;
-    gap:clamp(16px,2.2vw,36px) !important;
-    padding:10px clamp(20px,4vw,64px) !important;
+    gap:clamp(12px,1.8vw,28px) !important;
+    padding:8px clamp(18px,3.6vw,56px) !important;
     overflow:visible !important;
     direction:rtl !important;
 }
@@ -1841,7 +1841,7 @@ body :where(h1,h2,h3,h4,h5,h6){line-height:1.45;letter-spacing:-.02em;overflow-w
     display:inline-flex !important;
     align-items:center !important;
     justify-content:flex-start !important;
-    gap:6px !important;
+    gap:10px !important;
 }
 .navbar .logo .x{
     flex:0 0 auto !important;
@@ -1849,7 +1849,7 @@ body :where(h1,h2,h3,h4,h5,h6){line-height:1.45;letter-spacing:-.02em;overflow-w
     height:30px !important;
     margin:0 !important;
 }
-.navbar .logo span{
+.navbar .logo > a > .project-name{
     display:block !important;
     min-width:0 !important;
     max-width:100% !important;
@@ -1857,7 +1857,7 @@ body :where(h1,h2,h3,h4,h5,h6){line-height:1.45;letter-spacing:-.02em;overflow-w
     overflow:hidden !important;
     text-overflow:ellipsis !important;
     white-space:nowrap !important;
-    font-size:clamp(22px,2.2vw,31px) !important;
+    font-size:clamp(20px,1.7vw,24px) !important;
     line-height:1.1 !important;
 }
 
@@ -1869,7 +1869,7 @@ body :where(h1,h2,h3,h4,h5,h6){line-height:1.45;letter-spacing:-.02em;overflow-w
     display:flex !important;
     align-items:center !important;
     justify-content:center !important;
-    gap:clamp(18px,2.6vw,42px) !important;
+    gap:clamp(14px,2vw,30px) !important;
     direction:rtl !important;
 }
 .navbar .menu a{
@@ -1879,7 +1879,7 @@ body :where(h1,h2,h3,h4,h5,h6){line-height:1.45;letter-spacing:-.02em;overflow-w
     align-items:center !important;
     padding:6px 0 !important;
     color:var(--text) !important;
-    font-size:clamp(14px,1.2vw,15px) !important;
+    font-size:clamp(13px,.82vw,14px) !important;
     line-height:1.7 !important;
 }
 
@@ -1914,9 +1914,9 @@ body :where(h1,h2,h3,h4,h5,h6){line-height:1.45;letter-spacing:-.02em;overflow-w
 }
 .navbar .nav_cta .starting{
     width:auto !important;
-    min-width:124px !important;
-    height:48px !important;
-    padding:0 18px !important;
+    min-width:112px !important;
+    height:44px !important;
+    padding:0 15px !important;
     margin:0 !important;
     border-radius:16px !important;
 }
@@ -1978,7 +1978,7 @@ body :where(h1,h2,h3,h4,h5,h6){line-height:1.45;letter-spacing:-.02em;overflow-w
 @media (max-width:980px){
     :root{--ds-header-h:var(--header-tablet);}
     .navbar{
-        --nav-action:46px;
+        --nav-action:42px;
         min-height:var(--ds-header-h) !important;
         grid-template-columns:minmax(0,1fr) auto auto !important;
         gap:8px !important;
@@ -2048,19 +2048,19 @@ body :where(h1,h2,h3,h4,h5,h6){line-height:1.45;letter-spacing:-.02em;overflow-w
     :root{--ds-header-h:var(--header-mobile);}
     body{font-size:15px;}
     .navbar{
-        --nav-action:42px;
+        --nav-action:40px;
         padding-inline:8px !important;
         gap:6px !important;
     }
     .navbar .logo .x{width:25px !important;height:25px !important;}
-    .navbar .logo span{font-size:clamp(18px,6vw,23px) !important;}
+    .navbar .logo > a > .project-name{font-size:clamp(18px,6vw,23px) !important;}
     .navbar .menu{right:8px !important;left:8px !important;padding:10px !important;gap:8px !important;}
     .navbar .menu a{font-size:13.5px !important;min-height:44px !important;padding-inline:6px !important;}
 }
 
 @media (max-width:320px){
     .navbar{--nav-action:38px;}
-    .navbar .logo span{font-size:18px !important;}
+    .navbar .logo > a > .project-name{font-size:18px !important;}
     .navbar .logo .x{width:23px !important;height:23px !important;}
 }
 
@@ -2086,7 +2086,7 @@ body :where(h1,h2,h3,h4,h5,h6){line-height:1.45;letter-spacing:-.02em;overflow-w
 .hero_section .right_hero h1{
     max-width:780px !important;
     margin:0 !important;
-    font-size:clamp(40px,4.8vw,68px) !important;
+    font-size:clamp(34px,4vw,54px) !important;
     line-height:1.55 !important;
     font-weight:800 !important;
 }
@@ -2406,7 +2406,7 @@ body :where(h1,h2,h3,h4,h5,h6){line-height:1.45;letter-spacing:-.02em;overflow-w
 .contact_hero .title,
 .aboutus_hero .title,
 .channels_hero .title{
-    font-size:clamp(28px,4.6vw,54px) !important;
+    font-size:clamp(28px,4vw,48px) !important;
     line-height:1.45 !important;
 }
 .courses_section .courses_hero .search{
@@ -3014,7 +3014,7 @@ body > div.container:has(form) form .field i#retry{
 }
 
 .nav-link{
-    font-size:clamp(14px,.95vw,15px);
+    font-size:clamp(13px,.82vw,14px);
     line-height:1.6;
     font-weight:600;
 }
@@ -3062,7 +3062,7 @@ body > div.container:has(form) form .field i#retry{
     max-width:740px !important;
     margin:0 !important;
     font-family:var(--font-ui) !important;
-    font-size:clamp(32px,4.2vw,60px) !important;
+    font-size:clamp(31px,3.8vw,54px) !important;
     line-height:1.52 !important;
     font-weight:800 !important;
     letter-spacing:-.028em;
@@ -3098,7 +3098,7 @@ body > div.container:has(form) form .field i#retry{
 
 .hero_section .right_hero .hero_cta a{
     min-height:52px !important;
-    font-size:clamp(14px,1vw,15px) !important;
+    font-size:clamp(13px,.82vw,14px) !important;
     font-weight:700 !important;
 }
 
@@ -3158,7 +3158,7 @@ body > div.container:has(form) form .field i#retry{
     .hero_section .right_hero .hero-title,
     .hero-title{
         max-width:760px !important;
-        font-size:clamp(48px,3.35vw,60px) !important;
+        font-size:clamp(42px,3vw,54px) !important;
     }
 }
 

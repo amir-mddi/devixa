@@ -9,6 +9,7 @@ from django.utils.html import strip_tags
 from django.utils.text import Truncator
 from rest_framework.exceptions import APIException
 
+from backend.apps.common.utils.network_security import force_https_scheme
 from backend.apps.articles.dtos import ArticleCreateDTO
 from backend.apps.articles.enums import ArticleStatusEnum, ArticleTypeEnum
 from backend.apps.articles.logic import ArticleLogic, ArticleManagementLogic
@@ -268,7 +269,7 @@ class ArticleBotLogic:
         article = detail.article
         source = ""
         if article.source_name or article.source_url:
-            source_value = article.source_name or article.source_url
+            source_value = article.source_name or force_https_scheme(article.source_url)
             source = f"\n🔗 {html.escape(source_value)}"
         text = ArticleBotTextVO.get(
             language,

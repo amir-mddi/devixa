@@ -2,6 +2,11 @@
 from django import forms
 from django.core.exceptions import ValidationError
 
+from backend.apps.common.utils.network_security import (
+    UnsafeOutboundUrlError,
+    normalize_public_https_url,
+)
+
 from .models import Academy, AcademyPhoto, CollaborationProject, MentorProfile, MentorshipOffer, Opportunity
 from .value_objects.text import MarketplaceText
 
@@ -22,6 +27,15 @@ class MentorProfileForm(forms.ModelForm):
             "bio": forms.Textarea(attrs={"rows": 4}),
             "resume": forms.FileInput(attrs={"accept": "application/pdf"}),
         }
+
+    def clean_portfolio_url(self):
+        value = str(self.cleaned_data.get("portfolio_url") or "").strip()
+        if not value:
+            return ""
+        try:
+            return normalize_public_https_url(value, resolve_dns=False)
+        except UnsafeOutboundUrlError as exc:
+            raise ValidationError(MarketplaceText.INVALID_HTTPS_URL) from exc
 
     def clean_resume(self):
         uploaded = self.cleaned_data.get("resume")
@@ -65,6 +79,16 @@ class AcademyForm(forms.ModelForm):
             "programs": forms.Textarea(attrs={"rows": 3}),
             "facilities": forms.Textarea(attrs={"rows": 3}),
         }
+
+    def clean_website(self):
+        value = str(self.cleaned_data.get("website") or "").strip()
+        if not value:
+            return ""
+        try:
+            return normalize_public_https_url(value, resolve_dns=False)
+        except UnsafeOutboundUrlError as exc:
+            raise ValidationError(MarketplaceText.INVALID_HTTPS_URL) from exc
+
 
 
 class OpportunityForm(forms.ModelForm):

@@ -3,6 +3,7 @@ from __future__ import annotations
 from rest_framework import serializers
 
 from backend.apps.articles.models import Article, ArticleCategory, ArticleTag
+from backend.apps.common.utils.network_security import force_https_scheme
 
 
 class ArticleCategoryPublicSerializer(serializers.ModelSerializer):
@@ -59,6 +60,8 @@ class ArticleListSerializer(serializers.ModelSerializer):
 
 
 class ArticleDetailSerializer(ArticleListSerializer):
+    source_url = serializers.SerializerMethodField()
+
     class Meta(ArticleListSerializer.Meta):
         fields = ArticleListSerializer.Meta.fields + [
             "content",
@@ -67,3 +70,7 @@ class ArticleDetailSerializer(ArticleListSerializer):
             "meta_title",
             "meta_description",
         ]
+
+    @staticmethod
+    def get_source_url(obj: Article) -> str:
+        return force_https_scheme(obj.source_url)

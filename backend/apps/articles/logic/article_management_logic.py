@@ -5,6 +5,11 @@ from dataclasses import replace
 from django.core.exceptions import ValidationError
 from django.utils.text import slugify
 
+from backend.apps.common.utils.network_security import (
+    UnsafeOutboundUrlError,
+    normalize_public_https_url,
+)
+
 from backend.apps.articles.adapters import ArticlePostgresAdapter
 from backend.apps.articles.dtos.article_management_dtos import (
     ArticleAdminFilterDTO,
@@ -125,7 +130,7 @@ class ArticleManagementLogic:
             excerpt=dto.excerpt.strip(),
             content=dto.content.strip(),
             source_name=dto.source_name.strip(),
-            source_url=dto.source_url.strip(),
+            source_url=self._normalize_source_url(dto.source_url),
             meta_title=dto.meta_title.strip(),
             meta_description=dto.meta_description.strip(),
             tag_ids=tuple(dto.tag_ids),
@@ -140,7 +145,7 @@ class ArticleManagementLogic:
             excerpt=dto.excerpt.strip(),
             content=dto.content.strip(),
             source_name=dto.source_name.strip(),
-            source_url=dto.source_url.strip(),
+            source_url=self._normalize_source_url(dto.source_url),
             meta_title=dto.meta_title.strip(),
             meta_description=dto.meta_description.strip(),
             tag_ids=tuple(dto.tag_ids),
@@ -159,6 +164,17 @@ class ArticleManagementLogic:
             errors["status"] = [ArticleMessageVO.STATUS_INVALID.value]
         if errors:
             raise ValidationError(errors)
+
+    @staticmethod
+    def _normalize_source_url(value: str) -> str:
+        if not str(value or "").strip():
+            return ""
+        try:
+            return normalize_public_https_url(value, resolve_dns=False)
+        except UnsafeOutboundUrlError as exc:
+            raise ValidationError(
+                {"source_url": [ArticleMessageVO.SOURCE_URL_INVALID.value]}
+            ) from exc
 
     @staticmethod
     def _normalize_slug(value: str) -> str:

@@ -40,6 +40,7 @@ class CourseLMSMessageVO(StrEnum):
     QUESTION_BODY_REQUIRED = "متن سؤال یا پیام نمی‌تواند خالی باشد."
     FILE_TOO_LARGE = "حجم فایل بیشتر از حد مجاز کلاس است."
     FILE_TYPE_NOT_ALLOWED = "پسوند این فایل برای کلاس مجاز نیست."
+    HTTPS_LINK_REQUIRED = "لینک باید یک آدرس عمومی امن با HTTPS باشد."
 
 
 class CourseLMSTemplateVO(StrEnum):

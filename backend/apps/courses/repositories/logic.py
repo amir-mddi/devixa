@@ -1,5 +1,10 @@
 from asgiref.sync import sync_to_async
+from django.core.exceptions import ValidationError
 from backend.apps.common.helpers.metaclasses.singleton import Singleton
+from backend.apps.common.utils.network_security import (
+    UnsafeOutboundUrlError,
+    normalize_public_https_url,
+)
 from backend.apps.courses.dtos.web_course_dtos import (
     CourseCatalogDTO,
     CourseCategoryFilterDTO,
@@ -17,6 +22,7 @@ from backend.apps.courses.dtos import (
     ReviewModerationDTO,
 )
 from backend.apps.courses.repositories.adapters.postgres_adapter import CoursePostgresAdapter
+from backend.apps.courses.vo.lms_vo import CourseLMSMessageVO
 from backend.apps.courses.vo.roadmap_vo import (
     CourseQueryParamVO,
     CourseRoadmapCategoryVO,
@@ -244,6 +250,12 @@ class CourseLogicRepository(metaclass=Singleton):
         return self.postgres_adapter.delete_course(admin_user=admin_user, course_id=course_id)
 
     def create_lesson(self, admin_user, dto: CourseLessonCreateDTO):
+        if dto.video_url.strip():
+            try:
+                video_url = normalize_public_https_url(dto.video_url, resolve_dns=False)
+            except UnsafeOutboundUrlError as exc:
+                raise ValidationError(CourseLMSMessageVO.HTTPS_LINK_REQUIRED.value) from exc
+            dto = dto.model_copy(update={"video_url": video_url})
         return self.postgres_adapter.create_lesson(admin_user=admin_user, dto=dto)
 
     def list_published_courses(self, filters: dict):

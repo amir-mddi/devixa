@@ -2,7 +2,7 @@
 {% load project_tags lms_tags %}
 
 {% block title %}کلاس {{ course.title }} | {{ project.display_name }}{% endblock %}
-{% block page_styles_after %}<link rel="stylesheet" href="{% project_static 'Styles/classroom.css' %}?v=classroom-1">{% endblock %}
+{% block page_styles_after %}<link rel="stylesheet" href="{% project_static 'Styles/classroom.css' %}?v=classroom-2">{% endblock %}
 
 {% block content %}
 <main class="classroom-page">
@@ -58,7 +58,7 @@
                 <div class="classroom-lesson-card__content">
                     <div class="classroom-lesson-card__top"><div><h3>{{ lesson.title }}</h3>{% if lesson.section %}<span>{{ lesson.section.title }}</span>{% endif %}</div><span>{{ lesson.duration_minutes }} دقیقه</span></div>
                     <p>{{ lesson.description|default:"توضیحی برای این درس ثبت نشده است." }}</p>
-                    {% if lesson.video_url %}<a class="classroom-inline-link" href="{{ lesson.video_url }}" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-circle-play"></i> مشاهده ویدئو</a>{% endif %}
+                    {% if lesson.video_url %}<a class="classroom-inline-link" href="{{ lesson.video_url|https_url }}" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-circle-play"></i> مشاهده ویدئو</a>{% endif %}
                     {% if lesson.content %}<div class="classroom-rich-text">{{ lesson.content|linebreaks }}</div>{% endif %}
                 </div>
                 {% if classroom.is_student %}
@@ -83,7 +83,7 @@
             <article class="classroom-resource-card">
                 <span class="classroom-resource-card__icon"><i class="fa-solid {% if resource.resource_type == 'link' %}fa-link{% elif resource.resource_type == 'note' %}fa-note-sticky{% else %}fa-file-arrow-down{% endif %}"></i></span>
                 <div><h3>{{ resource.title }}</h3><p>{{ resource.description|default:"منبع آموزشی دوره" }}</p></div>
-                {% if resource.resource_type == 'file' and resource.file %}<a href="{% url 'courses_web:resource_download' object_id=resource.id %}">دانلود امن</a>{% elif resource.resource_type == 'link' %}<a href="{{ resource.external_url }}" target="_blank" rel="noopener noreferrer">باز کردن لینک</a>{% else %}<details><summary>مشاهده یادداشت</summary><div>{{ resource.text_content|linebreaks }}</div></details>{% endif %}
+                {% if resource.resource_type == 'file' and resource.file %}<a href="{% url 'courses_web:resource_download' object_id=resource.id %}">دانلود امن</a>{% elif resource.resource_type == 'link' %}<a href="{{ resource.external_url|https_url }}" target="_blank" rel="noopener noreferrer">باز کردن لینک</a>{% else %}<details><summary>مشاهده یادداشت</summary><div>{{ resource.text_content|linebreaks }}</div></details>{% endif %}
             </article>
             {% empty %}<div class="classroom-empty classroom-empty--compact"><i class="fa-regular fa-folder-open"></i><p>هنوز منبعی برای این کلاس اضافه نشده است.</p></div>{% endfor %}
         </div>

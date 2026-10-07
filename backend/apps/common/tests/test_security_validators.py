@@ -10,6 +10,11 @@ from backend.apps.common.helpers.validators.security_validators import (
     validate_payment_receipt_file,
 )
 from backend.apps.core_models.constants.runtime_config import RuntimeConfig
+from backend.apps.common.utils.network_security import (
+    UnsafeOutboundUrlError,
+    force_https_scheme,
+    normalize_public_https_url,
+)
 
 
 def _png_file(*, width=2, height=2, name="image.png"):
@@ -52,3 +57,24 @@ class RuntimeSecretGenerationTests(SimpleTestCase):
         code = RuntimeConfig().generate_verification_code()
 
         self.assertRegex(code, r"^\d{6}$")
+
+class PublicHttpsUrlNormalizationTests(SimpleTestCase):
+    def test_http_public_link_is_upgraded_to_https(self):
+        self.assertEqual(
+            force_https_scheme("http://example.com/path?q=1#section"),
+            "https://example.com/path?q=1#section",
+        )
+
+    def test_relative_url_is_left_unchanged(self):
+        self.assertEqual(force_https_scheme("/media/avatar.jpg"), "/media/avatar.jpg")
+
+    def test_public_normalizer_preserves_fragment(self):
+        self.assertEqual(
+            normalize_public_https_url("http://example.com/docs#install"),
+            "https://example.com/docs#install",
+        )
+
+    def test_public_normalizer_rejects_private_address(self):
+        with self.assertRaises(UnsafeOutboundUrlError):
+            normalize_public_https_url("http://127.0.0.1/private")
+

@@ -1,6 +1,7 @@
 import html
 import json
 from backend.apps.common.utils.common_utils import CommonUtils
+from backend.apps.common.utils.network_security import force_https_scheme
 from decimal import Decimal
 from dataclasses import dataclass
 from datetime import datetime
@@ -4196,7 +4197,7 @@ class TelegramBotService:
                 if description:
                     lines.append(html.escape(description))
                 if lesson.video_url:
-                    lines.append(self.t(profile, "video_line", url=html.escape(lesson.video_url)))
+                    lines.append(self.t(profile, "video_line", url=html.escape(force_https_scheme(lesson.video_url))))
         self.send_chain_message(
             profile,
             "\n".join(lines),
@@ -4389,7 +4390,7 @@ class TelegramBotService:
     @staticmethod
     def receipt_visible_url(receipt) -> str:
         if receipt.receipt_file_url:
-            return receipt.receipt_file_url
+            return force_https_scheme(receipt.receipt_file_url)
         receipt_file = getattr(receipt, "receipt_file", None)
         if receipt_file:
             try:

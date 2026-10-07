@@ -36,9 +36,9 @@
     --container-lg:1280px;
     --container-padding:clamp(16px,4vw,48px);
     --section-space:clamp(48px,7vw,96px);
-    --header-desktop:80px;
-    --header-tablet:72px;
-    --header-mobile:64px;
+    --header-desktop:68px;
+    --header-tablet:64px;
+    --header-mobile:60px;
     --touch-target:44px;
     --button-height:46px;
     --mobile-menu-item-height:56px;

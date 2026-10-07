@@ -12,6 +12,7 @@ class MarketplaceText:
     NOT_AUTHORIZED = "برای انجام این عملیات مجوز ندارید."
     INVALID_FILE = "رزومه باید فایل PDF معتبر با حجم حداکثر ۵ مگابایت باشد."
     INVALID_PHOTO = "تصویر باید JPG، PNG یا WebP و حداکثر ۵ مگابایت باشد."
+    INVALID_HTTPS_URL = "لینک باید یک آدرس عمومی امن با HTTPS باشد."
     PHOTO_SAVED = "تصویر ثبت شد و پس از بررسی منتشر می‌شود."
     RESUME_ACCESS_REVOKED = "اجازه دسترسی به رزومه برای این درخواست لغو شد."
     INVALID_SLOT = "زمان پایان باید پس از زمان شروع و زمان شروع در آینده باشد."

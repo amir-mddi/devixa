@@ -23,6 +23,9 @@ from backend.apps.pages.vo.page_vo import (
     PageEmailTemplateVO,
     PageErrorCodeVO,
     PageSettingNameVO,
+    PageHomeTestimonialVO,
+    PageHomeFaqVO,
+    PageChannelLinkVO,
 )
 
 logger = CommonUtils.get_project_logger(__name__)
@@ -36,24 +39,24 @@ class PageLogicRepository(metaclass=Singleton):
         project_name = get_project_public_config().display_name
         return (
             HomeTestimonialDTO(
-                comment=f"با دوره‌های {project_name} توانستم اولین پروژه واقعی خودم را کامل کنم و برای مصاحبه فنی آماده شوم.",
-                student_name="علی محمدی",
-                student_role="Backend Developer",
+                comment=PageHomeTestimonialVO.BACKEND_COMMENT.format(project_name=project_name),
+                student_name=PageHomeTestimonialVO.BACKEND_NAME,
+                student_role=PageHomeTestimonialVO.BACKEND_ROLE,
             ),
             HomeTestimonialDTO(
-                comment="مسیر پروژه‌محور باعث شد به جای حفظ کردن، واقعا تجربه ساخت محصول داشته باشم.",
-                student_name="سارا احمدی",
-                student_role="Frontend Developer",
+                comment=PageHomeTestimonialVO.FRONTEND_COMMENT,
+                student_name=PageHomeTestimonialVO.FRONTEND_NAME,
+                student_role=PageHomeTestimonialVO.FRONTEND_ROLE,
             ),
             HomeTestimonialDTO(
-                comment="پشتیبانی و بازخورد روی تمرین‌ها کمک کرد سریع‌تر اشکال‌های کدم را پیدا کنم.",
-                student_name="رضا کریمی",
-                student_role="Fullstack Developer",
+                comment=PageHomeTestimonialVO.FULLSTACK_COMMENT,
+                student_name=PageHomeTestimonialVO.FULLSTACK_NAME,
+                student_role=PageHomeTestimonialVO.FULLSTACK_ROLE,
             ),
             HomeTestimonialDTO(
-                comment="بعد از دوره، نمونه‌کار قابل ارائه داشتم و راحت‌تر برای پروژه‌های فریلنسری مذاکره کردم.",
-                student_name="مریم رضایی",
-                student_role="Freelance Developer",
+                comment=PageHomeTestimonialVO.FREELANCE_COMMENT,
+                student_name=PageHomeTestimonialVO.FREELANCE_NAME,
+                student_role=PageHomeTestimonialVO.FREELANCE_ROLE,
             ),
         )
 
@@ -76,25 +79,25 @@ class PageLogicRepository(metaclass=Singleton):
         project_config = get_project_public_config()
         return (
             ChannelLinkDTO(
-                title="ربات تلگرام",
-                description="ثبت‌نام، خرید دوره و پیگیری سفارش از طریق تلگرام",
+                title=PageChannelLinkVO.TELEGRAM_TITLE,
+                description=PageChannelLinkVO.TELEGRAM_DESCRIPTION,
                 url=project_config.telegram_bot_url or project_config.telegram_url,
-                icon_class="fa-brands fa-telegram",
-                badge="Telegram",
+                icon_class=PageChannelLinkVO.TELEGRAM_ICON,
+                badge=PageChannelLinkVO.TELEGRAM_BADGE,
             ),
             ChannelLinkDTO(
-                title="ربات بله",
-                description="ثبت‌نام و خرید دوره برای کاربرانی که از بله استفاده می‌کنند",
+                title=PageChannelLinkVO.BALE_TITLE,
+                description=PageChannelLinkVO.BALE_DESCRIPTION,
                 url=project_config.bale_bot_url,
-                icon_class="fa-solid fa-comments",
-                badge="Bale",
+                icon_class=PageChannelLinkVO.BALE_ICON,
+                badge=PageChannelLinkVO.BALE_BADGE,
             ),
             ChannelLinkDTO(
-                title="ربات روبیکا",
-                description="ثبت‌نام، خرید دوره و پیگیری سفارش از طریق روبیکا",
+                title=PageChannelLinkVO.RUBIKA_TITLE,
+                description=PageChannelLinkVO.RUBIKA_DESCRIPTION,
                 url=project_config.rubika_bot_url,
-                icon_class="fa-solid fa-comment-dots",
-                badge="Rubika",
+                icon_class=PageChannelLinkVO.RUBIKA_ICON,
+                badge=PageChannelLinkVO.RUBIKA_BADGE,
             ),
         )
 
@@ -114,31 +117,9 @@ class PageLogicRepository(metaclass=Singleton):
 
     @staticmethod
     def _default_faq_items() -> tuple[HomeFaqDTO, ...]:
-        return (
-            HomeFaqDTO(
-                "آیا دوره‌ها پیش‌نیاز دارند؟",
-                "بیشتر دوره‌های مقدماتی بدون نیاز به پیش‌نیاز طراحی شده‌اند. اگر دوره‌ای پیش‌نیاز داشته باشد، در صفحه همان دوره کامل نوشته می‌شود.",
-            ),
-            HomeFaqDTO(
-                "آیا در طول دوره پروژه عملی انجام می‌دهیم؟",
-                "بله، تمرکز اصلی دوره‌ها روی پروژه واقعی است تا در پایان مسیر نمونه‌کار قابل ارائه داشته باشید.",
-            ),
-            HomeFaqDTO(
-                "پشتیبانی دوره‌ها چگونه است؟",
-                "سوالات از طریق کانال‌های پشتیبانی، ربات‌ها و تیکت‌ها بررسی می‌شود تا در مسیر یادگیری تنها نمانید.",
-            ),
-            HomeFaqDTO(
-                "آیا گواهی پایان دوره دریافت می‌کنیم؟",
-                "پس از تکمیل دوره و انجام تمرین‌های اصلی، گواهی پایان دوره برای شما قابل صدور است.",
-            ),
-            HomeFaqDTO(
-                "آیا بوت‌کمپ برای افراد مبتدی مناسب است؟",
-                "بله، مسیر از مباحث پایه شروع می‌شود و مرحله به مرحله تا سطح پروژه واقعی و ورود به بازار کار جلو می‌رود.",
-            ),
-            HomeFaqDTO(
-                "بعد از پایان دوره چه مسیری پیشنهاد می‌کنید؟",
-                "تکمیل نمونه‌کار، انجام پروژه واقعی، فعالیت فریلنسری و ادامه مسیر از طریق نقشه‌راه‌های تخصصی پیشنهاد می‌شود.",
-            ),
+        return tuple(
+            HomeFaqDTO(question=question, answer=answer)
+            for question, answer in PageHomeFaqVO.DEFAULT_ITEMS
         )
 
     def send_contact_message(self, dto: ContactMessageDTO) -> PageActionResultDTO:
@@ -170,6 +151,6 @@ class PageLogicRepository(metaclass=Singleton):
     @staticmethod
     def _contact_recipient_email() -> str:
         project_config = get_project_public_config()
-        return project_config.contact_email or getattr(
+        return project_config.business_email or getattr(
             settings, PageSettingNameVO.DEFAULT_FROM_EMAIL.value, ""
         )

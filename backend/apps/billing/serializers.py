@@ -5,6 +5,7 @@ from rest_framework import serializers
 from backend.apps.billing.enums import PaymentProviderEnum, PaymentReceiptStatusEnum
 from backend.apps.billing.models import Order, OrderItem, Payment, PaymentReceipt
 from backend.apps.courses.serializers import CourseListSerializer
+from backend.apps.common.utils.network_security import force_https_scheme
 from backend.apps.common.helpers.validators.security_validators import (
     validate_payment_receipt_file,
     validate_safe_https_url,
@@ -61,6 +62,12 @@ class PaymentReceiptSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if "receipt_file_url" in data:
+            data["receipt_file_url"] = force_https_scheme(data.get("receipt_file_url"))
+        return data
+
 
 class PaymentSerializer(serializers.ModelSerializer):
     order = OrderSerializer(read_only=True)
@@ -87,6 +94,11 @@ class PaymentSerializer(serializers.ModelSerializer):
             "receipts",
             "created_at",
         ]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data["payment_url"] = force_https_scheme(data.get("payment_url"))
+        return data
 
     def get_card_to_card_info(self, obj):
         if obj.provider not in {PaymentProviderEnum.CARD_TO_CARD.value, PaymentProviderEnum.MANUAL.value}:

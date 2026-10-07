@@ -37,6 +37,7 @@ class SeoProjectDTO:
     tagline: str
     email_domain: str
     contact_email: str
+    business_email: str
     support_email: str
     phone: str
     address: str
@@ -58,6 +59,14 @@ class SeoProjectDTO:
             tagline=str(value.get("tagline") or ""),
             email_domain=str(value.get("email_domain") or ""),
             contact_email=str(value.get("contact_email") or ""),
+            business_email=str(
+                value.get("business_email")
+                or value.get("contact_email")
+                or value.get("support_email")
+                or value.get("sales_email")
+                or value.get("partnership_email")
+                or ""
+            ),
             support_email=str(value.get("support_email") or ""),
             phone=str(value.get("phone") or ""),
             address=str(value.get("address") or ""),

@@ -146,6 +146,24 @@ class SeoRequestUrlAdapterTestCase(TestCase):
             "https://acdevixa.ir/courses/",
         )
 
+    def test_http_origin_and_absolute_url_are_upgraded_to_https(self):
+        request = RequestFactory().get(
+            "/courses/",
+            secure=False,
+            HTTP_HOST="acdevixa.ir",
+        )
+
+        adapter = SeoRequestUrlAdapter(
+            request,
+            canonical_origin="http://acdevixa.ir",
+        )
+
+        self.assertEqual(adapter.origin, "https://acdevixa.ir")
+        self.assertEqual(
+            adapter.absolute_url("http://acdevixa.ir/courses/"),
+            "https://acdevixa.ir/courses/",
+        )
+
 
 class SeoStructuredDataLogicTestCase(TestCase):
     databases = set()

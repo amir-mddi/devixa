@@ -12,6 +12,12 @@ from backend.apps.courses.models import (
 )
 from backend.apps.shared.serializers import BaseSerializerModel
 from backend.apps.common.helpers.validators.security_validators import validate_course_thumbnail
+from backend.apps.common.utils.network_security import (
+    UnsafeOutboundUrlError,
+    force_https_scheme,
+    normalize_public_https_url,
+)
+from backend.apps.courses.vo.lms_vo import CourseLMSMessageVO
 
 User = get_user_model()
 
@@ -42,6 +48,21 @@ class CourseLessonSerializer(BaseSerializerModel):
             "is_preview",
         ]
         read_only_fields = ["slug"]
+
+    def validate_video_url(self, value: str) -> str:
+        if not str(value or "").strip():
+            return ""
+        try:
+            return normalize_public_https_url(value, resolve_dns=False)
+        except UnsafeOutboundUrlError as exc:
+            raise serializers.ValidationError(
+                CourseLMSMessageVO.HTTPS_LINK_REQUIRED.value
+            ) from exc
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data["video_url"] = force_https_scheme(data.get("video_url"))
+        return data
 
 
 class CourseLessonPublicSerializer(serializers.ModelSerializer):

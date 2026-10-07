@@ -6,6 +6,8 @@ from django.conf import settings
 from django.templatetags.static import static
 from django.utils.encoding import iri_to_uri
 
+from backend.apps.common.utils.network_security import force_https_scheme
+
 
 class SeoRequestUrlAdapter:
     def __init__(self, request, canonical_origin: str | None = None):
@@ -28,11 +30,12 @@ class SeoRequestUrlAdapter:
             return None
         if not raw_value.startswith(("http://", "https://")):
             raw_value = f"https://{raw_value.strip('/')}"
+        raw_value = force_https_scheme(raw_value)
 
         parts = urlsplit(raw_value)
-        if parts.scheme not in {"http", "https"} or not parts.netloc:
+        if parts.scheme != "https" or not parts.netloc:
             return None
-        return urlunsplit((parts.scheme, parts.netloc, "/", "", ""))
+        return urlunsplit(("https", parts.netloc, "/", "", ""))
 
     @classmethod
     def from_project(cls, request, project) -> "SeoRequestUrlAdapter":
@@ -52,7 +55,7 @@ class SeoRequestUrlAdapter:
             return self.origin + "/"
         value = str(path_or_url).strip()
         if value.startswith(("http://", "https://")):
-            return iri_to_uri(value)
+            return iri_to_uri(force_https_scheme(value))
         return iri_to_uri(urljoin(self.origin + "/", value.lstrip("/")))
 
     def canonical_url(self, path: str | None = None) -> str:

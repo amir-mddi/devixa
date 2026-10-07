@@ -5,7 +5,7 @@
 {% block meta_description %}{{ seo.description }}{% endblock %}
 
 {% block page_styles_after %}
-    <link rel="stylesheet" href="{% project_static 'Styles/articles.css' %}?v=articles-1">
+    <link rel="stylesheet" href="{% project_static 'Styles/articles.css' %}?v=articles-2">
 {% endblock %}
 
 {% block content %}
@@ -50,7 +50,7 @@
                             <i class="fa-solid fa-link" aria-hidden="true"></i>
                             <span>منبع خبر</span>
                         </div>
-                        <a href="{{ article.source_url }}" target="_blank" rel="noopener noreferrer nofollow">
+                        <a href="{{ article.source_url|https_url }}" target="_blank" rel="noopener noreferrer nofollow">
                             {{ article.source_name|default:"مشاهده منبع اصلی" }}
                             <i class="fa-solid fa-arrow-up-left-from-square" aria-hidden="true"></i>
                         </a>
@@ -76,8 +76,8 @@
                 <div class="article-share-card">
                     <span>اشتراک‌گذاری مطلب</span>
                     <div>
-                        <a href="https://t.me/share/url?url={{ request.build_absolute_uri|urlencode }}&text={{ article.title|urlencode }}" target="_blank" rel="noopener noreferrer" aria-label="اشتراک در تلگرام"><i class="fa-brands fa-telegram"></i></a>
-                        <a href="https://wa.me/?text={{ article.title|urlencode }}%20{{ request.build_absolute_uri|urlencode }}" target="_blank" rel="noopener noreferrer" aria-label="اشتراک در واتساپ"><i class="fa-brands fa-whatsapp"></i></a>
+                        <a href="https://t.me/share/url?url={{ seo.canonical_url|urlencode }}&text={{ article.title|urlencode }}" target="_blank" rel="noopener noreferrer" aria-label="اشتراک در تلگرام"><i class="fa-brands fa-telegram"></i></a>
+                        <a href="https://wa.me/?text={{ article.title|urlencode }}%20{{ seo.canonical_url|urlencode }}" target="_blank" rel="noopener noreferrer" aria-label="اشتراک در واتساپ"><i class="fa-brands fa-whatsapp"></i></a>
                     </div>
                 </div>
             </aside>

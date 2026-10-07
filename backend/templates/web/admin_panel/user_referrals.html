@@ -1,4 +1,5 @@
 {% extends "web/admin_panel/base.html" %}
+{% load project_tags %}
 {% block admin_title %}گزارش دعوت‌های کاربر{% endblock %}
 {% block admin_content %}
 <header class="admin-page-header admin-page-header--actions">
@@ -20,7 +21,7 @@
     <div class="admin-section-head"><div><span class="admin-eyebrow">لینک اختصاصی</span><h2>{{ referral_summary.channel.channel_username }}</h2></div></div>
     <div class="admin-referral-detail-grid">
         <div><span>کد معرفی سایت</span><strong dir="ltr">{{ referral_summary.code }}</strong></div>
-        <div><span>لینک کانال</span>{% if referral_summary.channel.invite_link %}<a dir="ltr" href="{{ referral_summary.channel.invite_link }}" target="_blank" rel="noopener noreferrer">{{ referral_summary.channel.invite_link }}</a>{% else %}<strong>هنوز توسط کاربر ساخته نشده</strong>{% endif %}</div>
+        <div><span>لینک کانال</span>{% if referral_summary.channel.invite_link %}<a dir="ltr" href="{{ referral_summary.channel.invite_link|https_url }}" target="_blank" rel="noopener noreferrer">{{ referral_summary.channel.invite_link|https_url }}</a>{% else %}<strong>هنوز توسط کاربر ساخته نشده</strong>{% endif %}</div>
     </div>
 </section>
 

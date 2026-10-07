@@ -50,26 +50,62 @@
         });
     });
 
+    const fallbackCopy = (value) => {
+        const fallback = document.createElement("textarea");
+        fallback.value = value;
+        fallback.setAttribute("readonly", "");
+        fallback.style.position = "fixed";
+        fallback.style.opacity = "0";
+        fallback.style.pointerEvents = "none";
+        document.body.appendChild(fallback);
+        fallback.select();
+        const copied = document.execCommand("copy");
+        fallback.remove();
+        return copied;
+    };
+
+    const showCopyFeedback = (button) => {
+        const label = button.querySelector("[data-copy-label]");
+        const icon = button.querySelector("i");
+        const successLabel = button.dataset.copySuccessLabel || "";
+        if (!label || !successLabel) return;
+
+        const originalLabel = label.textContent;
+        const originalIconClass = icon?.className || "";
+        label.textContent = successLabel;
+        button.classList.add("is-copied");
+        button.setAttribute("aria-live", "polite");
+        if (icon) icon.className = "fa-solid fa-check";
+
+        window.setTimeout(() => {
+            label.textContent = originalLabel;
+            button.classList.remove("is-copied");
+            button.removeAttribute("aria-live");
+            if (icon) icon.className = originalIconClass;
+        }, 1400);
+    };
+
     page.querySelectorAll("[data-copy-value]").forEach((button) => {
         button.addEventListener("click", async () => {
             const value = button.dataset.copyValue || "";
-            if (!value) return;
+            if (!value || button.dataset.copyBusy === "1") return;
+
+            button.dataset.copyBusy = "1";
+            let copied = false;
             try {
-                await navigator.clipboard.writeText(value);
-                const original = button.innerHTML;
-                button.innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i> کپی شد';
-                window.setTimeout(() => { button.innerHTML = original; }, 1400);
+                if (navigator.clipboard?.writeText) {
+                    await navigator.clipboard.writeText(value);
+                    copied = true;
+                } else {
+                    copied = fallbackCopy(value);
+                }
             } catch (_error) {
-                const fallback = document.createElement("textarea");
-                fallback.value = value;
-                fallback.setAttribute("readonly", "");
-                fallback.style.position = "fixed";
-                fallback.style.opacity = "0";
-                document.body.appendChild(fallback);
-                fallback.select();
-                document.execCommand("copy");
-                fallback.remove();
+                copied = fallbackCopy(value);
+            } finally {
+                delete button.dataset.copyBusy;
             }
+
+            if (copied) showCopyFeedback(button);
         });
     });
 

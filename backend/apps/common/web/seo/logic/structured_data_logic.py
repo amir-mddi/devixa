@@ -5,17 +5,19 @@ from typing import Any, Iterable, Mapping
 from backend.apps.common.web.seo.dtos.seo_dtos import SeoProjectDTO
 from backend.apps.common.web.seo.enums.seo_enums import SeoSchemaTypeEnum
 from backend.apps.common.web.seo.value_objects.seo_vo import SeoSchemaTextVO
+from backend.apps.common.utils.network_security import force_https_scheme
 
 
 class SeoStructuredDataLogic:
     @staticmethod
     def _clean_urls(values: Iterable[str]) -> list[str]:
+        normalized_values = (force_https_scheme(value) for value in values)
         return [
             value
-            for value in values
+            for value in normalized_values
             if value
             and value != "#"
-            and value.startswith(("http://", "https://"))
+            and value.startswith("https://")
         ]
 
     def website(self, *, project: SeoProjectDTO, origin: str) -> dict[str, Any]:
@@ -59,8 +61,8 @@ class SeoStructuredDataLogic:
         }
         if social_urls:
             payload["sameAs"] = social_urls
-        if project.contact_email:
-            payload["email"] = project.contact_email
+        if project.business_email:
+            payload["email"] = project.business_email
         if project.phone:
             payload["telephone"] = project.phone
         if project.address:

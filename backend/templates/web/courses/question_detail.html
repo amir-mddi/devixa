@@ -1,7 +1,7 @@
 {% extends "web/pages/base.html" %}
 {% load project_tags lms_tags %}
 {% block title %}{{ question.subject }} | {{ course.title }}{% endblock %}
-{% block page_styles_after %}<link rel="stylesheet" href="{% project_static 'Styles/classroom.css' %}?v=classroom-1">{% endblock %}
+{% block page_styles_after %}<link rel="stylesheet" href="{% project_static 'Styles/classroom.css' %}?v=classroom-2">{% endblock %}
 {% block content %}
 <main class="classroom-page classroom-chat-page">
     <header class="classroom-chat-header"><a href="{% url 'courses_web:classroom' slug=course.slug %}"><i class="fa-solid fa-arrow-right"></i> بازگشت به کلاس</a><div><span>{{ course.title }}</span><h1>{{ question.subject }}</h1></div><em>{{ question.status|lms_question_status }}</em></header>
