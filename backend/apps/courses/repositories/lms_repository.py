@@ -7,6 +7,8 @@ from django.db.models import Q
 from django.utils.timezone import now
 from rest_framework.exceptions import NotFound
 
+from backend.apps.core_models.vo.common_vo import UserRoleVO
+
 from backend.apps.courses.enums import (
     AssignmentStatusEnum, EnrollmentStatusEnum, QuestionStatusEnum, SubmissionStatusEnum,
 )
@@ -48,11 +50,45 @@ class CourseLMSRepository:
 
     @staticmethod
     def is_instructor(user, course) -> bool:
+        if not user or not getattr(user, "is_authenticated", False) or not getattr(user, "is_active", False):
+            return False
+
+        role_symbol = str(
+            getattr(getattr(user, "role", None), "symbol", "") or ""
+        ).strip().lower()
+
+        if (
+            getattr(user, "is_superuser", False)
+            or getattr(user, "is_staff", False)
+            or role_symbol == UserRoleVO.ADMIN
+        ):
+            return True
+
         return bool(
-            user
-            and getattr(user, "is_authenticated", False)
-            and (getattr(user, "is_staff", False) or getattr(user, "is_superuser", False) or user.id == course.instructor_id)
+            role_symbol == UserRoleVO.INSTRUCTOR
+            and user.id == course.instructor_id
         )
+
+    @staticmethod
+    def update_course_details(*, actor, course, dto):
+        course.title = dto.title.strip()
+        course.short_description = (dto.short_description or "").strip()
+        course.description = (dto.description or "").strip()
+        course.level = dto.level
+        course.duration_minutes = max(int(dto.duration_minutes or 0), 0)
+        course.user_updated_object = actor
+        course.save(
+            update_fields=[
+                "title",
+                "short_description",
+                "description",
+                "level",
+                "duration_minutes",
+                "user_updated_object",
+                "updated_at",
+            ]
+        )
+        return course
 
     @staticmethod
     def has_active_enrollment(user, course) -> bool:

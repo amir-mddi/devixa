@@ -4,125 +4,92 @@
 {% block title %}{{ seo.title }}{% endblock %}
 {% block meta_description %}{{ seo.description }}{% endblock %}
 {% block page_styles_after %}
-    <link rel="stylesheet" href="{% project_static 'Styles/about_us.css' %}?v=about-4">
+    <link rel="stylesheet" href="{% project_static 'Styles/about_us.css' %}?v=about-5">
 {% endblock %}
 
 {% block content %}
 <main class="about-page">
-    <section class="about-page__hero" aria-labelledby="about-page-title">
-        <div class="about-page__container about-page__hero-grid">
-            <div class="about-page__hero-copy reveal_right">
-                <span class="about-page__eyebrow">
-                    <i class="fa-regular fa-circle-dot" aria-hidden="true"></i>
-                    درباره {{ project.display_name }}
-                </span>
-                <h1 id="about-page-title" class="about-page__title">
-                    آموزش باید آخرش به چیزی برسه که <span class="brand-text">واقعاً بتونی بسازیش.</span>
-                </h1>
-                <p class="about-page__lead">
-                    اینجا قرار نیست فقط ویدئو ببینی و بری سراغ آموزش بعدی. مسیرها طوری چیده شده‌اند که هر چیزی یاد می‌گیری، با تمرین و پروژه به مهارتی تبدیلش کنی که واقعاً به کارت بیاد.
+    <section class="about-page__overview" aria-labelledby="about-page-title">
+        <div class="about-page__container about-page__overview-grid">
+            <div class="about-page__intro reveal_right">
+                <span class="about-page__kicker">درباره {{ project.display_name }}</span>
+                <h1 id="about-page-title">یادگیری برنامه‌نویسی، با مسیر روشن‌تر.</h1>
+                <p>
+                    {{ project.display_name }} برای این ساخته شده که بین آموزش‌های پراکنده گم نشی؛
+                    یاد بگیری، تمرین کنی و قدم‌به‌قدم چیزی بسازی که واقعاً قابل استفاده باشه.
                 </p>
-                <div class="about-page__actions" aria-label="شروع مسیر در {{ project.display_name }}">
-                    <a class="about-page__button about-page__button--primary" href="{% url 'courses_web:course_list' %}">
-                        <span>دیدن دوره‌ها</span>
-                        <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
-                    </a>
-                    <a class="about-page__button about-page__button--secondary" href="{% url 'courses_web:roadmap_list' %}">
-                        <span>نقشه راه‌ها</span>
-                        <i class="fa-solid fa-route" aria-hidden="true"></i>
-                    </a>
-                </div>
             </div>
 
-            <div class="about-method-card reveal_left" aria-label="مدل یادگیری {{ project.display_name }}">
-                <div class="about-method-card__header">
-                    <span class="about-method-card__status"><i aria-hidden="true"></i> مدل یادگیری ما</span>
-                    <span class="about-method-card__brand brand-text">{{ project.display_name }}</span>
-                </div>
-                <ol class="about-method-card__steps">
-                    <li class="about-method-card__step">
-                        <span class="about-method-card__number">۱</span>
-                        <span class="about-method-card__icon" aria-hidden="true"><i class="fa-solid fa-book-open"></i></span>
-                        <span class="about-method-card__copy">
-                            <strong>یاد بگیر</strong>
-                            <small>مفهوم رو کوتاه و روشن بگیر، نه حفظی.</small>
-                        </span>
-                    </li>
-                    <li class="about-method-card__step">
-                        <span class="about-method-card__number">۲</span>
-                        <span class="about-method-card__icon" aria-hidden="true"><i class="fa-solid fa-code"></i></span>
-                        <span class="about-method-card__copy">
-                            <strong>بساز</strong>
-                            <small>همون چیزی که یاد گرفتی رو توی پروژه استفاده کن.</small>
-                        </span>
-                    </li>
-                    <li class="about-method-card__step">
-                        <span class="about-method-card__number">۳</span>
-                        <span class="about-method-card__icon" aria-hidden="true"><i class="fa-regular fa-comments"></i></span>
-                        <span class="about-method-card__copy">
-                            <strong>بهترش کن</strong>
-                            <small>اشکال‌ها رو پیدا کن، بازخورد بگیر و ادامه بده.</small>
-                        </span>
-                    </li>
-                </ol>
-            </div>
-        </div>
-    </section>
-
-    <section class="about-page__story" aria-labelledby="about-story-title">
-        <div class="about-page__container">
-            <div class="about-page__story-grid">
-                <header class="about-page__story-copy reveal_right">
-                    <span class="about-page__section-kicker">داستان ما</span>
-                    <h2 id="about-story-title" class="about-page__section-title">چرا {{ project.display_name }} ساخته شد؟</h2>
-                    <p>
-                        از یه مشکل ساده شروع شد: آموزش زیاد بود، ولی خیلی وقت‌ها بعد از چند ساعت دیدن ویدئو هنوز معلوم نبود قدم بعدی چیه و باید چه چیزی ساخت. {{ project.display_name }} ساخته شد تا این فاصله بین «دیدن آموزش» و «واقعاً بلد بودن» کمتر بشه.
-                    </p>
-                </header>
-
-                <aside class="about-story-note reveal_left" aria-label="هدف {{ project.display_name }}">
-                    <span class="about-story-note__icon" aria-hidden="true"><i class="fa-solid fa-compass"></i></span>
+            <div class="about-page__summary reveal_left" aria-label="خلاصه رویکرد {{ project.display_name }}">
+                <article class="about-summary-item">
+                    <span class="about-summary-item__icon" aria-hidden="true"><i class="fa-solid fa-route"></i></span>
                     <div>
-                        <strong>هدفمون پیچیده نیست</strong>
-                        <p>مسیر یادگیری روشن باشه، تمرین واقعی داشته باشی و آخرش چیزی دستت باشه که خودت ساختیش.</p>
+                        <strong>مسیر مشخص</strong>
+                        <span>بدونی الان کجایی و قدم بعدی چیه.</span>
                     </div>
-                </aside>
-            </div>
-
-            <div class="about-principles" aria-label="اصول یادگیری در {{ project.display_name }}">
-                <article class="about-principle-card reveal">
-                    <span class="about-principle-card__icon" aria-hidden="true"><i class="fa-solid fa-laptop-code"></i></span>
-                    <span class="about-principle-card__index">01</span>
-                    <h3>پروژه قبل از حفظ کردن</h3>
-                    <p>هر مفهوم وقتی موندگار می‌شه که خودت باهاش چیزی بسازی و با خطاهاش درگیر بشی.</p>
                 </article>
-                <article class="about-principle-card reveal">
-                    <span class="about-principle-card__icon" aria-hidden="true"><i class="fa-solid fa-route"></i></span>
-                    <span class="about-principle-card__index">02</span>
-                    <h3>مسیر واضح، بدون پرش</h3>
-                    <p>به‌جای پریدن بین ده‌ها آموزش، بدونی الان کجایی و قدم منطقی بعدی چیه.</p>
+                <article class="about-summary-item">
+                    <span class="about-summary-item__icon" aria-hidden="true"><i class="fa-solid fa-laptop-code"></i></span>
+                    <div>
+                        <strong>پروژه واقعی</strong>
+                        <span>چیزی که یاد می‌گیری رو همون‌جا استفاده کنی.</span>
+                    </div>
                 </article>
-                <article class="about-principle-card reveal">
-                    <span class="about-principle-card__icon" aria-hidden="true"><i class="fa-solid fa-arrow-trend-up"></i></span>
-                    <span class="about-principle-card__index">03</span>
-                    <h3>پیشرفت قابل لمس</h3>
-                    <p>هدف فقط تموم کردن درس نیست؛ باید بتونی نسبت به قبل بهتر کد بزنی، بهتر تصمیم بگیری و مستقل‌تر جلو بری.</p>
+                <article class="about-summary-item">
+                    <span class="about-summary-item__icon" aria-hidden="true"><i class="fa-regular fa-comments"></i></span>
+                    <div>
+                        <strong>پیشرفت مداوم</strong>
+                        <span>اشکال‌ها رو پیدا کنی و هر بار بهتر جلو بری.</span>
+                    </div>
                 </article>
             </div>
         </div>
     </section>
 
-    <section class="about-page__cta" aria-labelledby="about-cta-title">
+    <section class="about-page__method" aria-labelledby="about-method-title">
         <div class="about-page__container">
-            <div class="about-page__cta-card reveal">
+            <header class="about-page__section-head">
+                <span class="about-page__kicker">روش ما</span>
+                <h2 id="about-method-title">یاد بگیر. بساز. بهترش کن.</h2>
+                <p>مدل یادگیری {{ project.display_name }} همین‌قدر ساده است.</p>
+            </header>
+
+            <ol class="about-steps" aria-label="مراحل یادگیری در {{ project.display_name }}">
+                <li class="about-step reveal">
+                    <span class="about-step__number">۱</span>
+                    <div>
+                        <strong>یاد بگیر</strong>
+                        <p>مفهوم رو کوتاه و روشن بفهم.</p>
+                    </div>
+                </li>
+                <li class="about-step reveal">
+                    <span class="about-step__number">۲</span>
+                    <div>
+                        <strong>بساز</strong>
+                        <p>با همون مفهوم یه بخش واقعی پیاده کن.</p>
+                    </div>
+                </li>
+                <li class="about-step reveal">
+                    <span class="about-step__number">۳</span>
+                    <div>
+                        <strong>بهترش کن</strong>
+                        <p>بازخورد بگیر، اصلاح کن و ادامه بده.</p>
+                    </div>
+                </li>
+            </ol>
+        </div>
+    </section>
+
+    <section class="about-page__closing">
+        <div class="about-page__container">
+            <div class="about-page__closing-card reveal">
                 <div>
-                    <span class="about-page__section-kicker">قدم بعدی</span>
-                    <h2 id="about-cta-title">اگه آماده‌ای فقط یاد نگیری و واقعاً بسازی، از همین‌جا شروع کن.</h2>
-                    <p>می‌تونی اول دوره‌ها رو ببینی یا از نقشه راه مناسب خودت شروع کنی.</p>
+                    <h2>آماده‌ای شروع کنی؟</h2>
+                    <p>دوره‌ها رو ببین یا از نقشه راه مناسب خودت شروع کن.</p>
                 </div>
-                <div class="about-page__actions about-page__actions--cta">
-                    <a class="about-page__button about-page__button--primary" href="{% url 'courses_web:course_list' %}">شروع یادگیری</a>
-                    <a class="about-page__button about-page__button--secondary" href="{% url 'pages_web:contact_us' %}">یه سوال دارم</a>
+                <div class="about-page__actions">
+                    <a class="about-page__button about-page__button--primary" href="{% url 'courses_web:course_list' %}">دیدن دوره‌ها</a>
+                    <a class="about-page__button about-page__button--secondary" href="{% url 'courses_web:roadmap_list' %}">نقشه راه‌ها</a>
                 </div>
             </div>
         </div>

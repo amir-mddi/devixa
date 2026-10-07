@@ -59,6 +59,7 @@ class AccountProfileUpdateResultDTO:
 class AccountProfileDashboardDTO:
     profile: Any
     enrollments: tuple[Any, ...]
+    instructed_courses: tuple[Any, ...]
     orders: tuple[Any, ...]
     payments: tuple[Any, ...]
     tickets: tuple[Any, ...]

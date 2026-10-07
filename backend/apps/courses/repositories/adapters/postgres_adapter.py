@@ -1,16 +1,20 @@
 from decimal import Decimal
 from uuid import UUID
 
+from django.contrib.auth import get_user_model
 from django.db.models import Avg, Count, Q
 from django.utils.timezone import now
 from django.utils.text import slugify
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 
 from backend.apps.common.helpers.metaclasses.singleton import Singleton
+from backend.apps.core_models.vo.common_vo import UserRoleVO
 from backend.apps.courses.enums import CourseStatusEnum, EnrollmentStatusEnum, ReviewStatusEnum
 from backend.apps.courses.models import Course, CourseCategory, CourseEnrollment, CourseLesson, CourseReview
 from backend.apps.courses.vo import CourseMessagesVO
 from backend.apps.courses.vo.roadmap_vo import CourseQueryParamVO, CourseWebCategoryFilterVO, CourseWebLevelFilterVO
+
+User = get_user_model()
 
 
 class CoursePostgresAdapter(metaclass=Singleton):
@@ -62,6 +66,22 @@ class CoursePostgresAdapter(metaclass=Singleton):
             raise NotFound(CourseMessagesVO.COURSE_NOT_FOUND)
         return course
 
+    @staticmethod
+    def get_teaching_user(user_id):
+        user = (
+            User.objects.select_related("role")
+            .filter(id=user_id, is_deleted=False, is_active=True)
+            .filter(
+                Q(role__symbol__in=UserRoleVO.TEACHING_ROLES)
+                | Q(is_superuser=True)
+                | Q(is_staff=True)
+            )
+            .first()
+        )
+        if not user:
+            raise NotFound(CourseMessagesVO.INSTRUCTOR_NOT_FOUND)
+        return user
+
     def create_course(self, admin_user, dto):
         if dto.status not in {CourseStatusEnum.DRAFT.value, CourseStatusEnum.PUBLISHED.value, CourseStatusEnum.ARCHIVED.value}:
             raise ValidationError("Invalid course status.")
@@ -74,9 +94,10 @@ class CoursePostgresAdapter(metaclass=Singleton):
             category = CourseCategory.objects.filter(id=dto.category_id, is_deleted=False).first()
             if not category:
                 raise NotFound("Course category not found.")
+        instructor = self.get_teaching_user(dto.instructor_id or admin_user.id)
         course = Course.objects.create(
             category=category,
-            instructor=admin_user,
+            instructor=instructor,
             title=dto.title.strip(),
             slug=self.unique_slug_for_model(Course, dto.title, max_length=200),
             short_description=(dto.short_description or "").strip(),
@@ -118,6 +139,10 @@ class CoursePostgresAdapter(metaclass=Singleton):
                 if not category:
                     raise NotFound("Course category not found.")
             updates["category"] = category
+        if "instructor_id" in getattr(dto, "model_fields_set", set()):
+            if dto.instructor_id is None:
+                raise ValidationError(CourseMessagesVO.INSTRUCTOR_NOT_FOUND)
+            updates["instructor"] = self.get_teaching_user(dto.instructor_id)
         if "title" in updates and updates["title"] != course.title:
             updates["slug"] = self.unique_slug_for_model(Course, updates["title"], instance_id=course.id, max_length=200)
         for field, value in updates.items():
@@ -305,6 +330,19 @@ class CoursePostgresAdapter(metaclass=Singleton):
             enrollment.user_updated_object = user
             enrollment.save(update_fields=["status", "source_order_number", "user_updated_object", "updated_at"])
         return enrollment
+
+    @staticmethod
+    def list_instructed_courses(user):
+        return (
+            Course.objects.select_related("category", "instructor")
+            .prefetch_related("lessons")
+            .filter(
+                instructor=user,
+                is_active=True,
+                is_deleted=False,
+            )
+            .order_by("-created_at")
+        )
 
     @staticmethod
     def list_user_enrollments(user):

@@ -7,6 +7,11 @@ class InitializerData:
             "accesses": []
         },
         {
+            "name": "مدرس",
+            "symbol": "instructor",
+            "accesses": []
+        },
+        {
             "name": "ادمین سیستم",
             "symbol": "admin",
             "accesses": [

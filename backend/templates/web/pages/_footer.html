@@ -78,6 +78,16 @@
                         </a>
                     {% endif %}
 
+                    {% if project.phone %}
+                        <a class="site-footer__contact-item" href="tel:{{ project.phone }}">
+                            <span class="site-footer__contact-icon" aria-hidden="true"><i class="fa-solid fa-phone"></i></span>
+                            <span class="site-footer__contact-copy">
+                                <span class="site-footer__contact-label">شماره تماس {{ project.display_name }}</span>
+                                <b dir="ltr">{{ project.phone }}</b>
+                            </span>
+                        </a>
+                    {% endif %}
+
                     <a class="site-footer__contact-item" href="{% url 'pages_web:contact_us' %}">
                         <span class="site-footer__contact-icon" aria-hidden="true"><i class="fa-solid fa-headset"></i></span>
                         <span class="site-footer__contact-copy">

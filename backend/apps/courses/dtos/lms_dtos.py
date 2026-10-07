@@ -7,6 +7,15 @@ from uuid import UUID
 from backend.apps.core_models.dtos.base_dto import BaseDTO
 
 
+class CourseInstructorUpdateDTO(BaseDTO):
+    course_id: UUID
+    title: str
+    short_description: str = ""
+    description: str = ""
+    level: str = "all_levels"
+    duration_minutes: int = 0
+
+
 class CourseSectionCreateDTO(BaseDTO):
     course_id: UUID
     title: str

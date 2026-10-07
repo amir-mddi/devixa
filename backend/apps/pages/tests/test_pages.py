@@ -151,6 +151,21 @@ class ChannelLinkTests(SimpleTestCase):
         self.assertEqual(rubika.url, "https://rubika.ir/devixa_bot")
         self.assertTrue(rubika.is_available)
 
+    @patch("backend.apps.pages.repositories.logic.get_project_public_config")
+    def test_telegram_bot_card_does_not_fall_back_to_channel_url(self, config_mock):
+        config_mock.return_value = MagicMock(
+            telegram_bot_url="",
+            telegram_url="https://t.me/devixa",
+            bale_bot_url="",
+            rubika_bot_url="",
+        )
+
+        links = PageLogicRepository().list_channel_links()
+        telegram = next(link for link in links if link.badge == "Telegram")
+
+        self.assertEqual(telegram.url, "")
+        self.assertFalse(telegram.is_available)
+
 
 class AndroidAppDownloadTests(TestCase):
     def test_stable_download_route_redirects_to_versioned_apk(self):

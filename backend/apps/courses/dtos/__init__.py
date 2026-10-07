@@ -42,6 +42,7 @@ from .lms_dtos import (
     CourseAnnouncementCreateDTO,
     CourseAssignmentCreateDTO,
     CourseGradeItemDTO,
+    CourseInstructorUpdateDTO,
     CourseLessonManageDTO,
     CourseProgressToggleDTO,
     CourseQuestionCreateDTO,
@@ -54,6 +55,7 @@ from .lms_dtos import (
 
 __all__ += [
     "CourseAnnouncementCreateDTO", "CourseAssignmentCreateDTO", "CourseGradeItemDTO",
+    "CourseInstructorUpdateDTO",
     "CourseLessonManageDTO", "CourseProgressToggleDTO", "CourseQuestionCreateDTO",
     "CourseQuestionReplyDTO", "CourseResourceCreateDTO", "CourseSectionCreateDTO",
     "CourseSubmissionDTO", "CourseSubmissionGradeDTO",

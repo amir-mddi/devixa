@@ -6,6 +6,7 @@ from backend.apps.courses.enums import (
     AssignmentStatusEnum,
     AssignmentSubmissionTypeEnum,
     AssignmentTypeEnum,
+    CourseLevelEnum,
     CourseResourceTypeEnum,
     GradeCategoryEnum,
 )
@@ -13,6 +14,23 @@ from backend.apps.courses.enums import (
 
 class DateTimeLocalInput(forms.DateTimeInput):
     input_type = "datetime-local"
+
+
+class CourseInstructorSettingsForm(forms.Form):
+    title = forms.CharField(max_length=180, label="عنوان دوره")
+    short_description = forms.CharField(
+        max_length=300,
+        required=False,
+        label="توضیح کوتاه",
+        widget=forms.Textarea(attrs={"rows": 2}),
+    )
+    description = forms.CharField(
+        required=False,
+        label="توضیحات کامل",
+        widget=forms.Textarea(attrs={"rows": 5}),
+    )
+    level = forms.ChoiceField(choices=CourseLevelEnum.choices(), label="سطح دوره")
+    duration_minutes = forms.IntegerField(min_value=0, label="مدت دوره به دقیقه")
 
 
 class CourseSectionForm(forms.Form):

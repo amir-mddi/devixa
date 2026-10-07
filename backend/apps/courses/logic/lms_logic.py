@@ -9,6 +9,7 @@ from django.utils.timezone import now
 
 from backend.apps.courses.dtos import (
     CourseAnnouncementCreateDTO,
+    CourseInstructorUpdateDTO,
     CourseAssignmentCreateDTO,
     CourseGradeItemDTO,
     CourseLessonManageDTO,
@@ -22,7 +23,7 @@ from backend.apps.courses.dtos import (
 )
 from backend.apps.courses.entities.lms_entities import CourseClassroomEntity, CourseGradeSummaryEntity
 from backend.apps.courses.enums import (
-    AssignmentStatusEnum, AssignmentSubmissionTypeEnum, CourseResourceTypeEnum,
+    AssignmentStatusEnum, AssignmentSubmissionTypeEnum, CourseLevelEnum, CourseResourceTypeEnum,
     QuestionStatusEnum, SubmissionStatusEnum,
 )
 from backend.apps.courses.repositories.lms_repository import CourseLMSRepository
@@ -114,6 +115,16 @@ class CourseLMSLogic:
         manual_earned = sum((Decimal(item.score) for item in grade_items), Decimal("0"))
         manual_possible = sum((Decimal(item.max_score) for item in grade_items), Decimal("0"))
         return CourseGradeSummaryEntity(assignment_earned, assignment_possible, manual_earned, manual_possible)
+
+    @transaction.atomic
+    def update_course_details(self, *, actor, dto: CourseInstructorUpdateDTO):
+        course = self.repository.get_course(dto.course_id)
+        self.require_instructor(actor, course)
+        if not dto.title.strip():
+            raise ValidationError(CourseLMSMessageVO.INVALID_FORM.value)
+        if dto.level not in {value for value, _label in CourseLevelEnum.choices()}:
+            raise ValidationError(CourseLMSMessageVO.INVALID_FORM.value)
+        return self.repository.update_course_details(actor=actor, course=course, dto=dto)
 
     @transaction.atomic
     def create_section(self, *, actor, dto: CourseSectionCreateDTO):

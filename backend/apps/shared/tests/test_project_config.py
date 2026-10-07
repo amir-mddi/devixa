@@ -4,6 +4,7 @@ from django.test import TestCase
 from rest_framework.test import APIRequestFactory
 
 from backend.apps.shared.dtos.project_config_dto import ProjectConfigDTO
+from backend.apps.shared.dtos.project_public_runtime_config_dto import ProjectPublicRuntimeConfigDTO
 from backend.apps.shared.repositories.adapters.postgres_adapter import PostgresAdapter
 from backend.apps.shared.repositories.logic import SharedApplicationLogic
 from backend.apps.shared.serializers import ProjectConfigSerializer
@@ -20,6 +21,35 @@ class ProjectConfigTests(IsolatedServiceTestMixin, TestCase):
 
         self.assertEqual(context["display_name"], "Devixa")
         self.assertEqual(context["logo_initial"], "D")
+
+
+    def test_public_runtime_config_replaces_legacy_public_contact_fields(self):
+        config = ProjectConfigDTO.from_model(
+            ProjectConfigFactory.create(
+                contact_email="db@example.com",
+                support_email="support-db@example.com",
+                phone="+980000000000",
+                telegram_url="https://t.me/db_channel",
+                telegram_bot_url="https://t.me/db_bot",
+            )
+        )
+
+        result = config.with_public_runtime_config(
+            ProjectPublicRuntimeConfigDTO(
+                contact_email="hello@acdevixa.ir",
+                phone="+989121234567",
+                telegram_url="https://t.me/devixa",
+                telegram_bot_url="https://t.me/devixa_bot",
+            )
+        )
+
+        self.assertEqual(result.business_email, "hello@acdevixa.ir")
+        self.assertEqual(result.phone, "+989121234567")
+        self.assertEqual(result.telegram_url, "https://t.me/devixa")
+        self.assertEqual(result.telegram_bot_url, "https://t.me/devixa_bot")
+        self.assertEqual(result.support_email, "")
+        self.assertEqual(result.sales_email, "")
+        self.assertEqual(result.partnership_email, "")
 
     def test_serializer_normalizes_valid_slug_and_rejects_spaces(self):
         valid = ProjectConfigSerializer(data={"slug": "Devixa_APP"}, partial=True)

@@ -4,7 +4,7 @@
 {% block title %}{{ seo.title }}{% endblock %}
 {% block meta_description %}{{ seo.description }}{% endblock %}
 {% block page_styles_after %}
-    <link rel="stylesheet" href="{% project_static 'Styles/contact_us.css' %}?v=contact-4">
+    <link rel="stylesheet" href="{% project_static 'Styles/contact_us.css' %}?v=contact-5">
 {% endblock %}
 
 {% block content %}
@@ -22,17 +22,30 @@
                 </p>
             </div>
 
-            {% if project.business_email %}
+            {% if project.business_email or project.phone %}
             <article class="contact-business-card reveal_left">
-                <span class="contact-business-card__icon" aria-hidden="true"><i class="fa-regular fa-envelope"></i></span>
+                <span class="contact-business-card__icon" aria-hidden="true"><i class="fa-regular fa-address-card"></i></span>
                 <div class="contact-business-card__copy">
-                    <span>ایمیل رسمی {{ project.display_name }}</span>
-                    <a dir="ltr" href="mailto:{{ project.business_email }}">{{ project.business_email }}</a>
-                    <small>برای پشتیبانی، پیشنهاد و همکاری از همین ایمیل استفاده کن.</small>
+                    <span>راه ارتباط رسمی {{ project.display_name }}</span>
+                    <div class="contact-business-card__values">
+                        {% if project.business_email %}
+                            <a dir="ltr" href="mailto:{{ project.business_email }}"><i class="fa-regular fa-envelope" aria-hidden="true"></i>{{ project.business_email }}</a>
+                        {% endif %}
+                        {% if project.phone %}
+                            <a dir="ltr" href="tel:{{ project.phone }}"><i class="fa-solid fa-phone" aria-hidden="true"></i>{{ project.phone }}</a>
+                        {% endif %}
+                    </div>
+                    <small>برای پشتیبانی، پیشنهاد و همکاری از همین راه‌ها با ما در ارتباط باش.</small>
                 </div>
-                <a class="contact-business-card__action" href="mailto:{{ project.business_email }}" aria-label="ارسال ایمیل به {{ project.display_name }}">
-                    <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
-                </a>
+                {% if project.business_email %}
+                    <a class="contact-business-card__action" href="mailto:{{ project.business_email }}" aria-label="ارسال ایمیل به {{ project.display_name }}">
+                        <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+                    </a>
+                {% elif project.phone %}
+                    <a class="contact-business-card__action" href="tel:{{ project.phone }}" aria-label="تماس با {{ project.display_name }}">
+                        <i class="fa-solid fa-phone" aria-hidden="true"></i>
+                    </a>
+                {% endif %}
             </article>
             {% endif %}
         </div>

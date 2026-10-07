@@ -274,6 +274,22 @@
                         <div><p class="profile-eyebrow">مسیر یادگیری</p><h2>دوره‌های ثبت‌نام‌شده</h2></div>
                         <a href="{% url 'courses_web:course_list' %}" class="profile-button profile-button--secondary">مشاهده همه دوره‌ها</a>
                     </div>
+                    {% if dashboard.instructed_courses %}
+                        <div class="profile-card-heading"><h3>دوره‌های تحت تدریس</h3><span class="profile-status-chip">{{ dashboard.instructed_courses|length }} دوره</span></div>
+                        <div class="profile-course-grid">
+                            {% for course in dashboard.instructed_courses %}
+                                <article class="profile-course-card profile-surface">
+                                    <div class="profile-course-card__media">{% if course.thumbnail %}<img src="{{ course.thumbnail.url }}" alt="{{ course.title }}">{% else %}<span><i class="fa-solid fa-chalkboard-user"></i></span>{% endif %}</div>
+                                    <div class="profile-course-card__body">
+                                        <div class="profile-card-heading"><h3>{{ course.title }}</h3><span class="profile-status-chip">{{ course.get_status_display }}</span></div>
+                                        <p>{{ course.short_description|default:course.description|truncatechars:150 }}</p>
+                                        <dl class="profile-detail-list"><div><dt>تعداد درس</dt><dd>{{ course.lessons.count }}</dd></div><div><dt>مدت</dt><dd>{{ course.duration_minutes }} دقیقه</dd></div></dl>
+                                        <div class="profile-course-card__actions"><a href="{% url 'courses_web:instructor_panel' slug=course.slug %}" class="profile-button profile-button--primary"><i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i> مدیریت کلاس</a>{% if course.status == 'published' %}<a href="{% url 'courses_web:course_detail' slug=course.slug %}" class="profile-button profile-button--secondary">صفحه دوره</a>{% endif %}</div>
+                                    </div>
+                                </article>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                     {% if dashboard.enrollments %}
                         <div class="profile-course-grid">
                             {% for enrollment in dashboard.enrollments %}

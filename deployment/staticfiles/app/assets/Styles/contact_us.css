@@ -136,19 +136,36 @@
     font-weight: 700;
 }
 
-.contact-business-card__copy > a {
+.contact-business-card__values {
+    min-width: 0;
+    display: grid;
+    gap: 4px;
+}
+
+.contact-business-card__values a {
+    min-width: 0;
     max-width: 100%;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: max-content;
     color: var(--text-primary);
-    font-size: clamp(17px, 1.8vw, 23px);
-    font-weight: 900;
-    line-height: 1.6;
+    font-size: clamp(15px, 1.45vw, 19px);
+    font-weight: 850;
+    line-height: 1.65;
     text-decoration: none;
     overflow-wrap: anywhere;
     text-align: start;
 }
 
-.contact-business-card__copy > a:hover,
-.contact-business-card__copy > a:focus-visible {
+.contact-business-card__values a i {
+    flex: 0 0 auto;
+    color: var(--accent);
+    font-size: 13px;
+}
+
+.contact-business-card__values a:hover,
+.contact-business-card__values a:focus-visible {
     color: var(--accent);
     outline: none;
 }

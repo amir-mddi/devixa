@@ -542,14 +542,14 @@ class AdminCourseCreateView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, Adm
 
     def _sync_get(self, request):
         logic = self.logic_class()
-        return self.render_form(request, form=AdminCourseForm(categories=logic.list_categories()))
+        return self.render_form(request, form=AdminCourseForm(categories=logic.list_categories(), instructors=logic.list_instructors()))
 
     async def post(self, request):
         return await sync_to_async(self._sync_post, thread_sensitive=True)(request)
 
     def _sync_post(self, request):
         logic = self.logic_class()
-        form = AdminCourseForm(request.POST, request.FILES, categories=logic.list_categories())
+        form = AdminCourseForm(request.POST, request.FILES, categories=logic.list_categories(), instructors=logic.list_instructors())
         if form.is_valid():
             try:
                 data = form.to_domain_data()
@@ -564,6 +564,7 @@ class AdminCourseCreateView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, Adm
 class AdminCourseEditView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, AdminCourseFormMixin, View):
     def initial(self, course):
         return {
+            "instructor_id": str(course.instructor_id),
             "title": course.title,
             "short_description": course.short_description,
             "description": course.description,
@@ -582,7 +583,7 @@ class AdminCourseEditView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, Admin
     def _sync_get(self, request, course_id):
         logic = self.logic_class()
         course = logic.get_course(course_id)
-        form = AdminCourseForm(initial=self.initial(course), categories=logic.list_categories())
+        form = AdminCourseForm(initial=self.initial(course), categories=logic.list_categories(), instructors=logic.list_instructors())
         return self.render_form(request, form=form, course=course)
 
     async def post(self, request, course_id):
@@ -591,7 +592,7 @@ class AdminCourseEditView(AsyncWebViewMixin, AdminPanelProtectedViewMixin, Admin
     def _sync_post(self, request, course_id):
         logic = self.logic_class()
         course = logic.get_course(course_id)
-        form = AdminCourseForm(request.POST, request.FILES, categories=logic.list_categories())
+        form = AdminCourseForm(request.POST, request.FILES, categories=logic.list_categories(), instructors=logic.list_instructors())
         if form.is_valid():
             try:
                 data = form.to_domain_data()

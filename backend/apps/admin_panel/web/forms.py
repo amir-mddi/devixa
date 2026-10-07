@@ -140,6 +140,7 @@ class AdminUserForm(AdminPanelFormMixin, forms.Form):
 
 class AdminCourseForm(AdminPanelFormMixin, forms.Form):
     title = forms.CharField(max_length=180, label="عنوان دوره")
+    instructor_id = forms.ChoiceField(label="مدرس دوره")
     short_description = forms.CharField(
         max_length=300,
         required=False,
@@ -162,11 +163,25 @@ class AdminCourseForm(AdminPanelFormMixin, forms.Form):
     is_featured = forms.BooleanField(required=False, label="نمایش در دوره‌های ویژه")
     thumbnail = forms.ImageField(required=False, label="تصویر دوره")
 
-    def __init__(self, *args, categories=(), **kwargs):
+    def __init__(self, *args, categories=(), instructors=(), **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["category_id"].choices = [("", "بدون دسته‌بندی")] + [
             (str(category.id), category.title) for category in categories
         ]
+        self.fields["instructor_id"].choices = [
+            (str(user.id), self._instructor_label(user)) for user in instructors
+        ]
+        if not self.fields["instructor_id"].choices:
+            self.fields["instructor_id"].help_text = (
+                "ابتدا یک کاربر را به نقش مدرس ارتقا دهید."
+            )
+
+    @staticmethod
+    def _instructor_label(user) -> str:
+        full_name = user.get_full_name().strip()
+        role_name = getattr(getattr(user, "role", None), "name", "")
+        identity = full_name or user.username
+        return f"{identity} · @{user.username} · {role_name or 'مدرس'}"
 
     def clean_thumbnail(self):
         image = self.cleaned_data.get("thumbnail")
@@ -179,6 +194,7 @@ class AdminCourseForm(AdminPanelFormMixin, forms.Form):
 
     def to_domain_data(self) -> dict:
         return {
+            "instructor_id": self.cleaned_data["instructor_id"],
             "title": self.cleaned_data["title"].strip(),
             "short_description": self.cleaned_data["short_description"].strip(),
             "description": self.cleaned_data["description"].strip(),

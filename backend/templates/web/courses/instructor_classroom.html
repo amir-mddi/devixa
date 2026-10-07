@@ -11,7 +11,15 @@
         <div class="classroom-instructor-stats"><article><strong>{{ classroom.students|length }}</strong><span>هنرجوی فعال</span></article><article><strong>{{ classroom.lessons|length }}</strong><span>درس</span></article><article><strong>{{ classroom.assignments|length }}</strong><span>تمرین/پروژه</span></article><article><strong>{{ classroom.questions|length }}</strong><span>گفت‌وگو</span></article></div>
     </section>
 
-    <nav class="classroom-tabs"><a href="#content">محتوای کلاس</a><a href="#assignments">تمرین‌ها و تحویل‌ها</a><a href="#students">هنرجوها و نمرات</a><a href="#questions">گفت‌وگوها</a><a href="#announcements">اعلان‌ها</a></nav>
+    <nav class="classroom-tabs"><a href="#course-settings">اطلاعات دوره</a><a href="#content">محتوای کلاس</a><a href="#assignments">تمرین‌ها و تحویل‌ها</a><a href="#students">هنرجوها و نمرات</a><a href="#questions">گفت‌وگوها</a><a href="#announcements">اعلان‌ها</a></nav>
+
+    <section class="classroom-section" id="course-settings">
+        <div class="classroom-section__heading"><div><span>اطلاعات آموزشی</span><h2>ویرایش مشخصات دوره</h2></div><p>مدرس می‌تواند محتوای معرفی دوره را ویرایش کند. قیمت، وضعیت انتشار، حذف دوره و تغییر مدرس فقط در اختیار مدیر است.</p></div>
+        <details class="classroom-admin-card classroom-admin-card--wide" open>
+            <summary><i class="fa-solid fa-pen-to-square"></i><span>ویرایش اطلاعات دوره</span></summary>
+            <form method="post" action="{% url 'courses_web:instructor_settings_update' slug=course.slug %}" class="classroom-form classroom-form--columns">{% csrf_token %}{{ course_settings_form.as_div }}<button class="classroom-button classroom-button--primary">ذخیره اطلاعات دوره</button></form>
+        </details>
+    </section>
 
     <section class="classroom-section" id="content">
         <div class="classroom-section__heading"><div><span>سازنده کلاس</span><h2>درس‌ها و منابع</h2></div></div>

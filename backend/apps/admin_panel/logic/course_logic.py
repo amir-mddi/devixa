@@ -25,6 +25,9 @@ class AdminCourseLogic:
     def list_categories(self):
         return self.repository.list_course_categories()
 
+    def list_instructors(self):
+        return self.repository.list_course_instructor_candidates()
+
     def create_course(self, *, actor, data: dict, thumbnail=None):
         course = self.course_logic.create_course(
             admin_user=actor,

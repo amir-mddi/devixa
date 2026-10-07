@@ -16,6 +16,7 @@ from backend.apps.courses.dtos import (
     CourseAnnouncementCreateDTO,
     CourseAssignmentCreateDTO,
     CourseGradeItemDTO,
+    CourseInstructorUpdateDTO,
     CourseLessonManageDTO,
     CourseProgressToggleDTO,
     CourseQuestionCreateDTO,
@@ -31,6 +32,7 @@ from backend.apps.courses.web.lms_forms import (
     CourseAnnouncementForm,
     CourseAssignmentForm,
     CourseGradeItemForm,
+    CourseInstructorSettingsForm,
     CourseLessonManageForm,
     CourseQuestionForm,
     CourseQuestionReplyForm,
@@ -99,6 +101,15 @@ class InstructorClassroomPageView(LoginRequiredMixin, CourseLMSWebMixin, Templat
             {
                 "classroom": classroom,
                 "course": classroom.course,
+                "course_settings_form": CourseInstructorSettingsForm(
+                    initial={
+                        "title": classroom.course.title,
+                        "short_description": classroom.course.short_description,
+                        "description": classroom.course.description,
+                        "level": classroom.course.level,
+                        "duration_minutes": classroom.course.duration_minutes,
+                    }
+                ),
                 "section_form": CourseSectionForm(),
                 "lesson_form": CourseLessonManageForm(sections=classroom.sections),
                 "resource_form": CourseResourceForm(lessons=classroom.lessons),
@@ -109,6 +120,32 @@ class InstructorClassroomPageView(LoginRequiredMixin, CourseLMSWebMixin, Templat
             }
         )
         return context
+
+
+class CourseInstructorSettingsUpdateView(LoginRequiredMixin, CourseLMSWebMixin, View):
+    def post(self, request, slug):
+        try:
+            classroom = self.lms.classroom(user=request.user, course_id_or_slug=slug)
+            self.lms.require_instructor(request.user, classroom.course)
+        except (PermissionDenied, NotFound) as exc:
+            raise Http404(self.error_message(exc)) from exc
+
+        form = CourseInstructorSettingsForm(request.POST)
+        if form.is_valid():
+            try:
+                self.lms.update_course_details(
+                    actor=request.user,
+                    dto=CourseInstructorUpdateDTO(
+                        course_id=classroom.course.id,
+                        **form.cleaned_data,
+                    ),
+                )
+                messages.success(request, CourseLMSMessageVO.COURSE_DETAILS_UPDATED.value)
+            except (ValidationError, PermissionDenied, NotFound) as exc:
+                messages.error(request, self.error_message(exc))
+        else:
+            messages.error(request, CourseLMSMessageVO.INVALID_FORM.value)
+        return self.course_redirect(classroom.course.slug, instructor=True)
 
 
 class CourseSectionCreateView(LoginRequiredMixin, CourseLMSWebMixin, View):

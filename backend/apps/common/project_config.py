@@ -7,6 +7,9 @@ from backend.apps.shared.initial_data.initial_data.project_config_initial import
     build_project_config_initial_data,
 )
 from backend.apps.shared.repositories.logic import SharedApplicationLogic
+from backend.apps.shared.repositories.adapters.project_public_env_adapter import (
+    ProjectPublicEnvAdapter,
+)
 from backend.apps.shared.vo.project_config_vo import ProjectConfigFieldNameVO
 
 
@@ -43,7 +46,9 @@ def get_project_public_config() -> ProjectConfigDTO:
     except (OperationalError, ProgrammingError):
         config = None
 
-    return config or _fallback_project_config()
+    base_config = config or _fallback_project_config()
+    runtime_config = ProjectPublicEnvAdapter().read()
+    return base_config.with_public_runtime_config(runtime_config)
 
 
 def get_project_name() -> str:

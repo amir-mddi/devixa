@@ -1,7 +1,8 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Avg
+from django.db.models import Avg, Q
 from rest_framework import serializers
 
+from backend.apps.core_models.vo.common_vo import UserRoleVO
 from backend.apps.courses.enums import CourseStatusEnum, ReviewStatusEnum
 from backend.apps.courses.models import (
     Course,
@@ -141,7 +142,14 @@ class CourseAdminSerializer(BaseSerializerModel):
     thumbnail = serializers.ImageField(required=False, allow_null=True, validators=[validate_course_thumbnail])
     slug = serializers.SlugField(required=False, allow_blank=True)
     instructor = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.filter(is_active=True, is_deleted=False),
+        queryset=(
+            User.objects.filter(is_active=True, is_deleted=False)
+            .filter(
+                Q(role__symbol__in=UserRoleVO.TEACHING_ROLES)
+                | Q(is_superuser=True)
+                | Q(is_staff=True)
+            )
+        ),
         required=False,
     )
 

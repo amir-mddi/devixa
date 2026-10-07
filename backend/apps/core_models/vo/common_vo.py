@@ -43,7 +43,10 @@ class ResponseVO:
 
 class UserRoleVO:
     ADMIN = 'admin'
+    INSTRUCTOR = 'instructor'
     USER = 'user'
+
+    TEACHING_ROLES = frozenset({ADMIN, INSTRUCTOR})
 
 
 class ReqHeaderVO:

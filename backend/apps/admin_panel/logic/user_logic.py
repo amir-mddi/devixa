@@ -3,6 +3,7 @@ from django.db import transaction
 
 from backend.apps.admin_panel.repositories import AdminPanelRepository
 from backend.apps.admin_panel.value_objects import AdminPanelMessageVO
+from backend.apps.core_models.vo.common_vo import UserRoleVO
 from backend.apps.referrals.logic import ChannelReferralLogic, ReferralLogic
 
 
@@ -67,6 +68,12 @@ class AdminUserLogic:
         self._validate_unique_fields(dto=dto, exclude_user_id=user.id)
         role = self.repository.get_role(dto.role_id)
         self._ensure_can_assign_access(actor=actor, role=role, is_staff=dto.is_staff)
+        self._ensure_course_assignment_safe(
+            user=user,
+            role=role,
+            is_active=dto.is_active,
+            is_staff=dto.is_staff,
+        )
         return self.repository.update_user(user=user, dto=dto, role=role, actor=actor)
 
     def toggle_user(self, *, actor, user_id):
@@ -74,6 +81,8 @@ class AdminUserLogic:
         if user.id == actor.id and user.is_active:
             raise ValidationError(AdminPanelMessageVO.CANNOT_DEACTIVATE_SELF.value)
         self._ensure_manageable(actor=actor, user=user)
+        if user.is_active and self.repository.has_active_instructed_courses(user):
+            raise ValidationError(AdminPanelMessageVO.INSTRUCTOR_HAS_ASSIGNED_COURSES.value)
         return self.repository.set_user_active(
             user=user,
             is_active=not user.is_active,
@@ -85,6 +94,8 @@ class AdminUserLogic:
         if user.id == actor.id:
             raise ValidationError(AdminPanelMessageVO.CANNOT_DELETE_SELF.value)
         self._ensure_manageable(actor=actor, user=user)
+        if self.repository.has_active_instructed_courses(user):
+            raise ValidationError(AdminPanelMessageVO.INSTRUCTOR_HAS_ASSIGNED_COURSES.value)
         return self.repository.soft_delete_user(user=user, actor=actor)
 
     @staticmethod
@@ -113,6 +124,19 @@ class AdminUserLogic:
             raise ValidationError(
                 AdminPanelMessageVO.CANNOT_GRANT_PRIVILEGED_ACCESS.value
             )
+
+    def _ensure_course_assignment_safe(self, *, user, role, is_active: bool, is_staff: bool) -> None:
+        role_symbol = str(getattr(role, "symbol", "") or "").strip().lower()
+        keeps_teaching_access = bool(
+            is_active
+            and (
+                is_staff
+                or user.is_superuser
+                or role_symbol in UserRoleVO.TEACHING_ROLES
+            )
+        )
+        if not keeps_teaching_access and self.repository.has_active_instructed_courses(user):
+            raise ValidationError(AdminPanelMessageVO.INSTRUCTOR_HAS_ASSIGNED_COURSES.value)
 
     def _validate_unique_fields(self, *, dto, exclude_user_id=None):
         if self.repository.username_exists(

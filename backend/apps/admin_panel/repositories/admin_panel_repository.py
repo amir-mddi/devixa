@@ -7,6 +7,7 @@ from django.utils.timezone import now
 from rest_framework.exceptions import NotFound
 
 from backend.apps.accounts.models import Role
+from backend.apps.core_models.vo.common_vo import UserRoleVO
 from backend.apps.billing.enums import OrderStatusEnum, PaymentReceiptStatusEnum
 from backend.apps.billing.models import Order, PaymentReceipt
 from backend.apps.courses.enums import CourseStatusEnum, ReviewStatusEnum
@@ -211,6 +212,27 @@ class AdminPanelRepository:
             ]
         )
         return user
+
+    @staticmethod
+    def list_course_instructor_candidates():
+        return (
+            User.objects.select_related("role")
+            .filter(is_deleted=False, is_active=True)
+            .filter(
+                Q(role__symbol__in=UserRoleVO.TEACHING_ROLES)
+                | Q(is_superuser=True)
+                | Q(is_staff=True)
+            )
+            .order_by("first_name", "last_name", "username")
+        )
+
+    @staticmethod
+    def has_active_instructed_courses(user) -> bool:
+        return Course.objects.filter(
+            instructor=user,
+            is_deleted=False,
+            is_active=True,
+        ).exists()
 
     @staticmethod
     def list_course_categories():

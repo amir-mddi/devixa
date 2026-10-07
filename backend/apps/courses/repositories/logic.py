@@ -1,6 +1,7 @@
 from asgiref.sync import sync_to_async
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from backend.apps.common.helpers.metaclasses.singleton import Singleton
+from backend.apps.core_models.vo.common_vo import UserRoleVO
 from backend.apps.common.utils.network_security import (
     UnsafeOutboundUrlError,
     normalize_public_https_url,
@@ -22,6 +23,7 @@ from backend.apps.courses.dtos import (
     ReviewModerationDTO,
 )
 from backend.apps.courses.repositories.adapters.postgres_adapter import CoursePostgresAdapter
+from backend.apps.courses.vo import CourseMessagesVO
 from backend.apps.courses.vo.lms_vo import CourseLMSMessageVO
 from backend.apps.courses.vo.roadmap_vo import (
     CourseQueryParamVO,
@@ -39,6 +41,23 @@ from backend.apps.courses.vo.roadmap_vo import (
 class CourseLogicRepository(metaclass=Singleton):
     def __init__(self):
         self.postgres_adapter = CoursePostgresAdapter()
+
+    @staticmethod
+    def _require_admin(actor) -> None:
+        role_symbol = str(
+            getattr(getattr(actor, "role", None), "symbol", "") or ""
+        ).strip().lower()
+        if not (
+            actor
+            and getattr(actor, "is_authenticated", False)
+            and getattr(actor, "is_active", False)
+            and (
+                getattr(actor, "is_superuser", False)
+                or getattr(actor, "is_staff", False)
+                or role_symbol == UserRoleVO.ADMIN
+            )
+        ):
+            raise PermissionDenied(CourseMessagesVO.ADMIN_ACCESS_REQUIRED)
 
 
 
@@ -234,12 +253,15 @@ class CourseLogicRepository(metaclass=Singleton):
         return self.postgres_adapter.get_course_for_admin(course_id_or_slug)
 
     def create_course(self, admin_user, dto: CourseCreateDTO):
+        self._require_admin(admin_user)
         return self.postgres_adapter.create_course(admin_user=admin_user, dto=dto)
 
     def update_course(self, admin_user, dto: CourseUpdateDTO):
+        self._require_admin(admin_user)
         return self.postgres_adapter.update_course(admin_user=admin_user, dto=dto)
 
     def update_course_status(self, admin_user, dto: CourseStatusUpdateDTO):
+        self._require_admin(admin_user)
         return self.postgres_adapter.update_course_status(
             admin_user=admin_user,
             course_id=dto.course_id,
@@ -247,9 +269,11 @@ class CourseLogicRepository(metaclass=Singleton):
         )
 
     def delete_course(self, admin_user, course_id):
+        self._require_admin(admin_user)
         return self.postgres_adapter.delete_course(admin_user=admin_user, course_id=course_id)
 
     def create_lesson(self, admin_user, dto: CourseLessonCreateDTO):
+        self._require_admin(admin_user)
         if dto.video_url.strip():
             try:
                 video_url = normalize_public_https_url(dto.video_url, resolve_dns=False)
@@ -263,6 +287,9 @@ class CourseLogicRepository(metaclass=Singleton):
 
     def get_published_course(self, course_id_or_slug):
         return self.postgres_adapter.get_published_course(course_id_or_slug)
+
+    def list_instructed_courses(self, user):
+        return self.postgres_adapter.list_instructed_courses(user)
 
     def list_user_enrollments(self, user):
         return self.postgres_adapter.list_user_enrollments(user)

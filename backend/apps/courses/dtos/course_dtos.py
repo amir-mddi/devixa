@@ -18,6 +18,7 @@ class ReviewModerationDTO(BaseDTO):
 
 
 class CourseCreateDTO(BaseDTO):
+    instructor_id: UUID | None = None
     title: str
     short_description: str = ""
     description: str = ""
@@ -32,6 +33,7 @@ class CourseCreateDTO(BaseDTO):
 
 class CourseUpdateDTO(BaseDTO):
     course_id: UUID
+    instructor_id: UUID | None = None
     title: str | None = None
     short_description: str | None = None
     description: str | None = None

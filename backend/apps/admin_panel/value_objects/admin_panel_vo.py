@@ -55,6 +55,9 @@ class AdminPanelMessageVO(StrEnum):
     CANNOT_GRANT_PRIVILEGED_ACCESS = (
         "فقط مدیر کل می‌تواند دسترسی مدیریتی یا staff اعطا کند."
     )
+    INSTRUCTOR_HAS_ASSIGNED_COURSES = (
+        "این کاربر هنوز مدرس یک دوره فعال است؛ ابتدا مدرس آن دوره را تغییر دهید."
+    )
     COURSE_CREATED = "دوره با موفقیت ایجاد شد."
     COURSE_UPDATED = "دوره با موفقیت به‌روزرسانی شد."
     COURSE_DELETED = "دوره با موفقیت غیرفعال شد."

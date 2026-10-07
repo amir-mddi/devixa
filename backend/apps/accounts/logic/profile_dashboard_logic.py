@@ -39,6 +39,7 @@ class AccountProfileDashboardLogic:
         return AccountProfileDashboardDTO(
             profile=self.profile_logic.get_profile(str(user.id)),
             enrollments=tuple(self.course_logic.list_user_enrollments(user)),
+            instructed_courses=tuple(self.course_logic.list_instructed_courses(user)),
             orders=tuple(self.billing_logic.list_user_orders(user)),
             payments=payments,
             tickets=tuple(self.support_logic.list_account_tickets(user=user)),

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from backend.apps.common.utils.common_utils import CommonUtils
 
-from django.conf import settings
 from django.db import OperationalError, ProgrammingError
 
 from backend.apps.common.project_config import get_project_public_config
@@ -22,7 +21,6 @@ from backend.apps.pages.vo.page_vo import (
     PageEmailSubjectVO,
     PageEmailTemplateVO,
     PageErrorCodeVO,
-    PageSettingNameVO,
     PageHomeTestimonialVO,
     PageHomeFaqVO,
     PageChannelLinkVO,
@@ -81,7 +79,7 @@ class PageLogicRepository(metaclass=Singleton):
             ChannelLinkDTO(
                 title=PageChannelLinkVO.TELEGRAM_TITLE,
                 description=PageChannelLinkVO.TELEGRAM_DESCRIPTION,
-                url=project_config.telegram_bot_url or project_config.telegram_url,
+                url=project_config.telegram_bot_url,
                 icon_class=PageChannelLinkVO.TELEGRAM_ICON,
                 badge=PageChannelLinkVO.TELEGRAM_BADGE,
             ),
@@ -150,7 +148,4 @@ class PageLogicRepository(metaclass=Singleton):
 
     @staticmethod
     def _contact_recipient_email() -> str:
-        project_config = get_project_public_config()
-        return project_config.business_email or getattr(
-            settings, PageSettingNameVO.DEFAULT_FROM_EMAIL.value, ""
-        )
+        return get_project_public_config().business_email

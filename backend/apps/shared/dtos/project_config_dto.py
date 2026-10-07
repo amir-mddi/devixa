@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 
+from backend.apps.shared.dtos.project_public_runtime_config_dto import ProjectPublicRuntimeConfigDTO
 from backend.apps.shared.vo.project_config_vo import ProjectConfigDefaultVO
 from backend.apps.common.utils.network_security import force_https_scheme
 
@@ -29,6 +30,30 @@ class ProjectConfigDTO:
     phone: str
     address: str
     working_hours: str
+
+    def with_public_runtime_config(
+        self, runtime: ProjectPublicRuntimeConfigDTO
+    ) -> "ProjectConfigDTO":
+        """Apply env-owned public contact/channel values to the public DTO.
+
+        Legacy database contact emails are deliberately cleared so the public
+        website exposes exactly one business email: ``PROJECT_CONTACT_EMAIL``.
+        """
+
+        return replace(
+            self,
+            contact_email=runtime.contact_email,
+            support_email="",
+            sales_email="",
+            partnership_email="",
+            phone=runtime.phone,
+            telegram_url=runtime.telegram_url,
+            bale_url=runtime.bale_url,
+            instagram_url=runtime.instagram_url,
+            telegram_bot_url=runtime.telegram_bot_url,
+            bale_bot_url=runtime.bale_bot_url,
+            rubika_bot_url=runtime.rubika_bot_url,
+        )
 
     @property
     def logo_initial(self) -> str:

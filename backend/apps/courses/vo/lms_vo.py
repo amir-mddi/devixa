@@ -4,6 +4,7 @@ from enum import StrEnum
 class CourseLMSMessageVO(StrEnum):
     CLASSROOM_ACCESS_REQUIRED = "برای ورود به کلاس باید در این دوره ثبت‌نام فعال داشته باشید."
     INSTRUCTOR_ACCESS_REQUIRED = "فقط مدرس این دوره یا مدیر می‌تواند این عملیات را انجام دهد."
+    COURSE_DETAILS_UPDATED = "اطلاعات آموزشی دوره با موفقیت به‌روزرسانی شد."
     STUDENT_ACCESS_REQUIRED = "این عملیات فقط برای هنرجوی ثبت‌نام‌شده در دوره قابل انجام است."
     COURSE_NOT_FOUND = "دوره مورد نظر پیدا نشد."
     LESSON_NOT_FOUND = "درس مورد نظر پیدا نشد."
