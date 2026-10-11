@@ -7,6 +7,9 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from rest_framework import serializers
 
+from backend.apps.accounts.adapters.password_validation_user_adapter import (
+    PasswordValidationUserAdapter,
+)
 from backend.apps.accounts.web.value_objects import (
     AccountWebEmailVO,
     AccountWebPasswordValidationCodeVO,
@@ -93,7 +96,9 @@ class AccountWebInputValidator:
     @classmethod
     def validate_password(cls, password: str, user=None) -> None:
         try:
-            validate_password(password, user=user)
+            validate_password(
+                password, user=PasswordValidationUserAdapter.to_django_user(user)
+            )
         except ValidationError as exc:
             raise ValidationError(cls._translate_password_errors(exc)) from exc
 

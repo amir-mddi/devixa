@@ -8,6 +8,7 @@ from django.shortcuts import redirect
 from django.templatetags.static import static
 from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.generic import RedirectView, TemplateView
 from django.views.generic.edit import FormView
 
@@ -30,6 +31,7 @@ from backend.apps.pages.vo.page_vo import (
 )
 
 
+@method_decorator(ensure_csrf_cookie, name="dispatch")
 class HomePageView(AsyncWebViewMixin, SeoContextMixin, TemplateView):
     template_name = PageWebTemplateVO.HOME.value
     course_logic_repository_class = CourseLogicRepository

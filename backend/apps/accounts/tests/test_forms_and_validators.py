@@ -1,4 +1,10 @@
 from django.core.exceptions import ValidationError
+from django.contrib.auth import get_user_model
+
+from backend.apps.accounts.adapters.password_validation_user_adapter import (
+    PasswordValidationUserAdapter,
+)
+from backend.apps.accounts.dtos.session_auth_dto import PasswordValidationUserDTO
 from django.test import SimpleTestCase
 
 from backend.apps.accounts.web.forms import (
@@ -18,6 +24,24 @@ class AccountWebValidatorTests(SimpleTestCase):
     def test_rejects_non_gmail_address(self):
         with self.assertRaises(ValidationError):
             AccountWebInputValidator.validate_gmail_email("user@example.com")
+
+    def test_password_validation_dto_is_adapted_to_unsaved_user(self):
+        dto = PasswordValidationUserDTO(
+            first_name="علی", last_name="رضایی",
+            username="amir_dev", email="amir@gmail.com",
+        )
+        user = PasswordValidationUserAdapter.to_django_user(dto)
+        self.assertIsInstance(user, get_user_model())
+        self.assertIsNone(user.pk)
+        self.assertEqual(user.email, dto.email)
+        self.assertIs(PasswordValidationUserAdapter.to_django_user(user), user)
+
+    def test_password_similarity_rejected_without_attribute_error(self):
+        dto = PasswordValidationUserDTO(
+            username="amir_dev", email="amir@gmail.com",
+        )
+        with self.assertRaises(ValidationError):
+            AccountWebInputValidator.validate_password("amir_dev", user=dto)
 
     def test_rejects_invalid_recovery_code(self):
         with self.assertRaises(ValidationError):
@@ -47,6 +71,17 @@ class AccountWebFormTests(SimpleTestCase):
         dto = form.to_dto()
         self.assertEqual(dto.username, "amir_dev")
         self.assertEqual(dto.email, "amir@gmail.com")
+
+    def test_register_form_handles_username_like_password_as_validation_error(self):
+        form = RegisterTemplateForm(
+            data={
+                "first_name": "علی", "last_name": "رضایی",
+                "username": "amir_dev", "email": "amir@gmail.com",
+                "password": "amir_dev", "password_confirm": "amir_dev",
+            }
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("password", form.errors)
 
     def test_register_form_rejects_password_mismatch(self):
         form = RegisterTemplateForm(
