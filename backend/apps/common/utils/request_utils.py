@@ -84,6 +84,9 @@ class RequestUtils:
                 ):
                     params_copy[key] = "***"
                     continue
+                if lowered in {"receptor", "recipient", "recipient_phone_number", "phone", "mobile"}:
+                    params_copy[key] = "***"
+                    continue
                 text = str(value)
                 if len(text) > 400:
                     params_copy[key] = text[:400] + "...(truncated)"
@@ -129,6 +132,23 @@ class RequestUtils:
             )
         except Exception:
             return "<invalid-url>"
+
+    @staticmethod
+    def _safe_provider_error(response: httpx.Response) -> str | None:
+        """Extract only numeric provider error codes; never include raw SMS data."""
+        try:
+            payload = response.json()
+            if not isinstance(payload, dict):
+                return None
+            result = payload.get("return")
+            if not isinstance(result, dict):
+                return None
+            status = result.get("status")
+            if type(status) is int and 0 <= status <= 999999:
+                return f"provider_status={status}"
+        except (ValueError, TypeError):
+            pass
+        return None
 
     @staticmethod
     def short_body(resp: httpx.Response | None, limit: int = 800) -> str:
@@ -217,7 +237,9 @@ class RequestUtils:
                             url=safe_url,
                             method=str(method),
                             status_code=response.status_code,
-                            response_text=None,
+                            # Callers can inspect the provider's structured error
+                            # without logging arbitrary bodies containing PII.
+                            response_text=cls._safe_provider_error(response),
                         )
                 return response
             except httpx.ProxyError as exc:

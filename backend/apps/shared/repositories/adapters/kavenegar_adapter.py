@@ -4,7 +4,7 @@ from typing import Any
 
 from django.core.exceptions import ImproperlyConfigured
 
-from backend.apps.common.utils.request_utils import RequestUtils
+from backend.apps.common.utils.request_utils import HTTPRequestError, RequestUtils
 from backend.apps.core_models.constants.runtime_config import RuntimeConfig
 from backend.apps.core_models.dtos.sms_providers.kavenegar_params_dto import (
     KavenegarTemplateSmsDTO,
@@ -12,6 +12,10 @@ from backend.apps.core_models.dtos.sms_providers.kavenegar_params_dto import (
 from backend.apps.core_models.enum.general_enum import RequestMethod
 
 logger = logging.getLogger(__name__)
+
+
+class KavenegarDeliveryError(RuntimeError):
+    """Provider rejected an SMS or returned an invalid success payload."""
 
 
 class KavenegarSmsService:
@@ -50,7 +54,20 @@ class KavenegarSmsService:
             rotate_proxy_on_error=False,
             redact_url=True,
         )
-        return response.json()
+        try:
+            result = response.json()
+        except (ValueError, TypeError) as exc:
+            raise KavenegarDeliveryError("Invalid JSON response from SMS provider.") from exc
+
+        if not isinstance(result, dict) or not isinstance(result.get("return"), dict):
+            raise KavenegarDeliveryError("Invalid SMS provider response structure.")
+        status = result["return"].get("status")
+        if status != 200:
+            safe_status = status if type(status) is int else "unknown"
+            raise KavenegarDeliveryError(
+                f"SMS provider declined delivery (provider_status={safe_status})."
+            )
+        return result
 
     def send_in_thread(self, dto: KavenegarTemplateSmsDTO) -> Future[Any]:
         future = self._executor.submit(self.send_sms, dto)
@@ -61,5 +78,13 @@ class KavenegarSmsService:
     def _handle_result(future: Future[Any]) -> None:
         try:
             future.result()
+        except HTTPRequestError as exc:
+            logger.error(
+                "Kavenegar SMS delivery failed: http_status=%s, %s",
+                exc.status_code,
+                exc.response_text or "provider_status=unavailable",
+            )
+        except KavenegarDeliveryError as exc:
+            logger.error("Kavenegar SMS delivery failed: %s", exc)
         except Exception:
-            logger.exception("Kavenegar SMS delivery failed.")
+            logger.exception("Kavenegar SMS delivery failed unexpectedly.")

@@ -80,3 +80,34 @@ class SharedSmsLogicTests(IsolatedServiceTestMixin, SimpleTestCase):
 
         self.assertIs(result, future)
         logic.sms_provider.send_in_thread.assert_called_once_with(dto)
+
+class KavenegarFailureTests(SimpleTestCase):
+    @patch("backend.apps.shared.repositories.adapters.kavenegar_adapter.RequestUtils.request")
+    def test_rejected_provider_status_raises(self, request_mock):
+        from backend.apps.shared.repositories.adapters.kavenegar_adapter import KavenegarDeliveryError
+
+        response = MagicMock()
+        response.json.return_value = {"return": {"status": 501, "message": "private"}}
+        request_mock.return_value = response
+        service = KavenegarSmsService()
+        service.api_key = "test-key"
+        with self.assertRaisesRegex(KavenegarDeliveryError, "provider_status=501"):
+            service.send_sms(KavenegarTemplateSmsDTO(
+                recipient_phone_number="09121234567",
+                template_name="VerifyPhoneNumber",
+                token="123456",
+            ))
+
+    @patch("backend.apps.shared.repositories.adapters.kavenegar_adapter.RequestUtils.request")
+    def test_invalid_provider_response_raises(self, request_mock):
+        from backend.apps.shared.repositories.adapters.kavenegar_adapter import KavenegarDeliveryError
+
+        request_mock.return_value.json.return_value = {"unexpected": "payload"}
+        service = KavenegarSmsService()
+        service.api_key = "test-key"
+        with self.assertRaises(KavenegarDeliveryError):
+            service.send_sms(KavenegarTemplateSmsDTO(
+                recipient_phone_number="09121234567",
+                template_name="VerifyPhoneNumber",
+                token="123456",
+            ))
