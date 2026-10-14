@@ -2,7 +2,7 @@
 {% load project_tags lms_tags %}
 
 {% block title %}کلاس {{ course.title }} | {{ project.display_name }}{% endblock %}
-{% block page_styles_after %}<link rel="stylesheet" href="{% project_static 'Styles/classroom.css' %}?v=classroom-2">{% endblock %}
+{% block page_styles_after %}<link rel="stylesheet" href="{% project_static 'Styles/classroom.css' %}?v=classroom-2"><link rel="stylesheet" href="{% project_static 'Styles/classroom-topics.css' %}?v=1">{% endblock %}
 
 {% block content %}
 <main class="classroom-page">
@@ -28,7 +28,8 @@
     {% endif %}
 
     <nav class="classroom-tabs" aria-label="بخش‌های کلاس">
-        <a href="#lessons"><i class="fa-solid fa-layer-group"></i> درس‌ها</a>
+        <a href="#topics"><i class="fa-solid fa-layer-group"></i> فصل‌ها</a>
+        <a href="#lessons"><i class="fa-solid fa-book-open"></i> درس‌ها</a>
         <a href="#resources"><i class="fa-solid fa-folder-open"></i> فایل‌ها</a>
         <a href="#assignments"><i class="fa-solid fa-list-check"></i> تمرین و پروژه</a>
         <a href="#grades"><i class="fa-solid fa-ranking-star"></i> نمرات</a>
@@ -42,9 +43,27 @@
             {% for announcement in classroom.announcements %}
             <article class="classroom-announcement {% if announcement.is_pinned %}is-pinned{% endif %}">
                 <div class="classroom-announcement__icon"><i class="fa-solid {% if announcement.is_pinned %}fa-thumbtack{% else %}fa-bullhorn{% endif %}"></i></div>
-                <div><h3>{{ announcement.title }}</h3><p>{{ announcement.message|linebreaksbr }}</p><small>{{ announcement.published_at|date:"Y/m/d H:i" }}</small></div>
+                <div>{% if announcement.section %}<span class="classroom-topic-chip">{{ announcement.section.title }}</span>{% endif %}<h3>{{ announcement.title }}</h3><p>{{ announcement.message|urlize|linebreaksbr }}</p><small>{{ announcement.published_at|date:"Y/m/d H:i" }}</small></div>
             </article>
             {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if classroom.sections %}
+    <section class="classroom-section classroom-topics" id="topics">
+        <div class="classroom-section__heading"><div><span>موضوعات آموزشی</span><h2>فصل‌ها و سرفصل‌های کلاس</h2></div></div>
+        <div class="classroom-topics__grid">
+        {% for section in classroom.sections %}
+            <article class="classroom-topic"><span class="classroom-topic__number">{{ forloop.counter|stringformat:"02d" }}</span>
+              <div class="classroom-topic__body"><h3>{{ section.title }}</h3>{% if section.description %}<p>{{ section.description|linebreaksbr }}</p>{% endif %}
+                <div class="classroom-topic__links" aria-label="محتوای {{ section.title }}">
+                {% for lesson in classroom.lessons %}{% if lesson.section_id == section.id %}<a href="#lesson-{{ lesson.id }}"><i class="fa-solid fa-book-open" aria-hidden="true"></i> {{ lesson.title }}</a>{% endif %}{% endfor %}
+                {% for resource in classroom.resources %}{% if resource.section_id == section.id or resource.lesson.section_id == section.id %}<a href="#resource-{{ resource.id }}"><i class="fa-solid fa-paperclip" aria-hidden="true"></i> {{ resource.title }}</a>{% endif %}{% endfor %}
+                {% for assignment in classroom.assignments %}{% if assignment.section_id == section.id or assignment.lesson.section_id == section.id %}<a href="#assignment-{{ assignment.id }}"><i class="fa-solid fa-list-check" aria-hidden="true"></i> {{ assignment.title }}</a>{% endif %}{% endfor %}
+                </div>
+              </div></article>
+        {% endfor %}
         </div>
     </section>
     {% endif %}
@@ -53,7 +72,7 @@
         <div class="classroom-section__heading"><div><span>مسیر یادگیری</span><h2>فهرست درس‌ها</h2></div><p>{{ classroom.completed_lessons }} درس از {{ classroom.total_lessons }} تکمیل شده</p></div>
         <div class="classroom-lesson-list">
             {% for lesson in classroom.lessons %}
-            <article class="classroom-lesson-card {% if lesson.id in classroom.completed_lesson_ids %}is-complete{% endif %}">
+            <article id="lesson-{{ lesson.id }}" class="classroom-lesson-card {% if lesson.id in classroom.completed_lesson_ids %}is-complete{% endif %}">
                 <div class="classroom-lesson-card__index">{{ forloop.counter|stringformat:"02d" }}</div>
                 <div class="classroom-lesson-card__content">
                     <div class="classroom-lesson-card__top"><div><h3>{{ lesson.title }}</h3>{% if lesson.section %}<span>{{ lesson.section.title }}</span>{% endif %}</div><span>{{ lesson.duration_minutes }} دقیقه</span></div>
@@ -80,10 +99,10 @@
         <div class="classroom-section__heading"><div><span>کتابخانه کلاس</span><h2>فایل‌ها و منابع آموزشی</h2></div></div>
         <div class="classroom-resource-grid">
             {% for resource in classroom.resources %}
-            <article class="classroom-resource-card">
+            <article id="resource-{{ resource.id }}" class="classroom-resource-card">
                 <span class="classroom-resource-card__icon"><i class="fa-solid {% if resource.resource_type == 'link' %}fa-link{% elif resource.resource_type == 'note' %}fa-note-sticky{% else %}fa-file-arrow-down{% endif %}"></i></span>
-                <div><h3>{{ resource.title }}</h3><p>{{ resource.description|default:"منبع آموزشی دوره" }}</p></div>
-                {% if resource.resource_type == 'file' and resource.file %}<a href="{% url 'courses_web:resource_download' object_id=resource.id %}">دانلود امن</a>{% elif resource.resource_type == 'link' %}<a href="{{ resource.external_url|https_url }}" target="_blank" rel="noopener noreferrer">باز کردن لینک</a>{% else %}<details><summary>مشاهده یادداشت</summary><div>{{ resource.text_content|linebreaks }}</div></details>{% endif %}
+                <div>{% if resource.section %}<span class="classroom-topic-chip">{{ resource.section.title }}</span>{% endif %}<h3>{{ resource.title }}</h3><p>{{ resource.description|default:"منبع آموزشی دوره" }}</p></div>
+                {% if resource.resource_type == 'file' and resource.file %}<a href="{% url 'courses_web:resource_download' object_id=resource.id %}">دانلود امن</a>{% elif resource.resource_type == 'link' %}<a href="{{ resource.external_url|https_url }}" target="_blank" rel="noopener noreferrer">باز کردن لینک</a>{% else %}<details><summary>مشاهده یادداشت</summary><div>{{ resource.text_content|urlize|linebreaks }}</div></details>{% endif %}
             </article>
             {% empty %}<div class="classroom-empty classroom-empty--compact"><i class="fa-regular fa-folder-open"></i><p>هنوز منبعی برای این کلاس اضافه نشده است.</p></div>{% endfor %}
         </div>
@@ -94,8 +113,8 @@
         <div class="classroom-assignment-list">
             {% for assignment in classroom.assignments %}
             {% with submission=classroom.submissions_by_assignment|lms_dict_get:assignment.id %}
-            <article class="classroom-assignment-card {% if assignment|lms_is_overdue %}is-overdue{% endif %}">
-                <header><div><span class="classroom-badge">{{ assignment.assignment_type|lms_assignment_type }}</span><h3>{{ assignment.title }}</h3></div><strong>{{ assignment.max_score }} نمره</strong></header>
+            <article id="assignment-{{ assignment.id }}" class="classroom-assignment-card {% if assignment|lms_is_overdue %}is-overdue{% endif %}">
+                <header><div><span class="classroom-badge">{{ assignment.assignment_type|lms_assignment_type }}</span>{% if assignment.section %}<span class="classroom-topic-chip">{{ assignment.section.title }}</span>{% endif %}<h3>{{ assignment.title }}</h3></div><strong>{{ assignment.max_score }} نمره</strong></header>
                 <p>{{ assignment.instructions|linebreaksbr }}</p>
                 <div class="classroom-assignment-card__meta">
                     <span><i class="fa-regular fa-calendar"></i> مهلت: {% if assignment.due_at %}{{ assignment.due_at|date:"Y/m/d H:i" }}{% else %}بدون محدودیت{% endif %}</span>

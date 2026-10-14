@@ -272,6 +272,10 @@ class CourseSection(BaseModel):
 
 class CourseResource(BaseModel):
     course = models.ForeignKey(Course, related_name="resources", on_delete=models.CASCADE)
+    section = models.ForeignKey(
+        CourseSection, related_name="resources", on_delete=models.SET_NULL,
+        null=True, blank=True,
+    )
     lesson = models.ForeignKey(
         CourseLesson,
         related_name="resources",
@@ -304,6 +308,10 @@ class CourseResource(BaseModel):
 
 class CourseAssignment(BaseModel):
     course = models.ForeignKey(Course, related_name="assignments", on_delete=models.CASCADE)
+    section = models.ForeignKey(
+        CourseSection, related_name="assignments", on_delete=models.SET_NULL,
+        null=True, blank=True,
+    )
     lesson = models.ForeignKey(
         CourseLesson,
         related_name="assignments",
@@ -447,6 +455,10 @@ class CourseLessonProgress(BaseModel):
 
 class CourseAnnouncement(BaseModel):
     course = models.ForeignKey(Course, related_name="announcements", on_delete=models.CASCADE)
+    section = models.ForeignKey(
+        CourseSection, related_name="announcements", on_delete=models.SET_NULL,
+        null=True, blank=True,
+    )
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         related_name="course_announcements",

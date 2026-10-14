@@ -39,6 +39,7 @@ urlpatterns = [
     path("", include("backend.apps.common.web.seo.urls")),
     path("", include("backend.apps.accounts.web.urls")),
     path("", include("backend.apps.pages.web.urls")),
+    path("", include("backend.apps.software_services.urls")),
     path("", include("backend.apps.courses.web.urls")),
     path("", include("backend.apps.articles.web.urls")),
     path("", include("backend.apps.billing.web.urls")),

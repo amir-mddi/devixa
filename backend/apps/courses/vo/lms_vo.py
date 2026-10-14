@@ -9,6 +9,8 @@ class CourseLMSMessageVO(StrEnum):
     COURSE_NOT_FOUND = "دوره مورد نظر پیدا نشد."
     LESSON_NOT_FOUND = "درس مورد نظر پیدا نشد."
     SECTION_NOT_FOUND = "بخش مورد نظر پیدا نشد."
+    CONTENT_NOT_RELEASED = "این محتوا هنوز برای هنرجویان منتشر نشده است."
+    TOPIC_LESSON_MISMATCH = "درس انتخاب‌شده به فصل متفاوتی تعلق دارد. فصل مرتبط را انتخاب کنید."
     RESOURCE_NOT_FOUND = "فایل آموزشی مورد نظر پیدا نشد."
     ASSIGNMENT_NOT_FOUND = "تمرین یا پروژه مورد نظر پیدا نشد."
     SUBMISSION_NOT_FOUND = "تحویل مورد نظر پیدا نشد."

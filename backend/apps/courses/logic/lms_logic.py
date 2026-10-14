@@ -72,7 +72,7 @@ class CourseLMSLogic:
         lessons = tuple(self.repository.lessons(course, include_unreleased=include_unreleased))
         resources = tuple(self.repository.resources(course, include_unreleased=include_unreleased))
         assignments = tuple(self.repository.assignments(course, include_drafts=is_instructor))
-        announcements = tuple(self.repository.announcements(course)[: CourseLMSLimitVO.ANNOUNCEMENTS])
+        announcements = tuple(self.repository.announcements(course, include_unreleased=is_instructor)[: CourseLMSLimitVO.ANNOUNCEMENTS])
 
         submissions_by_assignment = {}
         completed_ids = frozenset()
@@ -179,7 +179,7 @@ class CourseLMSLogic:
     @transaction.atomic
     def submit_assignment(self, *, student, dto: CourseSubmissionDTO):
         assignment = self.repository.get_assignment(dto.assignment_id)
-        self.require_student(student, assignment.course)
+        self._check_student_content_access(user=student, course=assignment.course, content=assignment)
         current = now()
         if assignment.status != AssignmentStatusEnum.PUBLISHED.value:
             raise ValidationError(CourseLMSMessageVO.ASSIGNMENT_CLOSED.value)
@@ -265,19 +265,45 @@ class CourseLMSLogic:
     @transaction.atomic
     def set_progress(self, *, student, dto: CourseProgressToggleDTO):
         lesson = self.repository.get_lesson(dto.lesson_id)
-        self.require_student(student, lesson.course)
+        self._check_student_content_access(user=student, course=lesson.course, content=lesson)
         return self.repository.set_lesson_progress(student=student, lesson=lesson, completed=dto.completed)
+
+    @staticmethod
+    def _check_release_date(item):
+        if item and (
+            getattr(item, "is_deleted", False)
+            or not getattr(item, "is_active", True)
+            or (getattr(item, "release_at", None) and item.release_at > now())
+        ):
+            raise PermissionDenied(CourseLMSMessageVO.CONTENT_NOT_RELEASED.value)
+
+    def _check_student_content_access(self, *, user, course, content):
+        if self.repository.is_instructor(user, course):
+            return
+        self.require_student(user, course)
+        self._check_release_date(content)
+        self._check_release_date(getattr(content, "section", None))
+        lesson = getattr(content, "lesson", None)
+        self._check_release_date(lesson)
+        # Older uploads may have section=NULL while their lesson already belongs to a timed topic.
+        if lesson is not None:
+            self._check_release_date(getattr(lesson, "section", None))
 
     def resource_for_download(self, *, user, resource_id):
         resource = self.repository.get_resource(resource_id)
-        self.require_classroom_access(user, resource.course)
+        self._check_student_content_access(user=user, course=resource.course, content=resource)
         if not resource.file:
             raise ValidationError(CourseLMSMessageVO.FILE_NOT_AVAILABLE.value)
         return resource.file
 
     def assignment_for_download(self, *, user, assignment_id):
         assignment = self.repository.get_assignment(assignment_id)
-        self.require_classroom_access(user, assignment.course)
+        self._check_student_content_access(user=user, course=assignment.course, content=assignment)
+        if not self.repository.is_instructor(user, assignment.course) and (
+            assignment.status != AssignmentStatusEnum.PUBLISHED.value
+            or (assignment.starts_at and assignment.starts_at > now())
+        ):
+            raise PermissionDenied(CourseLMSMessageVO.CONTENT_NOT_RELEASED.value)
         if not assignment.attachment:
             raise ValidationError(CourseLMSMessageVO.FILE_NOT_AVAILABLE.value)
         return assignment.attachment

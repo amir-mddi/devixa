@@ -1,0 +1,13 @@
+/* Topic grouping shared by student and instructor classroom pages. */
+.classroom-topics__grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:16px}
+.classroom-topic{display:flex;align-items:flex-start;gap:14px;padding:20px;border:1px solid var(--border-soft);border-radius:20px;background:var(--bg-card);min-width:0}
+.classroom-topic__number{display:grid;place-items:center;min-width:40px;height:40px;border-radius:12px;background:var(--accent-soft);color:var(--accent);font-weight:800}
+.classroom-topic h3{margin:0 0 8px;font-size:clamp(16px,2.2vw,19px);color:var(--text-primary)}
+.classroom-topic p{margin:0;line-height:1.85;color:var(--text-secondary);overflow-wrap:break-word}
+.classroom-topic-chip{display:inline-block;margin-inline-end:8px;margin-block:4px;padding:4px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700}
+
+.classroom-topic__body{flex:1;min-width:0}.classroom-topic__links{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin-top:15px}
+.classroom-topic__links a{display:inline-flex;max-width:100%;gap:7px;align-items:center;padding:7px 11px;border-radius:11px;background:var(--accent-soft);color:var(--accent);text-decoration:none;font-size:12px;font-weight:700;overflow-wrap:anywhere}
+.classroom-topic__links a:hover{filter:brightness(1.08)}.classroom-topic__links a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.classroom-lesson-card[id],.classroom-resource-card[id],.classroom-assignment-card[id]{scroll-margin-top:105px}
+.classroom-topics__grid--instructor{margin-block:16px 24px}.classroom-topic small{color:var(--text-secondary);display:block;margin-top:9px}

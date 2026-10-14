@@ -754,7 +754,7 @@ class SessionSettings(BaseDTO):
         "SESSION_ENGINE", "django.contrib.sessions.backends.cache"
     )
     session_cache_alias: str = os.environ.get("SESSION_CACHE_ALIAS", "default")
-    session_cookie_age: int = int(os.environ.get("SESSION_COOKIE_AGE", "3600"))
+    session_cookie_age: int = int(os.environ.get("SESSION_COOKIE_AGE", "1209600"))
     session_expire_at_browser_close: bool = env_bool(
         "SESSION_EXPIRE_AT_BROWSER_CLOSE", True
     )

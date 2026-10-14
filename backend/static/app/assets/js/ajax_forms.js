@@ -288,6 +288,8 @@
         const nextBody = document.importNode(nextDocument.body, true);
         nextBody.querySelectorAll("script").forEach((script) => script.remove());
         document.body.replaceWith(nextBody);
+        document.body.classList.remove("page-is-loading");
+        document.body.classList.add("is-loaded");
 
         if (pushHistory && responseUrl) {
             const resolvedUrl = absoluteUrl(responseUrl);

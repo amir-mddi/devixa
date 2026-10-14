@@ -112,10 +112,10 @@ class InstructorClassroomPageView(LoginRequiredMixin, CourseLMSWebMixin, Templat
                 ),
                 "section_form": CourseSectionForm(),
                 "lesson_form": CourseLessonManageForm(sections=classroom.sections),
-                "resource_form": CourseResourceForm(lessons=classroom.lessons),
-                "assignment_form": CourseAssignmentForm(lessons=classroom.lessons),
+                "resource_form": CourseResourceForm(lessons=classroom.lessons, sections=classroom.sections),
+                "assignment_form": CourseAssignmentForm(lessons=classroom.lessons, sections=classroom.sections),
                 "grade_item_form": CourseGradeItemForm(students=classroom.students),
-                "announcement_form": CourseAnnouncementForm(),
+                "announcement_form": CourseAnnouncementForm(sections=classroom.sections),
                 "grade_form": CourseSubmissionGradeForm(),
             }
         )

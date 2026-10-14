@@ -4,6 +4,7 @@ from decimal import Decimal
 from uuid import UUID
 
 from django.db.models import Q
+from django.core.exceptions import ValidationError
 from django.utils.timezone import now
 from rest_framework.exceptions import NotFound
 
@@ -114,21 +115,44 @@ class CourseLMSRepository:
         qs = CourseLesson.objects.select_related("section").filter(course=course, is_active=True, is_deleted=False)
         if not include_unreleased:
             qs = qs.filter(Q(release_at__isnull=True) | Q(release_at__lte=now()))
+            qs = qs.filter(Q(section__isnull=True) | (Q(section__is_active=True, section__is_deleted=False) & (Q(section__release_at__isnull=True) | Q(section__release_at__lte=now()))))
         return qs.order_by("position", "created_at")
 
     @staticmethod
     def resources(course, *, include_unreleased=False):
-        qs = CourseResource.objects.select_related("lesson").filter(course=course, is_active=True, is_deleted=False)
+        qs = CourseResource.objects.select_related("lesson", "section").filter(course=course, is_active=True, is_deleted=False)
         if not include_unreleased:
             qs = qs.filter(Q(release_at__isnull=True) | Q(release_at__lte=now()))
+            qs = qs.filter(Q(section__isnull=True) | (Q(section__is_active=True, section__is_deleted=False) & (Q(section__release_at__isnull=True) | Q(section__release_at__lte=now()))))
+            qs = qs.filter(
+                Q(lesson__isnull=True) | (
+                    Q(lesson__is_active=True, lesson__is_deleted=False)
+                    & (Q(lesson__release_at__isnull=True) | Q(lesson__release_at__lte=now()))
+                    & (Q(lesson__section__isnull=True) | (
+                        Q(lesson__section__is_active=True, lesson__section__is_deleted=False)
+                        & (Q(lesson__section__release_at__isnull=True) | Q(lesson__section__release_at__lte=now()))
+                    ))
+                )
+            )
         return qs.order_by("position", "created_at")
 
     @staticmethod
     def assignments(course, *, include_drafts=False):
-        qs = CourseAssignment.objects.select_related("lesson").filter(course=course, is_active=True, is_deleted=False)
+        qs = CourseAssignment.objects.select_related("lesson", "section").filter(course=course, is_active=True, is_deleted=False)
         if not include_drafts:
             qs = qs.filter(status=AssignmentStatusEnum.PUBLISHED.value).filter(
                 Q(starts_at__isnull=True) | Q(starts_at__lte=now())
+            )
+            qs = qs.filter(Q(section__isnull=True) | (Q(section__is_active=True, section__is_deleted=False) & (Q(section__release_at__isnull=True) | Q(section__release_at__lte=now()))))
+            qs = qs.filter(
+                Q(lesson__isnull=True) | (
+                    Q(lesson__is_active=True, lesson__is_deleted=False)
+                    & (Q(lesson__release_at__isnull=True) | Q(lesson__release_at__lte=now()))
+                    & (Q(lesson__section__isnull=True) | (
+                        Q(lesson__section__is_active=True, lesson__section__is_deleted=False)
+                        & (Q(lesson__section__release_at__isnull=True) | Q(lesson__section__release_at__lte=now()))
+                    ))
+                )
             )
         return qs.order_by("position", "due_at", "created_at")
 
@@ -157,12 +181,18 @@ class CourseLMSRepository:
         )
 
     @staticmethod
-    def announcements(course):
-        return CourseAnnouncement.objects.select_related("author").filter(
+    def announcements(course, *, include_unreleased=False):
+        qs = CourseAnnouncement.objects.select_related("author", "section").filter(
             course=course,
             is_active=True,
             is_deleted=False,
-        ).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now())).order_by("-is_pinned", "-published_at")
+        ).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now()))
+        if not include_unreleased:
+            qs = qs.filter(Q(section__isnull=True) | (
+                Q(section__is_deleted=False, section__is_active=True)
+                & (Q(section__release_at__isnull=True) | Q(section__release_at__lte=now()))
+            ))
+        return qs.order_by("-is_pinned", "-published_at")
 
     @staticmethod
     def questions_for_student(course, student):
@@ -238,15 +268,31 @@ class CourseLMSRepository:
         lesson.save()
         return lesson
 
+    @staticmethod
+    def _resolve_content_section(*, course, section_id, lesson):
+        section = None
+        if section_id:
+            section = CourseSection.objects.filter(
+                pk=section_id, course=course, is_deleted=False, is_active=True,
+            ).first()
+            if section is None:
+                raise NotFound(CourseLMSMessageVO.SECTION_NOT_FOUND.value)
+        if lesson and lesson.section_id:
+            if section and section.pk != lesson.section_id:
+                raise ValidationError(CourseLMSMessageVO.TOPIC_LESSON_MISMATCH.value)
+            section = lesson.section
+        return section
+
     def create_resource(self, *, actor, course, dto):
         lesson = None
         if dto.lesson_id:
             lesson = CourseLesson.objects.filter(id=dto.lesson_id, course=course, is_deleted=False).first()
             if lesson is None:
                 raise NotFound(CourseLMSMessageVO.LESSON_NOT_FOUND.value)
+        section = self._resolve_content_section(course=course, section_id=dto.section_id, lesson=lesson)
         position = dto.position or self._next_position(CourseResource, course=course)
         return CourseResource.objects.create(
-            course=course, lesson=lesson, title=dto.title.strip(), description=dto.description.strip(),
+            course=course, lesson=lesson, section=section, title=dto.title.strip(), description=dto.description.strip(),
             resource_type=dto.resource_type, file=dto.file, external_url=dto.external_url.strip(),
             text_content=dto.text_content.strip(), position=position, release_at=dto.release_at,
             user_created_object=actor, user_updated_object=actor,
@@ -258,9 +304,10 @@ class CourseLMSRepository:
             lesson = CourseLesson.objects.filter(id=dto.lesson_id, course=course, is_deleted=False).first()
             if lesson is None:
                 raise NotFound(CourseLMSMessageVO.LESSON_NOT_FOUND.value)
+        section = self._resolve_content_section(course=course, section_id=dto.section_id, lesson=lesson)
         position = dto.position or self._next_position(CourseAssignment, course=course)
         return CourseAssignment.objects.create(
-            course=course, lesson=lesson, title=dto.title.strip(), assignment_type=dto.assignment_type,
+            course=course, lesson=lesson, section=section, title=dto.title.strip(), assignment_type=dto.assignment_type,
             submission_type=dto.submission_type, instructions=dto.instructions.strip(), attachment=dto.attachment,
             starts_at=dto.starts_at, due_at=dto.due_at, allow_late_submission=dto.allow_late_submission,
             max_score=dto.max_score, position=position, status=dto.status,
@@ -269,7 +316,7 @@ class CourseLMSRepository:
 
     @staticmethod
     def get_assignment(assignment_id):
-        assignment = CourseAssignment.objects.select_related("course", "lesson", "course__instructor").filter(
+        assignment = CourseAssignment.objects.select_related("course", "lesson__section", "section", "course__instructor").filter(
             id=assignment_id, is_deleted=False
         ).first()
         if not assignment:
@@ -364,8 +411,15 @@ class CourseLMSRepository:
 
     @staticmethod
     def create_announcement(*, actor, course, dto):
+        section = None
+        if dto.section_id:
+            section = CourseSection.objects.filter(
+                id=dto.section_id, course=course, is_active=True, is_deleted=False,
+            ).first()
+            if section is None:
+                raise NotFound(CourseLMSMessageVO.SECTION_NOT_FOUND.value)
         return CourseAnnouncement.objects.create(
-            course=course, author=actor, title=dto.title.strip(), message=dto.message.strip(),
+            course=course, section=section, author=actor, title=dto.title.strip(), message=dto.message.strip(),
             expires_at=dto.expires_at, is_pinned=dto.is_pinned,
             user_created_object=actor, user_updated_object=actor,
         )
@@ -383,14 +437,14 @@ class CourseLMSRepository:
 
     @staticmethod
     def get_lesson(lesson_id):
-        lesson = CourseLesson.objects.select_related("course__instructor").filter(id=lesson_id, is_deleted=False).first()
+        lesson = CourseLesson.objects.select_related("course__instructor", "section").filter(id=lesson_id, is_deleted=False).first()
         if not lesson:
             raise NotFound(CourseLMSMessageVO.LESSON_NOT_FOUND.value)
         return lesson
 
     @staticmethod
     def get_resource(resource_id):
-        resource = CourseResource.objects.select_related("course__instructor").filter(id=resource_id, is_deleted=False).first()
+        resource = CourseResource.objects.select_related("course__instructor", "section", "lesson__section").filter(id=resource_id, is_deleted=False).first()
         if not resource:
             raise NotFound(CourseLMSMessageVO.RESOURCE_NOT_FOUND.value)
         return resource

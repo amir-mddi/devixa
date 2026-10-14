@@ -38,31 +38,6 @@
         document.body.prepend(ambient);
     }
 
-    function createPreloader() {
-        if (prefersReducedMotion || $('.project-preloader')) return;
-        document.body.classList.add('page-is-loading');
-        const preloader = document.createElement('section');
-        preloader.className = 'project-preloader';
-        preloader.setAttribute('aria-live', 'polite');
-        preloader.innerHTML = `
-            <div class="project-preloader__card">
-                <div class="project-preloader__logo">${projectInitial}</div>
-                <h2 class="project-preloader__title">${projectName} Experience</h2>
-                <p class="subtitle" style="width:100%;font-size:14px">در حال آماده‌سازی تجربه‌ای نرم، سریع و حرفه‌ای...</p>
-                <div class="project-preloader__bar"><span></span></div>
-            </div>`;
-        document.body.appendChild(preloader);
-        window.addEventListener('load', () => hidePreloader(preloader), { once: true });
-        setTimeout(() => hidePreloader(preloader), 900);
-    }
-
-    function hidePreloader(preloader) {
-        preloader.classList.add('is-hidden');
-        document.body.classList.remove('page-is-loading');
-        document.body.classList.add('is-loaded');
-        setTimeout(() => preloader.remove(), 650);
-    }
-
     function enhanceNavigation() {
         const nav = $('#menubar');
         const links = $$('.navbar .menu a');
@@ -390,16 +365,23 @@
     }
 
     onReady(() => {
-        createPreloader();
-        createAmbient();
+        // Normal navigation must never wait for a decorative loading overlay.
+        document.body.classList.remove('page-is-loading');
+        document.body.classList.add('is-loaded');
+        if (!$('.dev-services')) createAmbient();
         enhanceNavigation();
         createScrollProgress();
         createBackToTop();
-        createCursorGlow();
-        addRippleEffect();
+        // Avoid pointer-tracking and ripple repaints on long studio landing pages.
+        if (!$('.dev-services')) {
+            createCursorGlow();
+            addRippleEffect();
+        }
         polishCourseMetrics();
-        revealEverything();
-        addTilt();
+        if (!$('.dev-services')) {
+            revealEverything();
+            addTilt();
+        }
         improveForms();
         improveFilterFeedback();
         animateNumbers();

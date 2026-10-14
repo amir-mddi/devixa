@@ -73,14 +73,14 @@ class CourseSectionAdmin(admin.ModelAdmin):
 
 @admin.register(CourseResource)
 class CourseResourceAdmin(admin.ModelAdmin):
-    list_display = ("title", "course", "lesson", "resource_type", "position", "release_at")
+    list_display = ("title", "course", "section", "lesson", "resource_type", "position", "release_at")
     list_filter = ("resource_type", "release_at", "is_active")
     search_fields = ("title", "description", "course__title", "lesson__title")
 
 
 @admin.register(CourseAssignment)
 class CourseAssignmentAdmin(admin.ModelAdmin):
-    list_display = ("title", "course", "assignment_type", "status", "due_at", "max_score", "allow_late_submission")
+    list_display = ("title", "course", "section", "assignment_type", "status", "due_at", "max_score", "allow_late_submission")
     list_filter = ("assignment_type", "status", "allow_late_submission", "due_at")
     search_fields = ("title", "instructions", "course__title")
 
@@ -109,7 +109,7 @@ class CourseLessonProgressAdmin(admin.ModelAdmin):
 
 @admin.register(CourseAnnouncement)
 class CourseAnnouncementAdmin(admin.ModelAdmin):
-    list_display = ("title", "course", "author", "published_at", "expires_at", "is_pinned")
+    list_display = ("title", "course", "section", "author", "published_at", "expires_at", "is_pinned")
     list_filter = ("is_pinned", "published_at", "expires_at")
     search_fields = ("title", "message", "course__title", "author__username")
 

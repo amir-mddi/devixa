@@ -4,6 +4,8 @@
     const fullMenu = document.getElementById('site-mobile-menu');
     const fullMenuToggle = document.querySelector('.site-menu-toggle');
     const mobileBackdrop = document.querySelector('[data-site-mobile-backdrop]');
+    const mobileMenuClose = document.querySelector('.site-mobile-menu__close');
+    let previousMenuFocus = null;
 
     function isDesktopViewport() {
         return window.matchMedia('(min-width: 981px)').matches;
@@ -18,7 +20,13 @@
         fullMenuToggle.setAttribute('aria-label', open ? 'بستن منو' : 'نمایش همه منوها');
         document.body.classList.toggle('site-mobile-menu-open', open);
         if (mobileBackdrop) mobileBackdrop.hidden = !open;
-        if (open) fullMenu.querySelector('a')?.focus({ preventScroll: true });
+        if (open) {
+            previousMenuFocus = document.activeElement;
+            (mobileMenuClose || fullMenu).focus({ preventScroll: true });
+        } else if (previousMenuFocus) {
+            if (previousMenuFocus.isConnected) previousMenuFocus.focus({ preventScroll: true });
+            previousMenuFocus = null;
+        }
     }
 
     function closeFullMenu() {
@@ -42,13 +50,19 @@
             if (event.target.closest('a')) closeFullMenu();
         });
         mobileBackdrop?.addEventListener('click', closeFullMenu);
+        mobileMenuClose?.addEventListener('click', closeFullMenu);
         document.addEventListener('click', (event) => {
             if (!event.target.closest('.site-mobile-menu, .site-menu-toggle')) closeFullMenu();
         });
         document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') {
-                closeFullMenu();
-                fullMenuToggle.focus();
+            if (event.key === 'Escape' && !fullMenu.hidden) closeFullMenu();
+            if (event.key === 'Tab' && !fullMenu.hidden) {
+                const tabbables = [...fullMenu.querySelectorAll('a[href], button:not([disabled])')];
+                const first = tabbables[0];
+                const last = tabbables[tabbables.length - 1];
+                if (!first || !last) return;
+                if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+                else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
             }
         });
         window.addEventListener('resize', () => {
@@ -203,6 +217,7 @@
         const path = String(pathname || '/').replace(/\/{2,}/g, '/');
         if (path === '/' || path === '') return 'home';
         if (/^\/courses(?:\/|$)/.test(path)) return 'courses';
+        if (/^\/software-development(?:\/|$)/.test(path)) return 'software';
         if (/^\/(?:mentors|mentorship)(?:\/|$)/.test(path)) return 'mentors';
         if (/^\/academies(?:\/|$)/.test(path)) return 'academies';
         if (/^\/opportunities(?:\/|$)/.test(path)) return 'opportunities';

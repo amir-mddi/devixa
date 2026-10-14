@@ -57,7 +57,7 @@ class SafeNextUrlMixin:
         return self.fallback_success_url
 
 
-@method_decorator(rate_limit(authenticated_limit=10, anonymous_limit=10, period=300), name="post")
+@method_decorator(rate_limit(authenticated_limit=60, anonymous_limit=60, period=300), name="post")
 class LoginPageView(AsyncWebViewMixin, FormHttpErrorResponseMixin, RecaptchaProtectedFormViewMixin, SafeNextUrlMixin, FormView):
     template_name = AccountWebTemplateVO.LOGIN.value
     form_class = LoginTemplateForm

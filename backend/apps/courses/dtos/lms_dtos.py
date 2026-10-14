@@ -41,6 +41,7 @@ class CourseLessonManageDTO(BaseDTO):
 
 class CourseResourceCreateDTO(BaseDTO):
     course_id: UUID
+    section_id: UUID | None = None
     lesson_id: UUID | None = None
     title: str
     description: str = ""
@@ -54,6 +55,7 @@ class CourseResourceCreateDTO(BaseDTO):
 
 class CourseAssignmentCreateDTO(BaseDTO):
     course_id: UUID
+    section_id: UUID | None = None
     lesson_id: UUID | None = None
     title: str
     assignment_type: str = "exercise"
@@ -107,6 +109,7 @@ class CourseQuestionReplyDTO(BaseDTO):
 
 class CourseAnnouncementCreateDTO(BaseDTO):
     course_id: UUID
+    section_id: UUID | None = None
     title: str
     message: str
     expires_at: datetime | None = None

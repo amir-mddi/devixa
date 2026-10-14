@@ -60,6 +60,7 @@ class CourseLessonManageForm(forms.Form):
 
 
 class CourseResourceForm(forms.Form):
+    section_id = forms.UUIDField(required=False, label="موضوع / فصل")
     lesson_id = forms.UUIDField(required=False, label="درس")
     title = forms.CharField(max_length=180, label="عنوان منبع")
     description = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows": 3}), label="توضیحات")
@@ -70,14 +71,18 @@ class CourseResourceForm(forms.Form):
     position = forms.IntegerField(required=False, min_value=1, label="ترتیب")
     release_at = forms.DateTimeField(required=False, widget=DateTimeLocalInput(format="%Y-%m-%dT%H:%M"), input_formats=["%Y-%m-%dT%H:%M"], label="زمان انتشار")
 
-    def __init__(self, *args, lessons=(), **kwargs):
+    def __init__(self, *args, lessons=(), sections=(), **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["section_id"].widget = forms.Select(
+            choices=[("", "عمومی کلاس")] + [(str(section.id), section.title) for section in sections]
+        )
         self.fields["lesson_id"].widget = forms.Select(
             choices=[("", "منبع عمومی دوره")] + [(str(lesson.id), lesson.title) for lesson in lessons]
         )
 
 
 class CourseAssignmentForm(forms.Form):
+    section_id = forms.UUIDField(required=False, label="موضوع / فصل")
     lesson_id = forms.UUIDField(required=False, label="درس")
     title = forms.CharField(max_length=180, label="عنوان تمرین/پروژه")
     assignment_type = forms.ChoiceField(choices=AssignmentTypeEnum.choices(), label="نوع")
@@ -91,8 +96,11 @@ class CourseAssignmentForm(forms.Form):
     position = forms.IntegerField(required=False, min_value=1, label="ترتیب")
     status = forms.ChoiceField(choices=AssignmentStatusEnum.choices(), initial=AssignmentStatusEnum.PUBLISHED.value, label="وضعیت")
 
-    def __init__(self, *args, lessons=(), **kwargs):
+    def __init__(self, *args, lessons=(), sections=(), **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["section_id"].widget = forms.Select(
+            choices=[("", "عمومی کلاس")] + [(str(section.id), section.title) for section in sections]
+        )
         self.fields["lesson_id"].widget = forms.Select(
             choices=[("", "بدون درس مشخص")] + [(str(lesson.id), lesson.title) for lesson in lessons]
         )
@@ -137,7 +145,14 @@ class CourseQuestionReplyForm(forms.Form):
 
 
 class CourseAnnouncementForm(forms.Form):
+    section_id = forms.UUIDField(required=False, label="موضوع/فصل")
     title = forms.CharField(max_length=180, label="عنوان اعلان")
     message = forms.CharField(widget=forms.Textarea(attrs={"rows": 5}), label="متن اعلان")
     expires_at = forms.DateTimeField(required=False, widget=DateTimeLocalInput(format="%Y-%m-%dT%H:%M"), input_formats=["%Y-%m-%dT%H:%M"], label="پایان نمایش")
     is_pinned = forms.BooleanField(required=False, label="سنجاق‌شده")
+
+    def __init__(self, *args, sections=(), **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["section_id"].widget = forms.Select(
+            choices=[("", "اطلاعیه عمومی کلاس")] + [(str(section.id), section.title) for section in sections]
+        )
