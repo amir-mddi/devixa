@@ -1,0 +1,43 @@
+{# Executes before stylesheets: no dark/light flash during a full navigation. #}
+<script>
+    (() => {
+        "use strict";
+        const storageKey = "theme";
+        const colors = Object.freeze({ light: "#f5f7fe", dark: "#080d1c" });
+        const normalize = (value) => value === "light" ? "light" : "dark";
+        const resolve = () => {
+            try {
+                const saved = localStorage.getItem(storageKey);
+                if (saved === "light" || saved === "dark") return saved;
+            } catch (error) { /* Storage may be disabled in a WebView. */ }
+            return typeof window.matchMedia === "function" &&
+                window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+        };
+        const syncBody = () => {
+            const body = document.body;
+            if (!body) return;
+            const isLight = document.documentElement.dataset.theme === "light";
+            body.classList.toggle("light-theme", isLight);
+            body.dataset.theme = isLight ? "light" : "dark";
+            document.querySelector("#menubar")?.classList.toggle("background", isLight);
+            const toggle = document.querySelector("#theme_toggle");
+            if (toggle) toggle.checked = isLight;
+        };
+        const apply = (value, persist = false) => {
+            const theme = normalize(value);
+            const root = document.documentElement;
+            root.dataset.theme = theme;
+            root.classList.toggle("light-theme", theme === "light");
+            root.style.colorScheme = theme;
+            document.querySelector('meta[name="theme-color"]')?.setAttribute("content", colors[theme]);
+            syncBody();
+            if (persist) {
+                try { localStorage.setItem(storageKey, theme); }
+                catch (error) { /* Keep the current theme even without storage. */ }
+            }
+            return theme;
+        };
+        window.DevixaTheme = Object.freeze({ resolve, apply, syncBody });
+        apply(resolve());
+    })();
+</script>

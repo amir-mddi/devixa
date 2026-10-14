@@ -8,24 +8,13 @@
     <meta name="description" content="{% block meta_description %}{{ seo.description }}{% endblock %}">
     {% include "web/seo/_meta.html" %}
     <title>{% block title %}{{ seo.title }}{% endblock %}</title>
-    <script type="application/x-devixa-ajax-module" data-ajax-module="auth-theme-bootstrap">
-        (() => {
-            let saved = null;
-            try {
-                saved = localStorage.getItem("theme");
-            } catch (error) {
-                saved = null;
-            }
-            const light = saved
-                ? saved === "light"
-                : window.matchMedia("(prefers-color-scheme: light)").matches;
-            document.documentElement.dataset.theme = light ? "light" : "dark";
-            document.documentElement.style.colorScheme = light ? "light" : "dark";
-        })();
-    </script>
+    {% include "web/shared/_theme_bootstrap.html" %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Vazirmatn:wght@400;500;600;700;800&display=swap">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <link rel="stylesheet" href="{% project_static 'Styles/variables.css' %}?v=layout-2">
-    <link rel="stylesheet" href="{% project_static 'Styles/fonts.css' %}?v=font-5">
+    <link rel="stylesheet" href="{% project_static 'Styles/fonts.css' %}?v=font-6">
     <link rel="stylesheet" href="{% project_static 'Styles/reset.css' %}">
     <link rel="stylesheet" href="{% project_static 'Styles/framework.css' %}">
     <link rel="stylesheet" href="{% project_static 'Styles/forget_password.css' %}?v=auth-4">
@@ -35,9 +24,10 @@
     {% block page_styles %}{% endblock %}
     <meta data-ajax-style-boundary>
     <script src="{% project_static 'vendor/jquery/jquery-3.7.1.min.js' %}" defer></script>
-    <script src="{% project_static 'js/ajax_forms.js' %}?v=ajax-2" defer></script>
+    <script src="{% project_static 'js/ajax_forms.js' %}?v=ajax-4" defer></script>
 </head>
 <body class="auth-page" data-project-name="{{ project.display_name }}" data-project-initial="{{ project.logo_initial }}"{% if recaptcha_enabled %} data-recaptcha-enabled="true" data-recaptcha-site-key="{{ recaptcha_site_key }}" data-recaptcha-error-message="{{ recaptcha_client_error_message }}"{% endif %}>
+    <script>window.DevixaTheme?.syncBody();</script>
     {% include "web/shared/_flash_messages.html" with placement="auth" %}
 
     <header class="auth-toolbar" aria-label="دسترسی سریع">
@@ -59,7 +49,7 @@
     {% if recaptcha_enabled %}
         <script type="application/x-devixa-ajax-module" data-ajax-module="recaptcha" src="https://www.google.com/recaptcha/api.js?render={{ recaptcha_site_key|urlencode }}&trustedtypes=true" async defer></script>
     {% endif %}
-    <script type="application/x-devixa-ajax-module" data-ajax-module="auth" src="{% project_static 'js/auth.js' %}?v=auth-6"></script>
+    <script type="application/x-devixa-ajax-module" data-ajax-module="auth" src="{% project_static 'js/auth.js' %}?v=auth-7"></script>
     {% block page_scripts %}{% endblock %}
 </body>
 </html>

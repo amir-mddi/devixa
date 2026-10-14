@@ -165,13 +165,19 @@
 
     const waitForStylesheet = (link) => new Promise((resolve) => {
         if (!link || link.sheet) {
-            resolve();
+            resolve(true);
             return;
         }
-        const finish = () => resolve();
-        link.addEventListener("load", finish, {once: true});
-        link.addEventListener("error", finish, {once: true});
-        window.setTimeout(finish, 5000);
+        let settled = false;
+        const finish = (loaded) => {
+            if (settled) return;
+            settled = true;
+            window.clearTimeout(timeout);
+            resolve(loaded);
+        };
+        link.addEventListener("load", () => finish(true), {once: true});
+        link.addEventListener("error", () => finish(false), {once: true});
+        const timeout = window.setTimeout(() => finish(false), 5000);
     });
 
     const reconcileStyles = async (nextDocument) => {
@@ -187,10 +193,10 @@
             currentLinksByHref.set(href, matches);
         });
 
-        document.head
-            .querySelectorAll("style[data-ajax-managed-style]")
-            .forEach((style) => style.remove());
-
+        const outgoingInlineStyles = [
+            ...document.head.querySelectorAll("style[data-ajax-managed-style]"),
+        ];
+        const newStyleNodes = [];
         const retainedLinks = new Set();
         const nextStyles = [...nextDocument.head.querySelectorAll(MANAGED_STYLE_SELECTOR)];
 
@@ -202,24 +208,34 @@
                 styleNode = existingMatches.shift();
                 if (!styleNode) {
                     styleNode = document.importNode(nextStyle, true);
+                    newStyleNodes.push(styleNode);
                     pendingStylesheets.push(waitForStylesheet(styleNode));
                 }
                 currentLinksByHref.set(href, existingMatches);
                 retainedLinks.add(styleNode);
             } else {
                 styleNode = document.importNode(nextStyle, true);
+                newStyleNodes.push(styleNode);
             }
 
             document.head.insertBefore(styleNode, boundary || null);
         });
 
-        await Promise.all(pendingStylesheets);
+        const loadResults = await Promise.all(pendingStylesheets);
+        if (loadResults.some((loaded) => !loaded)) {
+            // A failed stylesheet must not replace a styled page with an unstyled one.
+            newStyleNodes.forEach((node) => node.remove());
+            throw new Error("Required page stylesheet failed to load");
+        }
 
-        currentLinks.forEach((link) => {
-            if (!retainedLinks.has(link)) {
-                link.remove();
-            }
-        });
+        // Keep outgoing styles until the new body has replaced the old one.
+        // Removing them here exposes a momentarily unstyled login/profile page.
+        return () => {
+            currentLinks.forEach((link) => {
+                if (!retainedLinks.has(link)) link.remove();
+            });
+            outgoingInlineStyles.forEach((style) => style.remove());
+        };
     };
 
     const reconcileHeadMetadata = (nextDocument) => {
@@ -280,14 +296,32 @@
         prepareRevealLifecycle(moduleScripts);
 
         document.dispatchEvent(new CustomEvent("devixa:before-page-swap"));
-        await reconcileStyles(nextDocument);
+        const removeOldStyles = await reconcileStyles(nextDocument);
+        // A slower in-flight navigation must never overwrite a newer page.
+        if (sequence !== navigationSequence) {
+            removeOldStyles();
+            return;
+        }
         reconcileHeadMetadata(nextDocument);
         document.documentElement.lang = nextDocument.documentElement.lang || document.documentElement.lang;
         document.documentElement.dir = nextDocument.documentElement.dir || document.documentElement.dir;
 
         const nextBody = document.importNode(nextDocument.body, true);
         nextBody.querySelectorAll("script").forEach((script) => script.remove());
+        // New HTML was parsed with an inactive script; carry the current theme
+        // into the next body *before* it is attached to the document.
+        const isLight = document.documentElement.dataset.theme === "light";
+        nextBody.classList.toggle("light-theme", isLight);
+        nextBody.dataset.theme = isLight ? "light" : "dark";
+        nextBody.classList.remove("page-is-loading", "ajax-page-loading");
+        nextBody.classList.add("is-loaded");
         document.body.replaceWith(nextBody);
+        removeOldStyles();
+        window.DevixaTheme?.syncBody();
+        // The HTML response's default theme-color metadata is not the user's preference.
+        document.querySelector('meta[name="theme-color"]')?.setAttribute(
+            "content", isLight ? "#f5f7fe" : "#080d1c",
+        );
 
         if (pushHistory && responseUrl) {
             const resolvedUrl = absoluteUrl(responseUrl);

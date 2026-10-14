@@ -5,26 +5,11 @@
     const body = document.body;
     const themeToggle = document.querySelector("[data-auth-theme-toggle]");
 
-    const applyTheme = (theme) => {
-        const normalized = theme === "light" ? "light" : "dark";
-        root.dataset.theme = normalized;
-        root.style.colorScheme = normalized;
-        body.dataset.theme = normalized;
-        body.classList.toggle("light-theme", normalized === "light");
-        try {
-            localStorage.setItem("theme", normalized);
-        } catch (error) {
-            // Theme still applies when storage is blocked by the browser.
-        }
-        document.querySelector('meta[name="theme-color"]')?.setAttribute(
-            "content",
-            normalized === "light" ? "#f5f7ff" : "#070b14",
-        );
-    };
-
-    applyTheme(root.dataset.theme || "dark");
+    // Shared bootstrap avoids a dark flash before auth styles load.
+    window.DevixaTheme?.syncBody();
     themeToggle?.addEventListener("click", () => {
-        applyTheme(root.dataset.theme === "light" ? "dark" : "light");
+        const next = root.dataset.theme === "light" ? "dark" : "light";
+        window.DevixaTheme?.apply(next, true);
     });
 
 
