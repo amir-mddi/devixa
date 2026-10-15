@@ -626,6 +626,7 @@ class DatabaseConfiguration(BaseDTO):
 
 class GeneralConfiguration(BaseDTO):
     env: str = os.environ.get("ENV", "local").strip().lower()
+    app_version: str = os.environ.get("APP_VERSION", "v1.0.0").strip().lower()
     is_local_environment: ClassVar[bool] = env in _LOCAL_ENVS
     debug: bool = env_bool("IS_DEBUG", is_local_environment)
     serve_static_files: bool = env_bool(

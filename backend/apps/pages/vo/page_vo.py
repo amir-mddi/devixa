@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from enum import IntEnum, StrEnum
 
+from backend.project.settings import general_config
+
 
 class PageWebAppNameVO(StrEnum):
     NAMESPACE = "pages_web"
@@ -21,7 +23,7 @@ class PageWebPathVO(StrEnum):
     CONTACT_US = "contact-us/"
     CHANNELS = "channels/"
     ANDROID_APP = "android/"
-    ANDROID_APP_DOWNLOAD = "downloads/android/"
+    ANDROID_APP_DOWNLOAD = f"downloads/android/Devixa-{general_config.app_version}.apk"
 
 
 class PageWebRouteNameVO(StrEnum):
@@ -222,4 +224,3 @@ class PageChannelLinkVO:
     RUBIKA_DESCRIPTION = "ثبت‌نام، خرید دوره و پیگیری سفارش از طریق روبیکا"
     RUBIKA_ICON = "fa-solid fa-comment-dots"
     RUBIKA_BADGE = "Rubika"
-

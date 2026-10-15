@@ -345,7 +345,6 @@ if swagger_config.use_swagger:
     SPECTACULAR_SETTINGS = swagger_config.spectacular_settings
 
 LIST_OF_PROXIES = general_config.list_of_proxies
-LIST_OF_WHITE_SHABA = general_config.list_of_white_shaba
 
 AUTH_PASSWORD_VALIDATORS = [
     {
